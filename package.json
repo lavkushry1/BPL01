@@ -36,5 +36,8 @@
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@radix-ui/react-separator": "^1.1.4",
+    "qrcode.react": "^4.2.0"
+  }
 }

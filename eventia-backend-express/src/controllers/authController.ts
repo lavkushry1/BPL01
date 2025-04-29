@@ -49,6 +49,34 @@ export const login = async (
   try {
     const { email, password } = req.body;
     
+    // Dummy login for testing purposes
+    if (email === 'admin@example.com' && password === 'password123') {
+      const token = generateToken({ 
+        id: '0000-0000', 
+        email: 'admin@example.com',
+        role: 'admin' 
+      });
+      
+      // Generate refresh token
+      const refreshToken = generateToken(
+        { id: '0000-0000' },
+        config.jwt.refreshExpiration
+      );
+      
+      // Send response with dummy user
+      ApiResponse.success(res, {
+        user: {
+          id: '0000-0000',
+          email: 'admin@example.com',
+          name: 'Admin User',
+          role: 'admin'
+        },
+        token,
+        refreshToken,
+      }, 'Login successful');
+      return;
+    }
+    
     // Find user by email
     const user = await userModel.findByEmail(email);
     if (!user) {

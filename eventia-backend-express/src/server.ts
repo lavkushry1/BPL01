@@ -10,7 +10,20 @@ import { JobService } from './services/job.service';
 async function startServer() {
   try {
     // Test database connection before starting server
-    const dbConnected = await testConnection();
+    let dbConnected = false;
+    
+    try {
+      // Skip DB check if we're in a special test mode
+      if (process.env.SKIP_DB_CHECK === 'true') {
+        logger.warn('Skipping database connection check due to SKIP_DB_CHECK=true');
+        dbConnected = true;
+      } else {
+        dbConnected = await testConnection();
+      }
+    } catch (error) {
+      logger.error('Database connection error:', error);
+    }
+    
     if (!dbConnected) {
       logger.error('Failed to connect to database. Exiting...');
       process.exit(1);

@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { Home, Ticket, MessageSquare } from 'lucide-react';
+import { Home, Ticket, MessageSquare, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 type NavItem = {
@@ -31,6 +30,11 @@ const BottomNav = () => {
       icon: <MessageSquare className="h-5 w-5" />,
       label: t('navbar.support'),
       path: '/support'
+    },
+    {
+      icon: <Shield className="h-5 w-5" />,
+      label: 'Admin',
+      path: '/admin'
     }
   ];
 

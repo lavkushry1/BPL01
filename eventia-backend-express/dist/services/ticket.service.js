@@ -84,7 +84,7 @@ class TicketService {
                 });
             }
             // Notify via WebSocket
-            websocket_service_1.WebsocketService.notifyTicketGeneration(bookingId, booking.user_id, ticketIds);
+            websocket_service_1.WebsocketService.notifyTicketsGenerated(bookingId, booking.user_id, ticketIds.length);
             return ticketIds;
         }
         catch (error) {
@@ -162,22 +162,31 @@ class TicketService {
     }
     /**
      * Generate a PDF ticket
-     * @param ticketId Ticket ID or object containing ticket ID
+     * @param param Object containing ticketId or the ticketId directly
      * @returns Path to generated PDF file
      */
-    static async generatePDF(ticketId) {
+    static async generatePDF(param) {
         try {
-            // Normalize the ticket ID
-            let normalizedId;
-            if (typeof ticketId === 'object' && ticketId !== null && 'id' in ticketId) {
-                normalizedId = String(ticketId.id);
+            // Normalize the ticket ID - handle any parameter format
+            let ticketId;
+            if (typeof param === 'object' && param !== null) {
+                if ('ticketId' in param) {
+                    ticketId = String(param.ticketId);
+                }
+                else if ('id' in param) {
+                    ticketId = String(param.id);
+                }
+                else {
+                    // Default to the entire object stringified
+                    ticketId = String(param);
+                }
             }
             else {
-                normalizedId = String(ticketId);
+                ticketId = String(param);
             }
             // Get ticket details
             const ticket = await (0, db_1.db)('tickets')
-                .where('id', normalizedId)
+                .where('id', ticketId)
                 .first();
             if (!ticket) {
                 throw new Error('Ticket not found');

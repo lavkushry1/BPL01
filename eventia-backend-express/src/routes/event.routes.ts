@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { EventController } from '../controllers/event.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { upload, uploadSingle } from '../middleware/upload';
 import { z } from 'zod';
 
 // Create validation schemas using Zod
@@ -461,5 +462,8 @@ router.delete(
  *         description: Server error
  */
 router.get('/:id/seats', EventController.getEventSeats);
+
+// File upload route for event images
+router.post('/upload-image', authenticate, uploadSingle, EventController.uploadEventImage);
 
 export default router; 

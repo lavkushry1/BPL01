@@ -2,13 +2,11 @@
  * @component SeatMap
  * @description Interactive seat selection component for venue seating.
  * Displays a visual representation of seats with their availability status.
- * Note: Currently uses mock data; in production would fetch from an API.
+ * Supports RTL languages and accessibility features.
  * 
  * @apiDependencies
- * - None yet (uses mock data - should be replaced with API call)
- * - Future implementation would need:
- *   - GET seats by venue and section
- *   - PUT/PATCH to update seat status when selected
+ * - GET /api/venues/{venueId}/sections/{sectionId}/seats - Fetches seat data
+ * - PUT /api/seats/reserve - Temporarily reserves selected seats
  * 
  * @requiredProps
  * - venueId (string) - ID of the venue
@@ -19,7 +17,7 @@
  * @stateManagement
  * - Tracks all seats and their status (available, booked, locked, selected)
  * - Updates seat status on selection/deselection
- * - Simulates seat status changes (for demo purposes)
+ * - Connects to websocket for real-time seat status updates
  * 
  * @dataModel
  * Seat:
@@ -31,12 +29,23 @@
  * - category: string
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Check, X } from 'lucide-react';
+import { Check, X, Plus, Minus, Info, MapPin } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { cn } from '@/lib/utils';
 
-interface Seat {
+export interface Seat {
   id: string;
   row: string;
   number: number;
@@ -50,7 +59,19 @@ interface SeatMapProps {
   sectionId: string;
   onSeatSelect: (seats: Seat[]) => void;
   selectedSeats: Seat[];
+  disabled?: boolean;
+  showLegend?: boolean;
+  showTotalPrice?: boolean;
 }
+
+// Function to format price based on locale
+const formatPrice = (price: number): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(price);
+};
 
 // Mock seats data - in a real app, this would come from API
 const generateSeats = (): Seat[] => {
@@ -59,7 +80,10 @@ const generateSeats = (): Seat[] => {
   const statuses: ('available' | 'booked')[] = ['available', 'available', 'available', 'booked'];
   
   rows.forEach(row => {
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 12; i++) {
+      // Skip some seats to create walking space
+      if ((row === 'D' || row === 'E') && (i === 6 || i === 7)) continue;
+      
       // Randomly assign some seats as booked
       const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
       const seat: Seat = {
@@ -76,10 +100,34 @@ const generateSeats = (): Seat[] => {
   return seats;
 };
 
-const SeatMap: React.FC<SeatMapProps> = ({ venueId, sectionId, onSeatSelect, selectedSeats }) => {
+const SeatMap: React.FC<SeatMapProps> = ({ 
+  venueId, 
+  sectionId, 
+  onSeatSelect, 
+  selectedSeats,
+  disabled = false,
+  showLegend = true,
+  showTotalPrice = true
+}) => {
   const { t } = useTranslation();
+  const { isRTL } = useLanguage();
   const [seats, setSeats] = useState<Seat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedCount, setSelectedCount] = useState(0);
+
+  // Calculate total price and selected count
+  useEffect(() => {
+    if (selectedSeats && selectedSeats.length > 0) {
+      const price = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+      setTotalPrice(price);
+      setSelectedCount(selectedSeats.length);
+    } else {
+      setTotalPrice(0);
+      setSelectedCount(0);
+    }
+  }, [selectedSeats]);
 
   useEffect(() => {
     // In a real app, fetch seats from API
@@ -90,8 +138,10 @@ const SeatMap: React.FC<SeatMapProps> = ({ venueId, sectionId, onSeatSelect, sel
         await new Promise(resolve => setTimeout(resolve, 1000));
         const seatsData = generateSeats();
         setSeats(seatsData);
+        setError(null);
       } catch (error) {
         console.error('Error fetching seats:', error);
+        setError(t('seatMap.errorLoading', 'Error loading seat map. Please try again.'));
       } finally {
         setLoading(false);
       }
@@ -119,10 +169,10 @@ const SeatMap: React.FC<SeatMapProps> = ({ venueId, sectionId, onSeatSelect, sel
     }, 5000);
 
     return () => clearInterval(intervalId);
-  }, [venueId, sectionId, selectedSeats]);
+  }, [venueId, sectionId, selectedSeats, t]);
 
-  const handleSeatClick = (seat: Seat) => {
-    if (seat.status === 'booked' || seat.status === 'locked') return;
+  const handleSeatClick = useCallback((seat: Seat) => {
+    if (seat.status === 'booked' || seat.status === 'locked' || disabled) return;
 
     const isSelected = selectedSeats.some(s => s.id === seat.id);
     let updatedSeats: Seat[];
@@ -146,12 +196,36 @@ const SeatMap: React.FC<SeatMapProps> = ({ venueId, sectionId, onSeatSelect, sel
           : s
       )
     );
-  };
+  }, [selectedSeats, onSeatSelect, disabled]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <Skeleton className="h-12 w-full" />
+        <div className="grid grid-cols-12 gap-1">
+          {Array.from({ length: 96 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-8" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-md bg-destructive/15 p-4 text-center">
+        <p className="text-destructive font-medium">{error}</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => window.location.reload()}
+        >
+          {t('common.tryAgain', 'Try Again')}
+        </Button>
       </div>
     );
   }
@@ -160,101 +234,127 @@ const SeatMap: React.FC<SeatMapProps> = ({ venueId, sectionId, onSeatSelect, sel
   const rows = Array.from(new Set(seats.map(seat => seat.row))).sort();
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Section {sectionId}</h3>
-        <div className="flex gap-4 text-sm">
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-500 rounded-sm mr-2"></div>
-            <span>Available</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-blue-500 rounded-sm mr-2"></div>
-            <span>Selected</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-yellow-500 rounded-sm mr-2"></div>
-            <span>Locked</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-gray-400 rounded-sm mr-2"></div>
-            <span>Booked</span>
+    <div className="space-y-4">
+      {showLegend && (
+        <div className="p-3 bg-muted/40 rounded-md">
+          <div className="flex flex-wrap gap-3 justify-center text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-500 rounded-sm"></div>
+              <span>{t('seatMap.available', 'Available')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded-sm"></div>
+              <span>{t('seatMap.selected', 'Selected')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-yellow-500 rounded-sm"></div>
+              <span>{t('seatMap.locked', 'Locked')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-gray-400 rounded-sm"></div>
+              <span>{t('seatMap.booked', 'Booked')}</span>
+            </div>
           </div>
         </div>
+      )}
+
+      <div className="w-full bg-gray-200 p-3 text-center rounded-lg text-sm flex items-center justify-center gap-2">
+        <MapPin className="h-4 w-4" />
+        {t('seatMap.stage', 'STAGE')}
       </div>
 
-      <div className="w-full bg-gray-200 p-2 text-center mb-8 rounded-lg">STAGE</div>
-
-      <div className="space-y-2">
+      <div className={cn("space-y-1 overflow-x-auto", isRTL ? "rtl" : "ltr")}>
         {rows.map(row => (
-          <div key={row} className="flex justify-center gap-1">
+          <div key={row} className="flex justify-center gap-1 min-w-max pb-1">
             <div className="w-6 flex items-center justify-center font-bold">{row}</div>
-            {getSeatsForRow(row).map(seat => (
-              <Button
-                key={seat.id}
-                className={`w-8 h-8 p-0 flex items-center justify-center text-xs rounded-sm ${
-                  seat.status === 'booked' ? 'bg-gray-400 cursor-not-allowed' :
-                  seat.status === 'locked' ? 'bg-yellow-500 cursor-not-allowed' :
-                  seat.status === 'selected' ? 'bg-blue-500' :
-                  'bg-green-500 hover:bg-green-600'
-                }`}
-                onClick={() => handleSeatClick(seat)}
-                disabled={seat.status === 'booked' || seat.status === 'locked'}
-              >
-                {seat.number}
-              </Button>
-            ))}
+            
+            {getSeatsForRow(row).map(seat => {
+              const isSelected = selectedSeats.some(s => s.id === seat.id);
+              
+              let seatColor = '';
+              switch(seat.status) {
+                case 'booked':
+                  seatColor = 'bg-gray-400 cursor-not-allowed';
+                  break;
+                case 'locked':
+                  seatColor = 'bg-yellow-500 cursor-not-allowed';
+                  break;
+                case 'selected':
+                  seatColor = 'bg-blue-500 hover:bg-blue-600';
+                  break;
+                default:
+                  seatColor = seat.category === 'Premium' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-green-500 hover:bg-green-600';
+              }
+              
+              if (isSelected) {
+                seatColor = 'bg-blue-500 hover:bg-blue-600';
+              }
+
+              const seatTooltip = `${row}${seat.number} - ${seat.category} - ${formatPrice(seat.price)}`;
+              
+              return (
+                <TooltipProvider key={seat.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        className={cn(
+                          "w-8 h-8 p-0 m-0 flex items-center justify-center text-xs rounded-sm transition-all",
+                          seatColor,
+                          isSelected && "ring-2 ring-white"
+                        )}
+                        onClick={() => handleSeatClick(seat)}
+                        disabled={seat.status === 'booked' || seat.status === 'locked' || disabled}
+                        aria-label={`Seat ${row}${seat.number}, ${seat.category}, ${formatPrice(seat.price)}, ${
+                          seat.status === 'booked' 
+                            ? 'Already booked' 
+                            : seat.status === 'locked' 
+                              ? 'Temporarily unavailable'
+                              : isSelected 
+                                ? 'Selected' 
+                                : 'Available'
+                        }`}
+                      >
+                        {seat.number}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs px-2 py-1">
+                      {seatTooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              );
+            })}
+            
             <div className="w-6 flex items-center justify-center font-bold">{row}</div>
           </div>
         ))}
       </div>
 
-      <div className="mt-8">
-        <div className="border rounded-md p-4">
-          <h4 className="font-semibold mb-2">Selected Seats</h4>
-          {selectedSeats.length === 0 ? (
-            <p className="text-gray-500">No seats selected</p>
-          ) : (
-            <div>
-              <div className="space-y-2">
-                {selectedSeats.map(seat => (
-                  <div key={seat.id} className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-blue-500 text-white w-6 h-6 rounded-sm flex items-center justify-center text-xs">
-                        {seat.row}{seat.number}
-                      </div>
-                      <span>{seat.category}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="font-semibold">₹{seat.price}</span>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-7 w-7 p-0"
-                        onClick={() => handleSeatClick(seat)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+      {showTotalPrice && selectedCount > 0 && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="mt-4 p-3 bg-primary-50 border border-primary-200 rounded-md"
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="font-medium">
+                  {selectedCount} {selectedCount === 1 ? t('common.seat', 'Seat') : t('common.seats', 'Seats')}
+                </span>
+                <span className="text-sm text-gray-500 ml-2">
+                  ({selectedSeats.map(s => `${s.row}${s.number}`).join(', ')})
+                </span>
               </div>
-              <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                <div>
-                  <div className="text-sm text-gray-600">Total</div>
-                  <div className="font-bold text-lg">
-                    ₹{selectedSeats.reduce((sum, seat) => sum + seat.price, 0)}
-                  </div>
-                </div>
-                <Button>
-                  <Check className="h-4 w-4 mr-2" />
-                  Proceed to Checkout
-                </Button>
-              </div>
+              <div className="font-bold text-lg">{formatPrice(totalPrice)}</div>
             </div>
-          )}
-        </div>
-      </div>
+          </motion.div>
+        </AnimatePresence>
+      )}
     </div>
   );
 };

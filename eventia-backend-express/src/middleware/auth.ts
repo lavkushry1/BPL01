@@ -65,11 +65,18 @@ export const authorize = (roles: string[]) => {
 
 /**
  * Combined authentication and authorization middleware
- * @param role Optional role to check after authentication
+ * @param roles A single role or array of roles to check after authentication
  */
-export const auth = (role?: string) => {
-  if (role) {
-    return [authenticate, authorize([role])];
+export const auth = (roles?: string | string[]) => {
+  if (!roles) {
+    return authenticate;
   }
-  return authenticate;
+  
+  // Convert single role to array if needed
+  const roleArray = Array.isArray(roles) ? roles : [roles];
+  return [authenticate, authorize(roleArray)];
 };
+
+// Export additional middleware for backwards compatibility
+export const authMiddleware = authenticate;
+export const adminMiddleware = authorize(['admin']);

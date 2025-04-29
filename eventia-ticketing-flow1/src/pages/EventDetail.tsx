@@ -27,11 +27,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { iplMatches } from '@/data/iplData';
-import { events } from '@/data/eventsData';
+import { events as mockEvents, Event as EventData } from '@/data/eventsData';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import SeatMap from '@/components/booking/SeatMap';
-import { Calendar, Clock, MapPin, Tag, ArrowLeft, ShoppingCart, Eye } from 'lucide-react';
+import { Calendar, Clock, MapPin, Tag, ArrowLeft, ShoppingCart, Eye, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,17 +43,28 @@ import { format, parseISO } from 'date-fns';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { EventHeader } from '@/components/events/EventHeader';
 import { EventDescription } from '@/components/events/EventDescription';
-import { TicketSelector, TicketType, SelectedTicket } from '../components/events/TicketSelector';
-import { EnhancedSeatMap, Seat } from '@/components/events/EnhancedSeatMap';
+import { TicketSelector } from '../components/events/TicketSelector';
 import { EventInfo } from '../components/events/EventInfo';
 import { TicketSelection } from '../components/events/TicketSelection';
 import { useCart } from '../hooks/useCart';
+import { EventImageGallery } from '@/components/events/EventImageGallery';
+import { SimilarEvents } from '@/components/events/SimilarEvents';
 
 // Import API services
 import eventApi from '@/services/api/eventApi';
 import bookingApi from '@/services/api/bookingApi';
 import seatMapApi from '@/services/api/seatMapApi';
 import { websocketService } from '@/services/websocket.service';
+
+// Define local interfaces to avoid conflicts
+interface DisplayTicketType {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  availableQuantity: number;
+  maxPerOrder?: number;
+}
 
 interface DisplayEvent {
   id: string;
@@ -64,24 +75,26 @@ interface DisplayEvent {
   venue: string;
   image?: string;
   posterImage?: string;
-  ticketTypes: {
-    id: string;
-    category: string;
-    price: number;
-    available: number;
-    capacity: number;
-  }[];
+  images?: string[];
+  category?: string;
+  ticketTypes: DisplayTicketType[];
   venueInfo: {
     name: string;
     address: string;
-    facilities: string[];
-    rules: string[];
-    map: string;
+    facilities?: string[];
+    rules?: string[];
+    map?: string;
   };
-  schedule: { time: string; title: string; description?: string }[];
+  schedule?: { time: string; title: string; description?: string }[];
+  organizer?: {
+    name: string;
+    description?: string;
+    logo?: string;
+    website?: string;
+  };
 }
 
-interface Seat {
+interface DisplaySeat {
   id: string;
   row: string;
   number: string;
@@ -91,38 +104,27 @@ interface Seat {
   section_id: string;
 }
 
-interface Event {
+interface SelectedTicket {
   id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  imageUrl: string;
-  description: string;
-  organizer: {
-    name: string;
-    description: string;
-  };
-  venue: {
-    name: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  schedule: Array<{
-    time: string;
-    title: string;
-    description: string;
-  }>;
+  quantity: number;
 }
 
-interface TicketType {
+interface CartTicket {
   id: string;
   name: string;
   price: number;
-  description: string;
-  available: number;
+  quantity: number;
+}
+
+// Define a type compatible with the CartItem interface from useCart.tsx
+interface CartItem {
+  eventId: string;
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  eventImage?: string;
+  tickets: CartTicket[];
+  totalAmount: number;
 }
 
 const EventDetail = () => {
@@ -134,7 +136,7 @@ const EventDetail = () => {
   // State
   const [event, setEvent] = useState<DisplayEvent | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<SelectedTicket[]>([]);
-  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<DisplaySeat[]>([]);
   const [seatMap, setSeatMap] = useState<any | null>(null);
   const [hasSeating, setHasSeating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -142,6 +144,7 @@ const EventDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0); // To force refresh seat map
   const [showSeatMap, setShowSeatMap] = useState(false);
+  const [allEvents, setAllEvents] = useState<any[]>([]);
 
   // Fetch event data
   useEffect(() => {
@@ -154,9 +157,52 @@ const EventDetail = () => {
           return;
         }
 
-        // Use mock data instead of API call
-        fallbackToMockData();
-        
+        try {
+          // Try to fetch from API
+          const response = await eventApi.getEvent(id);
+          
+          // Map API response to display format
+          const formattedEvent: DisplayEvent = {
+            id: response.id,
+            title: response.title,
+            description: response.description,
+            date: response.start_date ? format(new Date(response.start_date), 'yyyy-MM-dd') : '',
+            time: response.start_date ? format(new Date(response.start_date), 'HH:mm') : '',
+            venue: response.location,
+            image: response.images?.find((img: any) => img.is_featured)?.url || response.images?.[0]?.url,
+            posterImage: response.poster_image,
+            images: response.images?.map((img: any) => img.url) || [],
+            category: response.category,
+            ticketTypes: response.ticket_types.map((tt: any) => ({
+              id: tt.id,
+              name: tt.name,
+              price: tt.price,
+              description: tt.description,
+              availableQuantity: tt.available,
+              maxPerOrder: Math.min(tt.available, 10)
+            })),
+            venueInfo: {
+              name: response.location,
+              address: response.location
+            },
+            schedule: response.schedule?.map((s: any) => ({
+              time: s.time,
+              title: s.title,
+              description: s.description
+            })),
+            organizer: {
+              name: response.organizer?.name || 'Eventia Events',
+              description: response.organizer?.description || 'Premier event management company for all your entertainment needs',
+              logo: response.organizer?.logo || 'https://placehold.co/100x100',
+              website: response.organizer?.website || 'https://eventia.example.com'
+            }
+          };
+          
+          setEvent(formattedEvent);
+        } catch (apiError) {
+          console.warn('API fetch failed, using fallback data');
+          fallbackToMockData();
+        }
       } catch (error) {
         console.error('Error fetching event:', error);
         toast({
@@ -192,71 +238,77 @@ const EventDetail = () => {
       if (!id) return;
       
       // Try to find in mock data
-      const mockEvent = events.find(e => e.id === id);
+      const mockEvent = mockEvents.find(e => e.id === id);
       const foundMatch = iplMatches.find(m => m.id === id);
       
       if (mockEvent) {
         const displayEvent: DisplayEvent = {
           id: mockEvent.id,
           title: mockEvent.title,
-          description: mockEvent.description,
+          description: mockEvent.description || '',
           date: mockEvent.date,
           time: mockEvent.time,
           venue: mockEvent.venue,
           image: mockEvent.image,
-          ticketTypes: mockEvent.ticketTypes || [],
+          posterImage: mockEvent.posterImage || mockEvent.image,
+          images: mockEvent.image ? [mockEvent.image] : [],
+          category: mockEvent.category,
+          ticketTypes: (mockEvent.ticketTypes || []).map((tt: any) => ({
+            id: tt.id || tt.category,
+            name: tt.name || tt.category,
+            price: tt.price,
+            description: tt.description || '',
+            availableQuantity: tt.available || 100,
+            maxPerOrder: 10
+          })),
           venueInfo: {
             name: mockEvent.venue,
-            address: '',
-            facilities: [],
-            rules: [],
-            map: ''
+            address: mockEvent.venue,
+            facilities: ['Parking', 'Food Court', 'Wheelchair Access'],
+            rules: ['No outside food', 'No photography', 'No re-entry without stamp']
           },
-          schedule: []  // Initialize with empty array
+          schedule: [],
+          organizer: {
+            name: 'Eventia Events',
+            description: 'Premier event management company for all your entertainment needs',
+            logo: 'https://placehold.co/100x100',
+            website: 'https://eventia.example.com'
+          }
         };
-        
-        // Only map schedule if it exists
-        if (mockEvent.schedule && Array.isArray(mockEvent.schedule)) {
-          displayEvent.schedule = mockEvent.schedule.map(s => ({
-            time: s.time,
-            title: s.title,
-            description: s.description
-          }));
-        }
         
         setEvent(displayEvent);
       } else if (foundMatch) {
         const displayEvent: DisplayEvent = {
           id: foundMatch.id,
           title: foundMatch.title,
-          description: "Exciting IPL match",
+          description: foundMatch.description || "Exciting IPL match",
           date: foundMatch.date,
-          time: foundMatch.time,
+          time: foundMatch.time || "19:30",
           venue: foundMatch.venue,
           image: foundMatch.image,
-          ticketTypes: Array.isArray(foundMatch.ticketTypes) ? foundMatch.ticketTypes.map(type => ({
-            ...type,
-            id: type.category,
-            capacity: type.available
-          })) : [],
+          posterImage: foundMatch.image,
+          images: foundMatch.image ? [foundMatch.image] : [],
+          category: 'IPL',
+          ticketTypes: (foundMatch.ticketTypes || []).map((type: any) => ({
+            id: type.category || 'Standard',
+            name: type.category || 'Standard',
+            price: type.price || 500,
+            availableQuantity: type.available || 100,
+            maxPerOrder: 10
+          })),
           venueInfo: {
             name: foundMatch.venue,
-            address: '',
-            facilities: [],
-            rules: [],
-            map: ''
+            address: foundMatch.venue || 'Stadium',
+            facilities: ['Parking', 'Food Court', 'Fan Zone'],
+            rules: ['No outside food', 'No photography without permission', 'No re-entry']
           },
-          schedule: []  // Initialize with empty array
-        };
-        
-        // Create simple schedule if not available
-        displayEvent.schedule = [
-          {
-            time: foundMatch.time,
-            title: "Match Start",
-            description: "Match begins"
+          organizer: {
+            name: 'BCCI',
+            description: 'Board of Control for Cricket in India',
+            logo: 'https://placehold.co/100x100',
+            website: 'https://www.iplt20.com'
           }
-        ];
+        };
         
         setEvent(displayEvent);
       } else {
@@ -320,7 +372,7 @@ const EventDetail = () => {
     setRefreshKey(prev => prev + 1);
   };
 
-  const handleSeatSelect = (seats: Seat[]) => {
+  const handleSeatSelect = (seats: DisplaySeat[]) => {
     setSelectedSeats(seats);
   };
 
@@ -341,31 +393,19 @@ const EventDetail = () => {
   };
 
   const calculateTotal = () => {
-    let total = 0;
+    if (!event) return 0;
     
-    // Add total from regular ticket types
-    selectedTickets.forEach(ticket => {
-      const ticketType = event?.ticketTypes.find(t => t.id === ticket.id);
+    return selectedTickets.reduce((sum, selectedTicket) => {
+      const ticketType = event.ticketTypes.find(tt => tt.id === selectedTicket.id);
       if (ticketType) {
-        total += ticketType.price * ticket.quantity;
+        return sum + (ticketType.price * selectedTicket.quantity);
       }
-    });
-    
-    // Add total from selected seats
-    selectedSeats.forEach(seat => {
-      total += seat.price;
-    });
-    
-    return total;
+      return sum;
+    }, 0);
   };
 
   const handleAddToCart = async () => {
-    if (!event) return;
-    
-    const hasSelectedTickets = selectedTickets.length > 0;
-    const hasSelectedSeats = selectedSeats.length > 0;
-    
-    if (!hasSelectedTickets && !hasSelectedSeats) {
+    if (!event || selectedTickets.length === 0) {
       toast({
         title: "No tickets selected",
         description: "Please select at least one ticket to continue.",
@@ -377,32 +417,28 @@ const EventDetail = () => {
     setIsProcessing(true);
     
     try {
-      // Prepare booking data
-      const bookingData = {
-        event_id: event.id,
-        ticket_type_ids: hasSelectedTickets 
-          ? selectedTickets.map(ticket => ({ id: ticket.id, quantity: ticket.quantity })) 
-          : undefined,
-        seat_ids: hasSelectedSeats ? selectedSeats.map(seat => seat.id) : undefined,
-        currency: "INR"
-      };
-      
-      // Create booking
-      const response = await bookingApi.createBooking(bookingData);
+      // Add to cart context
+      addToCart({
+        eventId: event.id,
+        eventTitle: event.title,
+        eventDate: event.date,
+        eventTime: event.time,
+        eventImage: event.image,
+        tickets: selectedTickets.map(st => {
+          const ticketType = event.ticketTypes.find(tt => tt.id === st.id);
+          return {
+            id: st.id,
+            name: ticketType?.name || '',
+            price: ticketType?.price || 0,
+            quantity: st.quantity
+          };
+        }),
+        totalAmount: calculateTotal()
+      });
       
       toast({
         title: "Tickets added to cart",
         description: "Proceeding to checkout...",
-      });
-      
-      addToCart({
-        bookingId: response.data.data.id,
-        eventTitle: event.title,
-        eventDate: event.date,
-        eventTime: event.time,
-        venue: event.venue,
-        ticketCount: hasSelectedSeats ? selectedSeats.length : selectedTickets.reduce((sum, ticket) => sum + ticket.quantity, 0),
-        amount: calculateTotal()
       });
       
       navigate('/checkout');
@@ -430,6 +466,48 @@ const EventDetail = () => {
       }, 1000);
     }
   };
+
+  // Add this to fetch all events for similar events recommendations
+  useEffect(() => {
+    const fetchAllEvents = async () => {
+      try {
+        // Try to fetch from API
+        const response = await eventApi.getEvents({
+          limit: 20 // Limit to a reasonable number for recommendations
+        });
+        
+        if (response) {
+          setAllEvents(response.map((event: any) => ({
+            id: event.id,
+            title: event.title,
+            image: event.images?.find((img: any) => img.is_featured)?.url || event.images?.[0]?.url,
+            date: event.start_date ? format(new Date(event.start_date), 'MMM d, yyyy') : '',
+            venue: event.location || event.venue || '',
+            category: event.category || ''
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching events for recommendations:', error);
+        // Fallback to mock data if API fails
+        setAllEvents(mockEvents.map(event => ({
+          id: event.id,
+          title: event.title,
+          image: event.image,
+          date: event.date,
+          venue: event.venue,
+          category: event.category
+        })));
+      }
+    };
+    
+    fetchAllEvents();
+  }, []);
+
+  // Convert selectedTickets array to Record<string, number> for TicketSelector
+  const selectedTicketsRecord = selectedTickets.reduce((acc, ticket) => {
+    acc[ticket.id] = ticket.quantity;
+    return acc;
+  }, {} as Record<string, number>);
 
   if (loading) {
     return (
@@ -514,10 +592,28 @@ const EventDetail = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Event Details */}
-            <div className="lg:col-span-2">
-              <h2 className="text-2xl font-bold mb-4">Event Details</h2>
-              <div className="prose prose-sm max-w-none mb-8" dangerouslySetInnerHTML={{ __html: event.description }} />
+            <div className="lg:col-span-2 space-y-6">
+              {/* Event images gallery */}
+              <EventImageGallery 
+                images={(event.images && event.images.length > 0) 
+                  ? event.images 
+                  : [event.image, event.posterImage].filter(Boolean) as string[]}
+                alt={event.title}
+                className="mb-6"
+              />
               
+              {/* Event description */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-2xl font-bold mb-4">Description</h2>
+                <div className="prose max-w-none">
+                  {event.description.split('\n').map((paragraph, idx) => (
+                    <p key={idx} className="mb-4 text-gray-700">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
+
               <Accordion type="single" collapsible className="mb-8">
                 <AccordionItem value="venue-details">
                   <AccordionTrigger>Venue Information</AccordionTrigger>
@@ -567,7 +663,7 @@ const EventDetail = () => {
                     <>
                       <TicketSelector
                         ticketTypes={event.ticketTypes}
-                        selectedTickets={selectedTickets}
+                        selectedTickets={selectedTicketsRecord}
                         onTicketChange={handleTicketChange}
                       />
                       
@@ -585,7 +681,7 @@ const EventDetail = () => {
                                   ₹{(event.ticketTypes.find(t => t.id === ticket.id)?.price || 0).toLocaleString('en-IN')}
                                 </p>
                                 <p className="text-xs text-gray-500">
-                                  {event.ticketTypes.find(t => t.id === ticket.id)?.available} available
+                                  {event.ticketTypes.find(t => t.id === ticket.id)?.availableQuantity} available
                                 </p>
                               </div>
                               <div className="flex items-center space-x-2">
@@ -610,12 +706,13 @@ const EventDetail = () => {
                                   variant="outline"
                                   onClick={() => {
                                     const current = ticket.quantity;
-                                    if (current < event.ticketTypes.find(t => t.id === ticket.id)?.available || 0) {
+                                    const maxAvailable = event.ticketTypes.find(t => t.id === ticket.id)?.availableQuantity || 0;
+                                    if (current < maxAvailable) {
                                       handleTicketChange(ticket.id, current + 1);
                                     }
                                   }}
                                   disabled={
-                                    (ticket.quantity) >= event.ticketTypes.find(t => t.id === ticket.id)?.available || 0
+                                    ticket.quantity >= (event.ticketTypes.find(t => t.id === ticket.id)?.availableQuantity || 0)
                                   }
                                 >
                                   +
@@ -628,12 +725,19 @@ const EventDetail = () => {
                     </>
                   ) : (
                     <>
-                      <EnhancedSeatMap 
-                        seatMap={seatMap}
-                        selectedSeats={selectedSeats}
-                        onSeatSelect={handleSeatSelect}
-                        isLoading={loading}
-                      />
+                      <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-2">Select Your Seats</h3>
+                        <p className="text-sm text-gray-600">
+                          Click on available seats to select them. Selected seats will be highlighted.
+                        </p>
+                      </div>
+                      
+                      <div className="seat-map-container bg-gray-100 p-4 rounded">
+                        {/* Placeholder for seat map */}
+                        <div className="flex justify-center items-center p-8">
+                          <p className="text-gray-500">Seat map loading...</p>
+                        </div>
+                      </div>
                     </>
                   )}
                 </CardContent>
@@ -675,6 +779,16 @@ const EventDetail = () => {
           </div>
         </div>
       </main>
+      
+      <div className="container mx-auto px-4 pb-16">
+        {/* Similar Events section */}
+        <SimilarEvents 
+          currentEventId={event.id}
+          category={event.category || ''}
+          events={allEvents}
+          isLoading={loading}
+        />
+      </div>
       
       <Footer />
     </div>

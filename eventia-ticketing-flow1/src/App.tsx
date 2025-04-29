@@ -2,9 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 // Import our theme provider and CSS variables
 import { ThemeProvider } from "@/styles/ThemeProvider";
@@ -13,39 +13,53 @@ import "@/styles/theme.css";
 // Import Authentication Provider
 import { AuthProvider } from "@/contexts/AuthContext";
 import PersistLogin from "@/components/auth/PersistLogin";
-import RequireAuth from "@/components/auth/RequireAuth";
+import AdminProtectedRoute from "@/components/auth/AdminProtectedRoute";
+import AdminEntry from "@/components/auth/AdminEntry";
+import SessionTimeoutMonitor from "@/components/auth/SessionTimeoutMonitor";
 import Unauthorized from "@/pages/Unauthorized";
 
+// Import Language Provider
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import RTLProvider from "@/components/ui/RTLProvider";
+
+// Import Cart Provider
+import { CartProvider } from "@/hooks/useCart";
+
+// Public Pages
 import Index from "./pages/Index";
 import Events from "./pages/Events";
 import EventDetail from "./pages/EventDetail";
 import Payment from "./pages/Payment";
 import Confirmation from "./pages/Confirmation";
 import Checkout from "./pages/Checkout";
+import Cart from "./pages/Cart";
 import DeliveryDetails from "./pages/DeliveryDetails";
-import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminEventManagement from "./pages/AdminEventManagement";
-import AdminUpiManagement from "./pages/AdminUpiManagement";
-import AdminUtrVerification from "./pages/AdminUtrVerification";
-import AdminDiscountManagement from "./pages/AdminDiscountManagement";
 import ARVenuePreview from "./pages/ARVenuePreview";
 import IPLTickets from "./pages/IPLTickets";
 import Support from "./pages/Support";
 import NotFound from "./pages/NotFound";
 import Debug from "./pages/Debug";
 import ApiTestPage from "./pages/ApiTestPage";
-import BottomNav from "./components/layout/BottomNav";
+import SeatSelectionPage from "./pages/booking/SeatSelectionPage";
+
+// Admin Pages
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminUpiManagement from "./pages/AdminUpiManagement";
+import AdminEventManagement from "./pages/AdminEventManagement";
+
+// Components
+import BottomNavigation from "./components/mobile/BottomNavigation";
+import NetworkStatus from "./components/ui/NetworkStatus";
 import SafeTransition from "./components/utils/SafeTransition";
+import AccessibilitySettings from "./components/ui/AccessibilitySettings";
+import LiteModeBanner from "./components/mobile/LiteModeBanner";
 
 // Import for language configuration
 import "./i18n/config";
 
-// Define role types
-const ROLES = {
-  User: 'user',
-  Admin: 'admin'
-};
+// Security utilities
+import { configureHSTS } from "./utils/certificatePinning";
+import { isWebAuthnSupported, checkBiometricCapability } from "./utils/webauthn";
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -61,106 +75,166 @@ const queryClient = new QueryClient({
 const AnimatedRoutes = () => {
   const location = useLocation();
   
+  // This helps with Core Web Vitals by ensuring scrolling to top on page changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+  
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* Public Routes */}
+        {/* Public Routes - No authentication required */}
         <Route path="/" element={
           <SafeTransition>
             <Index />
           </SafeTransition>
         } />
+        
         <Route path="/events" element={
           <SafeTransition>
             <Events />
           </SafeTransition>
         } />
+        
         <Route path="/events/:id" element={
           <SafeTransition>
             <EventDetail />
           </SafeTransition>
         } />
+        
+        <Route path="/cart" element={
+          <SafeTransition>
+            <Cart />
+          </SafeTransition>
+        } />
+        
+        <Route path="/seats" element={
+          <SafeTransition>
+            <SeatSelectionPage />
+          </SafeTransition>
+        } />
+        
         <Route path="/delivery-details" element={
           <SafeTransition>
             <DeliveryDetails />
           </SafeTransition>
         } />
+        
         <Route path="/payment/:bookingId" element={
           <SafeTransition>
             <Payment />
           </SafeTransition>
         } />
+        
         <Route path="/confirmation/:bookingId" element={
           <SafeTransition>
             <Confirmation />
           </SafeTransition>
         } />
+        
         <Route path="/checkout" element={
           <SafeTransition>
             <Checkout />
           </SafeTransition>
         } />
+        
         <Route path="/ipl-tickets" element={
           <SafeTransition>
             <IPLTickets />
           </SafeTransition>
         } />
+        
         <Route path="/support" element={
           <SafeTransition>
             <Support />
           </SafeTransition>
         } />
-        <Route path="/admin-login" element={
-          <SafeTransition>
-            <AdminLogin />
-          </SafeTransition>
-        } />
+        
         <Route path="/venue-preview/:id" element={
           <SafeTransition>
             <ARVenuePreview />
           </SafeTransition>
         } />
+        
         <Route path="/debug" element={<Debug />} />
+        
         <Route path="/api-test" element={
           <SafeTransition>
             <ApiTestPage />
           </SafeTransition>
         } />
+        
         <Route path="/unauthorized" element={
           <SafeTransition>
             <Unauthorized />
           </SafeTransition>
         } />
 
-        {/* Protected Routes with Authentication */}
-        <Route element={<PersistLogin />}>
-          <Route element={<RequireAuth allowedRoles={[ROLES.Admin]} />}>
-            {/* Admin Routes */}
-            <Route path="/admin-dashboard" element={
-              <SafeTransition>
-                <AdminDashboard />
-              </SafeTransition>
-            } />
-            <Route path="/admin-events" element={
-              <SafeTransition>
-                <AdminEventManagement />
-              </SafeTransition>
-            } />
-            <Route path="/admin-upi" element={
-              <SafeTransition>
-                <AdminUpiManagement />
-              </SafeTransition>
-            } />
-            <Route path="/admin-discounts" element={
-              <SafeTransition>
-                <AdminDiscountManagement />
-              </SafeTransition>
-            } />
-            <Route path="/admin-utr" element={
-              <SafeTransition>
-                <AdminUtrVerification />
-              </SafeTransition>
-            } />
+        {/* Admin Portal Entry Point */}
+        <Route path="/admin" element={<AdminEntry />}>
+          {/* Protected Admin Routes */}
+          <Route element={<PersistLogin />}>
+            <Route element={<AdminProtectedRoute />}>
+              {/* Admin Dashboard and Stats */}
+              <Route index element={<Navigate to="settings" replace />} />
+              
+              <Route path="settings" element={
+                <SafeTransition>
+                  <AdminDashboardPage activeTab="settings" />
+                </SafeTransition>
+              } />
+              
+              <Route path="stats" element={
+                <SafeTransition>
+                  <AdminDashboardPage activeTab="overview" />
+                </SafeTransition>
+              } />
+              
+              {/* Redirect /admin/overview to /admin/stats */}
+              <Route path="overview" element={<Navigate to="/admin/stats" replace />} />
+              
+              {/* User Management */}
+              <Route path="users" element={
+                <SafeTransition>
+                  <AdminDashboardPage activeTab="users" />
+                </SafeTransition>
+              } />
+              
+              {/* Delivery Management */}
+              <Route path="deliveries" element={
+                <SafeTransition>
+                  <AdminDashboardPage activeTab="deliveries" />
+                </SafeTransition>
+              } />
+              
+              {/* Event Management */}
+              <Route path="events" element={
+                <SafeTransition>
+                  <AdminDashboardPage activeTab="events" />
+                </SafeTransition>
+              } />
+              
+              {/* Payment Approval */}
+              <Route path="payments" element={
+                <SafeTransition>
+                  <AdminDashboardPage activeTab="payments" />
+                </SafeTransition>
+              } />
+              
+              {/* UPI Management (Full Page View) */}
+              <Route path="upi-settings" element={
+                <SafeTransition>
+                  <AdminUpiManagement />
+                </SafeTransition>
+              } />
+              
+              {/* Full Event Management */}
+              <Route path="events-full" element={
+                <SafeTransition>
+                  <AdminEventManagement />
+                </SafeTransition>
+              } />
+            </Route>
           </Route>
         </Route>
 
@@ -175,34 +249,20 @@ const AnimatedRoutes = () => {
   );
 };
 
-// Global error handlers
-if (typeof window !== 'undefined') {
-  // Handle uncaught errors
-  window.addEventListener('error', (event) => {
-    console.error('Global error caught:', event.error);
-  });
-
-  // Handle unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
-  });
-}
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <CartProvider>
           <BrowserRouter>
             <AnimatedRoutes />
-            <BottomNav />
+            <Toaster />
+            <Sonner />
           </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+        </CartProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

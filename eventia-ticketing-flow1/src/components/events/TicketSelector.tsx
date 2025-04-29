@@ -1,4 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Ticket } from 'lucide-react';
 
 export interface TicketType {
   id: string;
@@ -8,6 +13,7 @@ export interface TicketType {
   currency?: string;
   availableQuantity: number;
   maxPerOrder?: number;
+  features?: string[];
 }
 
 export interface SelectedTicket {
@@ -17,179 +23,127 @@ export interface SelectedTicket {
 
 interface TicketSelectorProps {
   ticketTypes: TicketType[];
-  selectedTickets: SelectedTicket[];
+  selectedTickets: Record<string, number>;
   onTicketChange: (ticketId: string, quantity: number) => void;
+  className?: string;
 }
 
 export const TicketSelector: React.FC<TicketSelectorProps> = ({
   ticketTypes,
   selectedTickets,
   onTicketChange,
+  className
 }) => {
-  const formatCurrency = (price: number, currency?: string) => {
-    const currencyCode = currency || 'INR';
-    
-    return new Intl.NumberFormat('en-US', {
+  const { t } = useTranslation();
+  
+  const formatCurrency = (price: number, currency = 'INR') => {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: currencyCode,
+      currency,
+      maximumFractionDigits: 0
     }).format(price);
   };
 
-  const getSelectedQuantity = (ticketId: string): number => {
-    const selectedTicket = selectedTickets.find(ticket => ticket.id === ticketId);
-    return selectedTicket ? selectedTicket.quantity : 0;
+  const calculateTotal = () => {
+    return ticketTypes.reduce((total, ticket) => {
+      const quantity = selectedTickets[ticket.id] || 0;
+      return total + (quantity * ticket.price);
+    }, 0);
   };
 
+  const totalQuantity = Object.values(selectedTickets).reduce((sum, qty) => sum + qty, 0);
+  const totalPrice = calculateTotal();
+
   return (
-    <div>
-      <h3 style={{
-        fontSize: 'var(--font-size-xl)',
-        fontWeight: 'var(--font-weight-semibold)',
-        marginBottom: 'var(--spacing-4)',
-      }}>
-        Select Tickets
-      </h3>
+    <div className={cn("bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden", className)}>
+      <div className="p-4 bg-gray-50 border-b border-gray-200">
+        <h3 className="font-semibold text-lg flex items-center">
+          <Ticket className="w-5 h-5 mr-2 text-primary" />
+          {t('eventDetails.tickets', 'Tickets')}
+        </h3>
+      </div>
       
-      <div>
+      <div className="divide-y divide-gray-100">
         {ticketTypes.map((ticket) => {
-          const selectedQuantity = getSelectedQuantity(ticket.id);
+          const quantity = selectedTickets[ticket.id] || 0;
           const isAvailable = ticket.availableQuantity > 0;
-          const maxAllowed = ticket.maxPerOrder || ticket.availableQuantity;
+          const isMaxReached = quantity >= Math.min(ticket.maxPerOrder || 10, ticket.availableQuantity);
+          const isSelected = quantity > 0;
           
           return (
             <div 
               key={ticket.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 'var(--spacing-4)',
-                borderRadius: 'var(--border-radius-md)',
-                border: '1px solid var(--color-neutral-200)',
-                backgroundColor: isAvailable ? 'var(--color-neutral-white)' : 'var(--color-neutral-100)',
-                marginBottom: 'var(--spacing-3)',
-                transition: 'all 0.2s',
-              }}
+              className={cn(
+                "p-4 transition-colors",
+                isSelected ? "bg-primary-50" : "",
+                !isAvailable ? "opacity-60" : ""
+              )}
             >
-              <div style={{ flex: 1 }}>
-                <h4 style={{
-                  margin: 0,
-                  fontSize: 'var(--font-size-md)',
-                  fontWeight: 'var(--font-weight-semibold)',
-                  color: isAvailable ? 'var(--color-neutral-900)' : 'var(--color-neutral-500)',
-                }}>
-                  {ticket.name}
-                </h4>
-                
-                {ticket.description && (
-                  <p style={{
-                    margin: '0.25rem 0 0',
-                    fontSize: 'var(--font-size-sm)',
-                    color: isAvailable ? 'var(--color-neutral-600)' : 'var(--color-neutral-500)',
-                  }}>
-                    {ticket.description}
-                  </p>
-                )}
-                
-                <div style={{
-                  fontSize: 'var(--font-size-sm)',
-                  color: isAvailable ? 'var(--color-neutral-700)' : 'var(--color-neutral-500)',
-                  marginTop: 'var(--spacing-1)',
-                }}>
-                  {isAvailable ? (
-                    <span key="available">Available: {ticket.availableQuantity}</span>
-                  ) : (
-                    <span key="sold-out">Sold Out</span>
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <div className="flex items-center">
+                    <h4 className="font-medium text-base">{ticket.name}</h4>
+                    {ticket.availableQuantity < 10 && (
+                      <Badge variant="outline" className="ml-2 text-xs bg-amber-50 text-amber-800 border-amber-200">
+                        {t('eventDetails.limitedAvailability', 'Limited')}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-gray-600 text-sm mt-1">{ticket.description}</p>
+                  
+                  {ticket.features && ticket.features.length > 0 && (
+                    <div className="mt-2 space-x-2">
+                      {ticket.features.map((feature, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {feature}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
+                  
+                  <div className="text-xs text-gray-500 mt-2">
+                    {ticket.availableQuantity} {t('eventDetails.available', 'available')}
+                  </div>
+                </div>
+                
+                <div className="text-right">
+                  <div className="font-semibold text-lg">{formatCurrency(ticket.price)}</div>
                 </div>
               </div>
               
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--spacing-3)',
-              }}>
-                <div style={{
-                  fontWeight: 'var(--font-weight-medium)',
-                  color: isAvailable ? 'var(--color-neutral-900)' : 'var(--color-neutral-500)',
-                }}>
-                  {formatCurrency(ticket.price, ticket.currency)}
-                </div>
-                
+              <div className="flex items-center justify-end gap-3 mt-3">
                 {isAvailable ? (
-                  <div key="quantity-selector" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--spacing-2)',
-                  }}>
-                    <button
-                      onClick={() => onTicketChange(ticket.id, Math.max(0, selectedQuantity - 1))}
-                      disabled={selectedQuantity <= 0}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: 'var(--border-radius-full)',
-                        border: '1px solid var(--color-neutral-300)',
-                        backgroundColor: selectedQuantity <= 0 ? 'var(--color-neutral-100)' : 'var(--color-neutral-white)',
-                        color: selectedQuantity <= 0 ? 'var(--color-neutral-400)' : 'var(--color-neutral-900)',
-                        fontSize: 'var(--font-size-md)',
-                        fontWeight: 'var(--font-weight-medium)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: selectedQuantity <= 0 ? 'not-allowed' : 'pointer',
-                      }}
+                  <div className="flex items-center">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => onTicketChange(ticket.id, Math.max(0, quantity - 1))}
+                      disabled={quantity === 0}
                     >
-                      -
-                    </button>
+                      <span className="sr-only">Decrease</span>
+                      <span aria-hidden="true">-</span>
+                    </Button>
                     
-                    <span style={{
-                      width: '32px',
-                      textAlign: 'center',
-                      fontWeight: 'var(--font-weight-medium)',
-                      fontSize: 'var(--font-size-md)',
-                    }}>
-                      {selectedQuantity}
+                    <span className="w-10 text-center font-medium">
+                      {quantity}
                     </span>
                     
-                    <button
-                      onClick={() => onTicketChange(ticket.id, Math.min(maxAllowed, selectedQuantity + 1))}
-                      disabled={selectedQuantity >= maxAllowed}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: 'var(--border-radius-full)',
-                        border: '1px solid var(--color-neutral-300)',
-                        backgroundColor: selectedQuantity >= maxAllowed ? 'var(--color-neutral-100)' : 'var(--color-neutral-white)',
-                        color: selectedQuantity >= maxAllowed ? 'var(--color-neutral-400)' : 'var(--color-neutral-900)',
-                        fontSize: 'var(--font-size-md)',
-                        fontWeight: 'var(--font-weight-medium)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: selectedQuantity >= maxAllowed ? 'not-allowed' : 'pointer',
-                      }}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      onClick={() => onTicketChange(ticket.id, quantity + 1)}
+                      disabled={isMaxReached}
                     >
-                      +
-                    </button>
+                      <span className="sr-only">Increase</span>
+                      <span aria-hidden="true">+</span>
+                    </Button>
                   </div>
                 ) : (
-                  <button
-                    key="sold-out-button"
-                    disabled
-                    style={{
-                      padding: 'var(--spacing-1) var(--spacing-3)',
-                      borderRadius: 'var(--border-radius-md)',
-                      border: '1px solid var(--color-neutral-300)',
-                      backgroundColor: 'var(--color-neutral-100)',
-                      color: 'var(--color-neutral-400)',
-                      fontSize: 'var(--font-size-sm)',
-                      fontWeight: 'var(--font-weight-medium)',
-                      cursor: 'not-allowed',
-                    }}
-                  >
-                    Sold Out
-                  </button>
+                  <Badge variant="outline" className="bg-gray-100 text-gray-500 border-gray-300">
+                    {t('events.soldOut', 'Sold Out')}
+                  </Badge>
                 )}
               </div>
             </div>
@@ -197,17 +151,24 @@ export const TicketSelector: React.FC<TicketSelectorProps> = ({
         })}
         
         {ticketTypes.length === 0 && (
-          <div key="no-tickets" style={{
-            padding: 'var(--spacing-4)',
-            textAlign: 'center',
-            color: 'var(--color-neutral-500)',
-            border: '1px dashed var(--color-neutral-300)',
-            borderRadius: 'var(--border-radius-md)',
-          }}>
-            No tickets available for this event
+          <div className="p-8 text-center text-gray-500">
+            <p>{t('eventDetails.noTicketsAvailable', 'No tickets available at the moment')}</p>
           </div>
         )}
       </div>
+      
+      {/* Summary */}
+      {totalQuantity > 0 && (
+        <div className="p-4 bg-gray-50 border-t border-gray-200">
+          <div className="flex justify-between items-center font-medium">
+            <span>{t('eventDetails.total', 'Total')}:</span>
+            <span className="text-lg">{formatCurrency(totalPrice)}</span>
+          </div>
+          <div className="text-sm text-gray-500 mt-1">
+            {totalQuantity} {totalQuantity === 1 ? t('common.ticket', 'ticket') : t('common.tickets', 'tickets')}
+          </div>
+        </div>
+      )}
     </div>
   );
 }; 

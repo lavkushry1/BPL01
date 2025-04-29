@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -13,11 +13,11 @@ import { login } from '@/services/api/authApi';
 // Test credentials for quick access
 const TEST_CREDENTIALS = {
   email: 'admin@example.com',
-  password: 'admin123'
+  password: 'password123'
 };
 
 const AdminLogin = () => {
-  const { setUser, setAccessToken, setPersist } = useAuth();
+  const { setUser, setAccessToken, setPersist, isAuthenticated, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberDevice, setRememberDevice] = useState(false);
@@ -26,6 +26,14 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/admin-dashboard';
+
+  // Redirect if already logged in as admin
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'admin') {
+      // If user is already authenticated as admin, redirect to dashboard
+      navigate('/admin-dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate, user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const app_1 = require("./app");
 const config_1 = require("./config");
@@ -11,14 +10,26 @@ const job_service_1 = require("./services/job.service");
 async function startServer() {
     try {
         // Test database connection before starting server
-        const dbConnected = await (0, db_1.testConnection)();
+        let dbConnected = false;
+        try {
+            // Skip DB check if we're in a special test mode
+            if (process.env.SKIP_DB_CHECK === 'true') {
+                logger_1.logger.warn('Skipping database connection check due to SKIP_DB_CHECK=true');
+                dbConnected = true;
+            }
+            else {
+                dbConnected = await (0, db_1.testConnection)();
+            }
+        }
+        catch (error) {
+            logger_1.logger.error('Database connection error:', error);
+        }
         if (!dbConnected) {
             logger_1.logger.error('Failed to connect to database. Exiting...');
             process.exit(1);
         }
-        const app = (0, app_1.createApp)();
-        // Create HTTP server
-        const server = (0, http_1.createServer)(app);
+        // Create Express app with HTTP server
+        const { app, server } = await (0, app_1.createApp)();
         // Initialize Socket.IO
         const io = new socket_io_1.Server(server, {
             cors: {
@@ -27,8 +38,8 @@ async function startServer() {
                 credentials: true
             }
         });
-        // Initialize WebSocket service
-        websocket_service_1.WebsocketService.initialize(io);
+        // Initialize WebSocket service with the Socket.IO server
+        websocket_service_1.WebsocketService.initialize(server);
         // Initialize background job service
         job_service_1.JobService.initialize();
         // Start server

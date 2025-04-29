@@ -137,4 +137,158 @@
   --z-index-40: 40;
   --z-index-50: 50;
   --z-index-auto: auto;
+
+  /* RTL Support */
+  --start-direction: left;
+  --end-direction: right;
+}
+
+/* RTL Support */
+html[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+html[dir="rtl"] .rtl-rotate-180 {
+  transform: rotate(180deg);
+}
+
+html[dir="rtl"] .rtl-mirror {
+  transform: rotateY(180deg);
+}
+
+/* RTL text alignment helpers */
+html[dir="rtl"] .rtl-text-right {
+  text-align: left;
+}
+
+html[dir="rtl"] .rtl-text-left {
+  text-align: right;
+}
+
+/* RTL flexbox direction */
+html[dir="rtl"] .rtl-flex-row-reverse {
+  flex-direction: row-reverse;
+}
+
+/* RTL margin/padding adjustments */
+html[dir="rtl"] .rtl-ml-auto {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html[dir="rtl"] .rtl-mr-auto {
+  margin-right: 0;
+  margin-left: auto;
+}
+
+/* Start/End concept for RTL languages */
+.margin-start {
+  margin-left: 0;
+  margin-right: 0;
+  margin-left: var(--start-direction, 1rem);
+}
+
+.padding-start {
+  padding-left: 0;
+  padding-right: 0;
+  padding-left: var(--start-direction, 1rem);
+}
+
+.start-0 {
+  left: auto;
+  right: auto;
+  left: 0;
+}
+
+html[dir="rtl"] .start-0 {
+  left: auto;
+  right: 0;
+}
+
+.end-0 {
+  left: auto;
+  right: 0;
+}
+
+html[dir="rtl"] .end-0 {
+  left: 0;
+  right: auto;
+}
+
+/* High Contrast Mode */
+body.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #ffff00;
+  --primary-foreground: #000000;
+  --secondary: #00ffff;
+  --secondary-foreground: #000000;
+  --muted: #333333;
+  --muted-foreground: #ffffff;
+  --accent: #ff00ff;
+  --accent-foreground: #000000;
+  --destructive: #ff0000;
+  --destructive-foreground: #ffffff;
+  --border: #ffffff;
+  --input: #ffffff;
+  --ring: #ffff00;
+}
+
+body.high-contrast img {
+  filter: grayscale(0%) contrast(150%);
+}
+
+body.high-contrast a {
+  text-decoration: underline;
+}
+
+body.high-contrast button,
+body.high-contrast .btn,
+body.high-contrast [role="button"] {
+  border: 2px solid currentColor !important;
+}
+
+body.high-contrast :focus {
+  outline: 3px solid var(--primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* Screen Reader Optimizations */
+body.sr-optimized .sr-only {
+  position: relative !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0.5rem !important;
+  margin: 0.5rem !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+  border: 1px solid var(--border) !important;
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+body.sr-optimized [aria-hidden="true"] {
+  display: none !important;
+}
+
+body.sr-optimized a,
+body.sr-optimized button,
+body.sr-optimized [role="button"] {
+  text-decoration: underline;
+  padding: 0.5rem !important;
+  min-height: 44px !important;
+  min-width: 44px !important;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 } 

@@ -7,18 +7,29 @@ import axios from 'axios';
  * @returns A function that when called, refreshes the access token
  */
 const useRefreshToken = () => {
-  const { setAccessToken, setUser } = useAuth();
+  const { setAccessToken, setUser, persist } = useAuth();
 
   const refresh = async () => {
+    // Don't attempt refresh if persist is disabled
+    if (!persist) {
+      return null;
+    }
+    
     try {
       // Use a separate axios instance (not the one with auth headers)
       const response = await axios.get(`${API_URL}/auth/refresh`, {
         withCredentials: true // Important: needed to include cookies in the request
       });
 
+      if (!response.data?.accessToken) {
+        throw new Error('No access token returned from refresh endpoint');
+      }
+
       // Set the new access token and user
       setAccessToken(response.data.accessToken);
-      setUser(response.data.user);
+      if (response.data.user) {
+        setUser(response.data.user);
+      }
 
       return response.data.accessToken;
     } catch (error) {

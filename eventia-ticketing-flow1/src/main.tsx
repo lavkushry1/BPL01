@@ -5,9 +5,30 @@ import './index.css';
 import './i18n/config';
 import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
+import { initServiceWorker } from './utils/serviceWorker';
+import { toast } from './hooks/use-toast';
 
 // Import error tracker to initialize it
 import './utils/errorTracker';
+
+// Initialize Service Worker for PWA capabilities
+initServiceWorker(() => {
+  // Show update notification when a new version is available
+  toast({
+    title: "Update Available",
+    description: "A new version of Eventia is available. Reload for the latest features.",
+    variant: "default",
+    action: (
+      <button
+        onClick={() => window.location.reload()}
+        className="rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+      >
+        Update
+      </button>
+    ),
+    duration: 0, // Persist until dismissed
+  });
+});
 
 // Initialize Sentry
 if (import.meta.env.VITE_SENTRY_DSN) {

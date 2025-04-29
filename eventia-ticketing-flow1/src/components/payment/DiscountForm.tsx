@@ -2,112 +2,72 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from '@/hooks/use-toast';
-import { validateDiscountCode, getDiscountByCode } from '@/services/api/discountApi';
 import { Badge } from '@/components/ui/badge';
-import { TagIcon } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { Check, TagIcon, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface DiscountFormProps {
   eventId?: string;
-  onApplyDiscount: (amount: number, code: string, isAutoApplied?: boolean) => void;
+  onApplyDiscount: (amount: number, code: string) => void;
   disabled?: boolean;
-  initialDiscount?: { 
-    amount: number; 
-    code: string; 
-    isAutoApplied?: boolean;
-  };
 }
 
 /**
  * DiscountForm component
- * Handles discount code entry, validation, and auto-application.
- * Now supports auto-applying discount codes from localStorage and query params.
- *
- * Props:
- * - eventId: string (optional) - Event for which to apply discount
- * - onApplyDiscount: function - Callback when discount is applied
- * - disabled: boolean (optional) - Disable form
- * - initialDiscount: { amount, code, isAutoApplied } (optional) - Pre-applied discount
+ * Allows users to enter and apply discount codes during checkout
  */
 const DiscountForm: React.FC<DiscountFormProps> = ({ 
   eventId, 
   onApplyDiscount, 
-  disabled = false,
-  initialDiscount 
+  disabled = false
 }) => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [discountCode, setDiscountCode] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
-  const [autoApplyDiscount, setAutoApplyDiscount] = useState<any>(null);
-  const location = useLocation();
+  const [appliedCode, setAppliedCode] = useState('');
+  const [discountAmount, setDiscountAmount] = useState(0);
 
-  // Try to fetch auto-apply discount when component mounts
-  useEffect(() => {
-    const fetchAutoApplyDiscount = async () => {
-      // 1. Check query param
-      const params = new URLSearchParams(location.search);
-      const queryCode = params.get('discount') || params.get('code');
-      // 2. Check localStorage
-      const localCode = localStorage.getItem('discountCode');
-      let foundCode = queryCode || localCode;
-      if (foundCode) {
-        setDiscountCode(foundCode);
-        setIsValidating(true);
-        try {
-          // Default to 0 for amount since we don't have one yet, will be validated properly during checkout
-          const result = await validateDiscountCode(foundCode, 0);
-          if (result && result.valid) {
-            setAutoApplyDiscount(result.discount);
-            onApplyDiscount(result.discount.value, result.discount.code, true);
-            setIsApplied(true);
-            toast({
-              title: t('payment.discountApplied'),
-              description: t('payment.savedAmount', { amount: result.discount.value }),
-            });
-            return;
-          }
-        } catch (e) {
-          // Fallback to backend auto-apply if validation fails
-        } finally {
-          setIsValidating(false);
-        }
-      }
-      // 3. Backend auto-apply (if not already applied)
-      if (eventId && !autoApplyDiscount) {
-        try {
-          // Instead of auto-apply from Supabase, we now need to call the Express API
-          // This would need to be implemented in the backend if not already available
-          const response = await fetch(`${import.meta.env.VITE_API_URL}/discounts/auto-apply?eventId=${eventId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.discount) {
-              setAutoApplyDiscount(data.discount);
-              onApplyDiscount(data.discount.value, data.discount.code, true);
-              setIsApplied(true);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching auto-apply discount:', error);
-        }
-      }
+  // Mock validation - in a real app this would call an API
+  const validateDiscountCode = async (code: string): Promise<{
+    valid: boolean;
+    discount: { value: number; code: string } | null;
+    message?: string;
+  }> => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock valid codes
+    const validCodes: Record<string, number> = {
+      'WELCOME10': 500,
+      'EVENTIA2025': 1000,
+      'NEWYEAR': 750
     };
-    // If no initial discount is provided, try to fetch auto-apply
-    if (!initialDiscount) {
-      fetchAutoApplyDiscount();
-    } else {
-      setDiscountCode(initialDiscount.code);
-      setIsApplied(true);
+    
+    if (code in validCodes) {
+      return {
+        valid: true,
+        discount: {
+          code,
+          value: validCodes[code]
+        }
+      };
     }
-  }, [eventId, onApplyDiscount, initialDiscount, location.search]);
+    
+    return {
+      valid: false,
+      discount: null,
+      message: t('payment.invalidCode')
+    };
+  };
 
   const handleApplyDiscount = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!discountCode.trim()) {
       toast({
-        title: t('payment.invalidDiscountCode'),
+        title: t('payment.error'),
         description: t('payment.enterValidCode'),
         variant: "destructive",
       });
@@ -116,26 +76,28 @@ const DiscountForm: React.FC<DiscountFormProps> = ({
 
     setIsValidating(true);
     try {
-      // Default to 0 for amount since we don't have one yet, will be validated properly during checkout
-      const result = await validateDiscountCode(discountCode, 0);
+      const result = await validateDiscountCode(discountCode);
       
-      if (!result || !result.valid) {
+      if (!result.valid) {
         toast({
           title: t('payment.invalidDiscountCode'),
-          description: result?.message || t('payment.discountNotValid'),
+          description: result.message || t('payment.discountNotValid'),
           variant: "destructive",
         });
         return;
       }
       
-      // Manual discount takes precedence over auto-apply
-      onApplyDiscount(result.discount.value, result.discount.code, false);
-      setIsApplied(true);
-      
-      toast({
-        title: t('payment.discountApplied'),
-        description: t('payment.savedAmount', { amount: result.discount.value }),
-      });
+      if (result.discount) {
+        onApplyDiscount(result.discount.value, result.discount.code);
+        setAppliedCode(result.discount.code);
+        setDiscountAmount(result.discount.value);
+        setIsApplied(true);
+        
+        toast({
+          title: t('payment.discountApplied'),
+          description: t('payment.savedAmount', { amount: result.discount.value }),
+        });
+      }
     } catch (error) {
       console.error('Error validating discount code:', error);
       toast({
@@ -151,40 +113,28 @@ const DiscountForm: React.FC<DiscountFormProps> = ({
   const resetDiscount = () => {
     setDiscountCode('');
     setIsApplied(false);
+    setAppliedCode('');
+    setDiscountAmount(0);
     onApplyDiscount(0, '');
   };
 
-  // Render auto-applied discount
-  if (autoApplyDiscount) {
-    return (
-      <div className="mt-4 mb-2">
-        <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
-          <div className="flex items-center">
-            <TagIcon className="h-5 w-5 mr-2 text-green-600" />
-            <div>
-              <span className="text-green-700 font-medium">{autoApplyDiscount.code}</span>
-              <Badge variant="outline" className="ml-2 bg-green-100 text-green-800">
-                Auto Applied
-              </Badge>
-              <p className="text-xs text-green-600">
-                {t('payment.autoDiscountApplied', { amount: autoApplyDiscount.value })}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
-  // Default discount form
   return (
     <div className="mt-4 mb-2">
       <h3 className="text-sm font-medium mb-2">{t('payment.haveDiscount')}</h3>
+      
       {!isApplied ? (
         <form onSubmit={handleApplyDiscount} className="flex space-x-2">
           <Input
             value={discountCode}
-            onChange={(e) => setDiscountCode(e.target.value)}
+            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
             placeholder={t('payment.enterDiscountCode')}
             className="flex-grow"
             disabled={disabled || isValidating}
@@ -194,17 +144,37 @@ const DiscountForm: React.FC<DiscountFormProps> = ({
             variant="outline" 
             disabled={disabled || isValidating || !discountCode.trim()}
           >
-            {isValidating ? t('common.processing') : t('payment.apply')}
+            {isValidating ? (
+              <span className="flex items-center">
+                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                {t('common.processing')}
+              </span>
+            ) : (
+              t('payment.apply')
+            )}
           </Button>
         </form>
       ) : (
-        <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
-          <div>
-            <span className="text-green-700 font-medium">{discountCode}</span>
-            <p className="text-xs text-green-600">{t('payment.discountApplied')}</p>
+        <div className="flex items-center justify-between bg-green-50 p-3 rounded-md border border-green-200">
+          <div className="flex items-center">
+            <TagIcon className="h-5 w-5 mr-2 text-green-600" />
+            <div>
+              <span className="text-green-700 font-medium">{appliedCode}</span>
+              <Badge variant="outline" className="ml-2 text-xs bg-green-100 text-green-800 border-green-200">
+                {t('payment.applied')}
+              </Badge>
+              <p className="text-xs text-green-600">
+                {t('payment.discountApplied')}: {formatCurrency(discountAmount)}
+              </p>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={resetDiscount} className="text-red-600">
-            {t('payment.remove')}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={resetDiscount} 
+            className="text-red-600 h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
           </Button>
         </div>
       )}

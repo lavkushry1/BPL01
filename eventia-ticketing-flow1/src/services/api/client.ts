@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use VITE_API_URL for Vite-based applications
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -41,9 +41,9 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('auth_token');
       }
       
-      // Redirect to login page if in browser
+      // Redirect to home page if in browser
       if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login?session_expired=true';
+        window.location.href = '/';
       }
     }
     

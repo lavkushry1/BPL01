@@ -1,12 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
-import { Ticket, Calendar, Home, User, Moon, Sun, Menu, X } from 'lucide-react';
+import { Ticket, Calendar, Home, User, Moon, Sun, Menu, X, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import LogoutButton from '@/components/auth/LogoutButton';
+import UserMenu from '@/components/auth/UserMenu';
+import useAuth from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -15,6 +17,7 @@ const Navbar = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
+  const { isAuthenticated, user } = useAuth();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -90,12 +93,19 @@ const Navbar = () => {
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
             
-            <Link to="/admin-login" className="hidden md:block">
-              <Button variant="outline" size="sm" className="flex items-center">
-                <User className="h-4 w-4 mr-2" />
-                {t('navbar.admin')}
-              </Button>
-            </Link>
+            {/* Show UserMenu or login button based on auth state */}
+            {isAuthenticated ? (
+              <div className="hidden md:block">
+                <UserMenu />
+              </div>
+            ) : (
+              <Link to="/login" className="hidden md:block">
+                <Button variant="outline" size="sm" className="flex items-center">
+                  <User className="h-4 w-4 mr-2" />
+                  {t('common.login')}
+                </Button>
+              </Link>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
@@ -136,12 +146,51 @@ const Navbar = () => {
                     {link.name}
                   </Link>
                 ))}
-                <Link to="/admin-login" className="mt-2">
-                  <Button variant="outline" className="w-full justify-start">
-                    <User className="h-4 w-4 mr-2" />
-                    {t('navbar.admin')}
-                  </Button>
-                </Link>
+
+                {/* Show either login or logout button */}
+                {isAuthenticated ? (
+                  <>
+                    {/* User info in mobile view */}
+                    <div className="flex items-center py-3 px-4 text-sm text-foreground/80 border-t border-border/30 mt-2">
+                      <User className="h-4 w-4 mr-2 text-primary" />
+                      <span className="font-medium">{user?.name || user?.email}</span>
+                      {user?.role === 'admin' && (
+                        <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Admin dashboard link for admins */}
+                    {user?.role === 'admin' && (
+                      <Link to="/admin-dashboard" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                      </Link>
+                    )}
+                    
+                    <Link to="/my-profile" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
+                      <User className="h-4 w-4 mr-2" />
+                      My Profile
+                    </Link>
+                    
+                    <Link to="/my-bookings" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
+                      <Ticket className="h-4 w-4 mr-2" />
+                      My Bookings
+                    </Link>
+                    
+                    <div className="px-4 py-1 mt-2">
+                      <LogoutButton variant="destructive" className="w-full justify-start" />
+                    </div>
+                  </>
+                ) : (
+                  <Link to="/login" className="mt-2">
+                    <Button variant="outline" className="w-full justify-start">
+                      <User className="h-4 w-4 mr-2" />
+                      {t('common.login')}
+                    </Button>
+                  </Link>
+                )}
               </nav>
             </div>
           </motion.div>

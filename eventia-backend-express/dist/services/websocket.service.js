@@ -1,431 +1,353 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebsocketService = void 0;
+const socket_io_1 = require("socket.io");
+const seat_1 = require("../models/seat");
 const logger_1 = require("../utils/logger");
 /**
- * Service for handling WebSocket communications
- * with improved error handling and reliability
+ * WebSocket service for real-time notifications and updates
+ * Handles seat status changes, payment notifications, and other real-time events
  */
 class WebsocketService {
-    static io;
-    static isInitialized = false;
+    static io = null;
+    static userSockets = new Map(); // userId -> socketIds
+    static adminSockets = new Set(); // socketIds of admin users
+    static connectedClients = 0;
     /**
-     * Initialize the WebSocket service with a Socket.IO server instance
+     * Initialize the WebSocket server
+     * @param server HTTP server instance
      */
-    static initialize(io) {
-        WebsocketService.io = io;
-        WebsocketService.isInitialized = true;
-        logger_1.logger.info('WebSocket service initialized');
-        WebsocketService.registerHandlers();
-    }
-    /**
-     * Safely send a WebSocket message with proper error handling
-     * @param targetRoom The room or socket to emit to
-     * @param eventName Event name
-     * @param data Event data
-     * @returns Success status
-     */
-    static safeEmit(targetRoom, eventName, data) {
-        if (!WebsocketService.isInitialized) {
-            logger_1.logger.warn(`WebSocket server not initialized. Cannot emit ${eventName}`);
-            return false;
-        }
+    static initialize(server) {
         try {
-            // Add timestamp if not present
-            const eventData = {
-                ...data,
-                timestamp: data.timestamp || new Date().toISOString()
-            };
-            if (targetRoom) {
-                targetRoom.emit(eventName, eventData);
-                return true;
-            }
-            else {
-                logger_1.logger.warn(`Invalid WebSocket target for event ${eventName}`);
-                return false;
-            }
-        }
-        catch (error) {
-            logger_1.logger.error(`Error emitting WebSocket event ${eventName}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify clients about seat status changes
-     * @param seatIds Array of seat IDs that changed status
-     * @param status The new status of the seats
-     * @returns Success status
-     */
-    static notifySeatStatusChange(seatIds, status) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn('WebSocket server not initialized for seat status change');
-                return false;
-            }
-            return WebsocketService.safeEmit(WebsocketService.io, 'seat_status_change', {
-                seat_ids: seatIds,
-                status,
-                timestamp: new Date().toISOString()
+            this.io = new socket_io_1.Server(server, {
+                cors: {
+                    origin: process.env.CORS_ORIGIN || '*',
+                    methods: ['GET', 'POST'],
+                    credentials: true
+                },
+                path: '/ws'
             });
+            this.setupConnectionHandlers();
+            logger_1.logger.info('WebSocket server initialized');
         }
         catch (error) {
-            logger_1.logger.error('Error in notifySeatStatusChange:', error);
-            return false;
+            logger_1.logger.error('Failed to initialize WebSocket server:', error);
         }
     }
     /**
-     * Broadcast seat update to all clients for a specific event
-     * @param eventId The event ID
-     * @param seatIds Array of seat IDs that changed status
-     * @param status The new status of the seats
-     * @param userId Optional user ID who made the change
-     * @returns Success status
+     * Set up connection and event handlers
      */
-    static broadcastSeatUpdate(eventId, seatIds, status, userId) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn('WebSocket server not initialized for seat update broadcast');
-                return false;
-            }
-            // Broadcast to the event room
-            const result = WebsocketService.safeEmit(WebsocketService.io.to(`event:${eventId}`), 'seat_update', {
-                seat_ids: seatIds,
-                status,
-                updated_by: userId || 'system',
-                timestamp: new Date().toISOString()
-            });
-            if (result) {
-                logger_1.logger.debug(`Broadcast to event ${eventId}: Seats ${seatIds.length > 5 ? `${seatIds.slice(0, 5).join(', ')}...` : seatIds.join(', ')} changed to ${status}`);
-            }
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in broadcastSeatUpdate for event ${eventId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Send a message to a specific user
-     * @param userId The user ID to send the message to
-     * @param messageType The type of message
-     * @param data The message data
-     * @returns Success status
-     */
-    static sendToUser(userId, messageType, data) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn(`WebSocket server not initialized for sending ${messageType} to user ${userId}`);
-                return false;
-            }
-            const result = WebsocketService.safeEmit(WebsocketService.io.to(`user:${userId}`), messageType, {
-                ...data,
-                timestamp: new Date().toISOString()
-            });
-            if (result) {
-                logger_1.logger.debug(`Sent ${messageType} to user ${userId}`);
-            }
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in sendToUser for user ${userId}, message ${messageType}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Send a message to all admins
-     * @param messageType The type of message
-     * @param data The message data
-     * @returns Success status
-     */
-    static sendToAdmins(messageType, data) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn(`WebSocket server not initialized for sending ${messageType} to admins`);
-                return false;
-            }
-            const result = WebsocketService.safeEmit(WebsocketService.io.to('admin'), messageType, {
-                ...data,
-                timestamp: new Date().toISOString()
-            });
-            if (result) {
-                logger_1.logger.debug(`Sent ${messageType} to all admins`);
-            }
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in sendToAdmins for message ${messageType}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify clients about booking status changes
-     * @param bookingId Booking ID
-     * @param status New status of the booking
-     * @param userId Optional user ID who made the booking
-     * @returns Success status
-     */
-    static notifyBookingStatusChange(bookingId, status, userId) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn('WebSocket server not initialized for booking status change');
-                return false;
-            }
-            // Broadcast to everyone
-            const broadcastResult = WebsocketService.safeEmit(WebsocketService.io, 'booking_status_change', {
-                booking_id: bookingId,
-                status,
-                timestamp: new Date().toISOString()
-            });
-            // If we have a user ID, send a targeted notification as well
-            let userResult = true;
-            if (userId) {
-                userResult = WebsocketService.sendToUser(userId, 'booking_update', {
-                    booking_id: bookingId,
-                    status,
-                    message: `Your booking #${bookingId} status has been updated to ${status}`,
-                    timestamp: new Date().toISOString()
-                });
-            }
-            if (broadcastResult) {
-                logger_1.logger.debug(`Notified booking status change for ${bookingId} to ${status}`);
-            }
-            return broadcastResult && userResult;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in notifyBookingStatusChange for booking ${bookingId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify clients about payment status changes
-     * @param paymentId Payment ID
-     * @param status New status of the payment
-     * @param userId Optional user ID who made the payment
-     * @returns Success status
-     */
-    static notifyPaymentStatusChange(paymentId, status, userId) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn('WebSocket server not initialized for payment status change');
-                return false;
-            }
-            // General notification
-            const result = WebsocketService.safeEmit(WebsocketService.io, 'payment_status_change', {
-                payment_id: paymentId,
-                status,
-                timestamp: new Date().toISOString()
-            });
-            // User-specific notification if we have a user ID
-            if (userId) {
-                WebsocketService.sendToUser(userId, 'payment_update', {
-                    payment_id: paymentId,
-                    status,
-                    message: `Your payment status has been updated to ${status}`,
-                    timestamp: new Date().toISOString()
-                });
-            }
-            if (result) {
-                logger_1.logger.debug(`Notified payment status change for ${paymentId} to ${status}`);
-            }
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in notifyPaymentStatusChange for payment ${paymentId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify clients about ticket generation
-     * @param bookingId Booking ID
-     * @param userId User ID
-     * @param ticketIds Array of generated ticket IDs
-     * @returns Success status
-     */
-    static notifyTicketGeneration(bookingId, userId, ticketIds) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn('WebSocket server not initialized for ticket generation notification');
-                return false;
-            }
-            // General notification
-            const broadcastResult = WebsocketService.safeEmit(WebsocketService.io, 'ticket_generation', {
-                booking_id: bookingId,
-                ticket_count: ticketIds.length,
-                timestamp: new Date().toISOString()
-            });
-            // User-specific notification
-            const userResult = WebsocketService.sendToUser(userId, 'tickets_generated', {
-                booking_id: bookingId,
-                ticket_count: ticketIds.length,
-                message: `Your ${ticketIds.length} tickets have been generated successfully`
-            });
-            if (broadcastResult && userResult) {
-                logger_1.logger.debug(`Notified ticket generation for booking ${bookingId}, user ${userId}, ${ticketIds.length} tickets`);
-            }
-            return broadcastResult && userResult;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in notifyTicketGeneration for booking ${bookingId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify admin about new payment
-     * @param paymentId Payment ID
-     * @returns Success status
-     */
-    static notifyNewPayment(paymentId) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn('WebSocket server not initialized for new payment notification');
-                return false;
-            }
-            const result = WebsocketService.sendToAdmins('new_payment', {
-                payment_id: paymentId,
-                message: `New payment (ID: ${paymentId}) is awaiting verification`,
-                timestamp: new Date().toISOString()
-            });
-            if (result) {
-                logger_1.logger.debug(`Notified admins about new payment ${paymentId}`);
-            }
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in notifyNewPayment for payment ${paymentId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify user about payment verification
-     * @param paymentId Payment ID
-     * @param bookingId Booking ID
-     * @returns Success status
-     */
-    static notifyPaymentVerified(paymentId, bookingId) {
-        try {
-            return WebsocketService.notifyPaymentStatusChange(paymentId, 'verified');
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in notifyPaymentVerified for payment ${paymentId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify user about payment rejection
-     * @param paymentId Payment ID
-     * @param bookingId Booking ID
-     * @param reason Rejection reason
-     * @returns Success status
-     */
-    static notifyPaymentRejected(paymentId, bookingId, reason) {
-        try {
-            if (!WebsocketService.isInitialized) {
-                logger_1.logger.warn('WebSocket server not initialized for payment rejection notification');
-                return false;
-            }
-            const result = WebsocketService.safeEmit(WebsocketService.io, 'payment_rejected', {
-                payment_id: paymentId,
-                booking_id: bookingId,
-                reason: reason || 'Payment verification failed',
-                timestamp: new Date().toISOString()
-            });
-            if (result) {
-                logger_1.logger.debug(`Notified payment rejection for ${paymentId}, booking ${bookingId}`);
-            }
-            return result;
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in notifyPaymentRejected for payment ${paymentId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Notify about booking update
-     * @param bookingId Booking ID
-     * @param status New status
-     * @returns Success status
-     */
-    static notifyBookingUpdate(bookingId, status) {
-        try {
-            return WebsocketService.notifyBookingStatusChange(bookingId, status);
-        }
-        catch (error) {
-            logger_1.logger.error(`Error in notifyBookingUpdate for booking ${bookingId}:`, error);
-            return false;
-        }
-    }
-    /**
-     * Register socket connection handlers
-     */
-    static registerHandlers() {
-        if (!WebsocketService.isInitialized) {
-            logger_1.logger.warn('WebSocket server not initialized for registering handlers');
+    static setupConnectionHandlers() {
+        if (!this.io)
             return;
-        }
-        WebsocketService.io.on('connection', (socket) => {
-            logger_1.logger.info(`Socket connected: ${socket.id}`);
-            // Join event room
-            socket.on('join_event', (eventId) => {
-                try {
-                    socket.join(`event:${eventId}`);
-                    logger_1.logger.debug(`Socket ${socket.id} joined event room: ${eventId}`);
+        this.io.on('connection', (socket) => {
+            this.connectedClients++;
+            logger_1.logger.debug(`Client connected: ${socket.id}. Total clients: ${this.connectedClients}`);
+            // Authenticate user and register their socket
+            socket.on('authenticate', (data) => {
+                if (!data.userId)
+                    return;
+                // Add socket to user mapping
+                const userSockets = this.userSockets.get(data.userId) || [];
+                userSockets.push(socket.id);
+                this.userSockets.set(data.userId, userSockets);
+                // Join user-specific room
+                socket.join(`user:${data.userId}`);
+                // If admin, add to admin list
+                if (data.role === 'admin' || data.role === 'staff') {
+                    this.adminSockets.add(socket.id);
+                    socket.join('admins');
                 }
-                catch (error) {
-                    logger_1.logger.error(`Error joining event room ${eventId}:`, error);
-                }
+                logger_1.logger.debug(`User ${data.userId} authenticated on socket ${socket.id}`);
             });
-            // Join user room
-            socket.on('authenticate', (userId) => {
-                try {
-                    // Add validation here in a real app
-                    if (!userId || typeof userId !== 'string') {
-                        logger_1.logger.warn(`Invalid user ID for authentication: ${userId}`);
-                        return;
-                    }
-                    socket.join(`user:${userId}`);
-                    logger_1.logger.debug(`Socket ${socket.id} authenticated as user: ${userId}`);
-                }
-                catch (error) {
-                    logger_1.logger.error(`Error authenticating user socket:`, error);
-                }
+            // Subscribe to specific event's updates
+            socket.on('join:event', (eventId) => {
+                if (!eventId)
+                    return;
+                socket.join(`event:${eventId}`);
+                logger_1.logger.debug(`Socket ${socket.id} joined event ${eventId}`);
             });
-            // Join admin room
-            socket.on('admin_auth', (adminToken) => {
-                try {
-                    // In a real application, you would validate the admin token
-                    // For now, just join the admin room
-                    socket.join('admin');
-                    logger_1.logger.debug(`Socket ${socket.id} joined admin room`);
-                }
-                catch (error) {
-                    logger_1.logger.error(`Error authenticating admin socket:`, error);
-                }
+            // Subscribe to booking updates
+            socket.on('join:booking', (bookingId) => {
+                if (!bookingId)
+                    return;
+                socket.join(`booking:${bookingId}`);
+                logger_1.logger.debug(`Socket ${socket.id} joined booking ${bookingId}`);
             });
-            // Leave event room
-            socket.on('leave_event', (eventId) => {
-                try {
-                    socket.leave(`event:${eventId}`);
-                    logger_1.logger.debug(`Socket ${socket.id} left event room: ${eventId}`);
-                }
-                catch (error) {
-                    logger_1.logger.error(`Error leaving event room ${eventId}:`, error);
-                }
-            });
-            // Handle disconnect
+            // Handle disconnection
             socket.on('disconnect', () => {
-                logger_1.logger.info(`Socket disconnected: ${socket.id}`);
-            });
-            // Handle errors
-            socket.on('error', (error) => {
-                logger_1.logger.error(`Socket ${socket.id} error:`, error);
+                this.connectedClients--;
+                logger_1.logger.debug(`Client disconnected: ${socket.id}. Total clients: ${this.connectedClients}`);
+                // Remove from admin list if applicable
+                this.adminSockets.delete(socket.id);
+                // Remove from user mapping
+                for (const [userId, sockets] of this.userSockets.entries()) {
+                    const index = sockets.indexOf(socket.id);
+                    if (index !== -1) {
+                        sockets.splice(index, 1);
+                        if (sockets.length === 0) {
+                            this.userSockets.delete(userId);
+                        }
+                        else {
+                            this.userSockets.set(userId, sockets);
+                        }
+                        break;
+                    }
+                }
             });
         });
     }
     /**
-     * Check if the WebSocket service is initialized
+     * Notify clients about seat status changes
+     * @param seatIds Array of seat IDs that were updated
+     * @param status New seat status
+     * @param eventId Optional event ID to specify which event room to notify
      */
-    static isServiceInitialized() {
-        return WebsocketService.isInitialized;
+    static notifySeatStatusChange(seatIds, status, eventId) {
+        if (!this.io || seatIds.length === 0)
+            return;
+        try {
+            // If we have an eventId, use broadcastSeatUpdate
+            if (eventId) {
+                this.broadcastSeatUpdate(eventId, seatIds, status);
+                return;
+            }
+            // Global broadcast if no eventId is provided
+            this.io.emit('seat_status_changed', {
+                seat_ids: seatIds,
+                status,
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Global notification of seat status change: ${seatIds.length} seats changed to ${status}`);
+        }
+        catch (error) {
+            logger_1.logger.error('Error sending seat status change notification:', error);
+        }
+    }
+    /**
+     * Notify about booking status updates
+     * @param bookingId Booking ID
+     * @param status New booking status
+     * @param additionalData Any additional data to include
+     */
+    static notifyBookingUpdate(bookingId, status, additionalData) {
+        if (!this.io || !bookingId)
+            return;
+        try {
+            this.io.to(`booking:${bookingId}`).emit('booking_updated', {
+                booking_id: bookingId,
+                status,
+                ...additionalData,
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Notified booking update for booking ${bookingId}, status: ${status}`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error notifying booking update for booking ${bookingId}:`, error);
+        }
+    }
+    /**
+     * Broadcast seat status changes to all clients subscribed to an event
+     * @param eventId Event ID
+     * @param seatIds Array of seat IDs that were updated
+     * @param status New seat status
+     * @param lockedByUserId Optional user ID who locked the seats
+     */
+    static broadcastSeatUpdate(eventId, seatIds, status, lockedByUserId) {
+        if (!this.io || seatIds.length === 0)
+            return;
+        try {
+            this.io.to(`event:${eventId}`).emit('seat_status_changed', {
+                event_id: eventId,
+                seat_ids: seatIds,
+                status,
+                locked_by: lockedByUserId,
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Broadcast seat update for event ${eventId}: ${seatIds.length} seats changed to ${status}`);
+        }
+        catch (error) {
+            logger_1.logger.error('Error broadcasting seat update:', error);
+        }
+    }
+    /**
+     * Send notification to a specific user
+     * @param userId User ID
+     * @param event Event name
+     * @param data Event data
+     */
+    static sendToUser(userId, event, data) {
+        if (!this.io || !userId)
+            return;
+        try {
+            this.io.to(`user:${userId}`).emit(event, {
+                ...data,
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Sent ${event} to user ${userId}`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error sending ${event} to user ${userId}:`, error);
+        }
+    }
+    /**
+     * Send notification to all admin users
+     * @param event Event name
+     * @param data Event data
+     */
+    static sendToAdmins(event, data) {
+        if (!this.io)
+            return;
+        try {
+            this.io.to('admins').emit(event, {
+                ...data,
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Sent ${event} to all admins`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error sending ${event} to admins:`, error);
+        }
+    }
+    /**
+     * Notify about payment verification
+     * @param paymentId Payment ID
+     * @param bookingId Booking ID
+     */
+    static notifyPaymentVerified(paymentId, bookingId) {
+        if (!this.io)
+            return;
+        try {
+            this.io.to(`booking:${bookingId}`).emit('payment_verified', {
+                payment_id: paymentId,
+                booking_id: bookingId,
+                status: 'verified',
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Notified payment verification for booking ${bookingId}`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error notifying payment verification for booking ${bookingId}:`, error);
+        }
+    }
+    /**
+     * Notify about payment rejection
+     * @param paymentId Payment ID
+     * @param bookingId Booking ID
+     * @param reason Rejection reason
+     */
+    static notifyPaymentRejected(paymentId, bookingId, reason) {
+        if (!this.io)
+            return;
+        try {
+            this.io.to(`booking:${bookingId}`).emit('payment_rejected', {
+                payment_id: paymentId,
+                booking_id: bookingId,
+                status: 'rejected',
+                reason: reason || 'Payment verification failed',
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Notified payment rejection for booking ${bookingId}`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error notifying payment rejection for booking ${bookingId}:`, error);
+        }
+    }
+    /**
+     * Notify when a booking is confirmed
+     * @param bookingId Booking ID
+     * @param userId User ID
+     */
+    static notifyBookingConfirmed(bookingId, userId) {
+        if (!this.io)
+            return;
+        try {
+            // Notify the specific user
+            this.sendToUser(userId, 'booking_confirmed', {
+                booking_id: bookingId,
+                status: 'confirmed'
+            });
+            // Also notify anyone in the booking room (if different clients are viewing)
+            this.io.to(`booking:${bookingId}`).emit('booking_confirmed', {
+                booking_id: bookingId,
+                status: 'confirmed',
+                timestamp: new Date().toISOString()
+            });
+            logger_1.logger.debug(`Notified booking confirmation for booking ${bookingId} to user ${userId}`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error notifying booking confirmation for ${bookingId}:`, error);
+        }
+    }
+    /**
+     * Notify when tickets are generated
+     * @param bookingId Booking ID
+     * @param userId User ID
+     * @param ticketCount Number of tickets generated
+     */
+    static notifyTicketsGenerated(bookingId, userId, ticketCount) {
+        if (!this.io)
+            return;
+        try {
+            this.sendToUser(userId, 'tickets_generated', {
+                booking_id: bookingId,
+                ticket_count: ticketCount,
+                message: `Your ${ticketCount} tickets have been generated and are ready for download.`
+            });
+            logger_1.logger.debug(`Notified ticket generation for booking ${bookingId} to user ${userId}`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error notifying ticket generation for booking ${bookingId}:`, error);
+        }
+    }
+    /**
+     * Notify when a seat reservation expires
+     * @param userId User ID
+     * @param seatIds Seat IDs that were released
+     * @param eventId Event ID
+     */
+    static notifySeatReservationExpired(userId, seatIds, eventId) {
+        if (!this.io || !userId || seatIds.length === 0)
+            return;
+        try {
+            // Notify the user about their expired reservation
+            this.sendToUser(userId, 'seat_reservation_expired', {
+                event_id: eventId,
+                seat_ids: seatIds,
+                message: 'Your seat reservation has expired. These seats are now available for others to book.'
+            });
+            // Also broadcast the seat status change to everyone viewing the event
+            this.broadcastSeatUpdate(eventId, seatIds, seat_1.SeatStatus.AVAILABLE);
+            logger_1.logger.debug(`Notified seat reservation expiry for user ${userId}, event ${eventId}`);
+        }
+        catch (error) {
+            logger_1.logger.error(`Error notifying seat reservation expiry for user ${userId}:`, error);
+        }
+    }
+    /**
+     * Get the total number of connected clients
+     * @returns Number of connected clients
+     */
+    static getConnectedClientCount() {
+        return this.connectedClients;
+    }
+    /**
+     * Shutdown the WebSocket server
+     */
+    static shutdown() {
+        if (!this.io)
+            return;
+        try {
+            this.io.close();
+            this.io = null;
+            this.userSockets.clear();
+            this.adminSockets.clear();
+            this.connectedClients = 0;
+            logger_1.logger.info('WebSocket server shut down');
+        }
+        catch (error) {
+            logger_1.logger.error('Error shutting down WebSocket server:', error);
+        }
     }
 }
 exports.WebsocketService = WebsocketService;

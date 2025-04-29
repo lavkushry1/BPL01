@@ -1,82 +1,267 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DiscountService = void 0;
-const discountRepository_1 = require("../repositories/discountRepository");
-const discountRepository = new discountRepository_1.DiscountRepository();
-class DiscountService {
+exports.discountService = void 0;
+const db_1 = require("../db");
+const apiError_1 = require("../utils/apiError");
+exports.discountService = {
     /**
-     * Create a new discount
+     * Get all active discounts
      */
-    static async createDiscount(data) {
-        return discountRepository.create(data);
-    }
+    async getAllActiveDiscounts() {
+        try {
+            const discounts = await (0, db_1.db)('discounts')
+                .select('*')
+                .where({ is_active: true })
+                .orderBy('created_at', 'desc');
+            return discounts;
+        }
+        catch (error) {
+            throw error;
+        }
+    },
     /**
-     * Get discount by ID
+     * Validate a discount code
      */
-    static async getDiscountById(id) {
-        return discountRepository.findById(id);
-    }
+    async validateDiscountCode(code) {
+        try {
+            // Find the discount with the given code
+            const discount = await (0, db_1.db)('discounts')
+                .select('*')
+                .whereRaw('UPPER(code) = ?', [code.toUpperCase()])
+                .where({ is_active: true })
+                .first();
+            if (!discount) {
+                return {
+                    valid: false,
+                    message: 'Invalid discount code'
+                };
+            }
+            // Check if discount has expired
+            const now = new Date();
+            if (discount.expiry_date && new Date(discount.expiry_date) < now) {
+                return {
+                    valid: false,
+                    message: 'This discount code has expired'
+                };
+            }
+            // Check if the discount has reached its maximum usage
+            if (discount.max_uses > 0 && discount.uses_count >= discount.max_uses) {
+                return {
+                    valid: false,
+                    message: 'This discount code has reached its maximum usage limit'
+                };
+            }
+            return {
+                valid: true,
+                discount
+            };
+        }
+        catch (error) {
+            return null;
+        }
+    },
     /**
-     * Get discount by code
+     * Apply a discount code (increment uses_count)
      */
-    static async getDiscountByCode(code) {
-        return discountRepository.findByCode(code);
-    }
+    async applyDiscountCode(id) {
+        try {
+            // Get the current discount
+            const discount = await (0, db_1.db)('discounts')
+                .select('*')
+                .where({ id })
+                .first();
+            if (!discount) {
+                throw new apiError_1.ApiError(404, 'Discount not found');
+            }
+            // Increment uses count
+            const [updatedDiscount] = await (0, db_1.db)('discounts')
+                .where({ id })
+                .update({
+                uses_count: db_1.db.raw('uses_count + 1'),
+                updated_at: new Date()
+            })
+                .returning('*');
+            return updatedDiscount;
+        }
+        catch (error) {
+            throw error;
+        }
+    },
     /**
-     * Get all discounts with pagination
+     * Check if an auto-apply discount already exists for an event
      */
-    static async getAllDiscounts(params) {
-        const { page = 1, limit = 10, isActive, eventId, search } = params;
-        const skip = (page - 1) * limit;
-        const { discounts, total } = await discountRepository.findAll({
-            skip,
-            take: limit,
-            isActive,
-            eventId,
-            search
-        });
-        const pages = Math.ceil(total / limit);
-        return {
-            discounts,
-            total,
-            pages
-        };
-    }
+    async checkExistingAutoApplyDiscount(eventId, currentDiscountId) {
+        try {
+            const query = (0, db_1.db)('discounts')
+                .where({
+                auto_apply: true,
+                is_active: true,
+                event_id: eventId
+            });
+            if (currentDiscountId) {
+                query.whereNot({ id: currentDiscountId });
+            }
+            const existingDiscount = await query.first();
+            return !!existingDiscount;
+        }
+        catch (error) {
+            throw error;
+        }
+    },
     /**
-     * Update discount
+     * Create a new discount code
      */
-    static async updateDiscount(id, data) {
-        return discountRepository.update(id, data);
-    }
+    async createDiscountCode(discount) {
+        try {
+            // If this is an auto-apply discount, check if one already exists for this event
+            if (discount.auto_apply && discount.event_id) {
+                const hasExisting = await this.checkExistingAutoApplyDiscount(discount.event_id);
+                if (hasExisting) {
+                    throw new apiError_1.ApiError(400, 'An auto-apply discount already exists for this event. Only one auto-apply discount per event is allowed.');
+                }
+            }
+            // Create the discount
+            const [createdDiscount] = await (0, db_1.db)('discounts')
+                .insert({
+                code: discount.code.toUpperCase(),
+                amount: discount.amount,
+                description: discount.description,
+                max_uses: discount.max_uses,
+                uses_count: 0,
+                expiry_date: discount.expiry_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default to 30 days
+                is_active: discount.is_active !== undefined ? discount.is_active : true,
+                auto_apply: discount.auto_apply || false,
+                event_id: discount.event_id || null,
+                priority: discount.priority || 0,
+                created_at: new Date(),
+                updated_at: new Date()
+            })
+                .returning('*');
+            return createdDiscount;
+        }
+        catch (error) {
+            throw error;
+        }
+    },
     /**
-     * Delete discount
+     * Update an existing discount code
      */
-    static async deleteDiscount(id) {
-        return discountRepository.delete(id);
-    }
+    async updateDiscountCode(id, discount) {
+        try {
+            // If this is an auto-apply discount, check if one already exists for this event
+            if (discount.auto_apply && discount.event_id) {
+                const hasExisting = await this.checkExistingAutoApplyDiscount(discount.event_id, id);
+                if (hasExisting) {
+                    throw new apiError_1.ApiError(400, 'An auto-apply discount already exists for this event. Only one auto-apply discount per event is allowed.');
+                }
+            }
+            // Update fields that are provided
+            const updateData = { updated_at: new Date() };
+            if (discount.code !== undefined)
+                updateData.code = discount.code.toUpperCase();
+            if (discount.amount !== undefined)
+                updateData.amount = discount.amount;
+            if (discount.max_uses !== undefined)
+                updateData.max_uses = discount.max_uses;
+            if (discount.description !== undefined)
+                updateData.description = discount.description;
+            if (discount.expiry_date !== undefined)
+                updateData.expiry_date = discount.expiry_date;
+            if (discount.is_active !== undefined)
+                updateData.is_active = discount.is_active;
+            if (discount.auto_apply !== undefined)
+                updateData.auto_apply = discount.auto_apply;
+            if (discount.event_id !== undefined)
+                updateData.event_id = discount.event_id;
+            if (discount.priority !== undefined)
+                updateData.priority = discount.priority;
+            const [updatedDiscount] = await (0, db_1.db)('discounts')
+                .where({ id })
+                .update(updateData)
+                .returning('*');
+            if (!updatedDiscount) {
+                throw new apiError_1.ApiError(404, 'Discount not found');
+            }
+            return updatedDiscount;
+        }
+        catch (error) {
+            throw error;
+        }
+    },
     /**
-     * Validate and apply discount to an order
+     * Delete a discount code
      */
-    static async applyDiscount(code, amount, eventId) {
-        // Validate discount code
-        const discount = await discountRepository.validate(code, amount, eventId);
-        // Calculate discount amount
-        const discountAmount = discountRepository.calculateDiscountAmount(discount, amount);
-        // Calculate final amount
-        const finalAmount = amount - discountAmount;
-        return {
-            discountId: discount.id,
-            originalAmount: amount,
-            discountAmount,
-            finalAmount,
-            discount
-        };
-    }
+    async deleteDiscountCode(id) {
+        try {
+            const deleted = await (0, db_1.db)('discounts')
+                .where({ id })
+                .delete();
+            if (!deleted) {
+                throw new apiError_1.ApiError(404, 'Discount not found');
+            }
+            return true;
+        }
+        catch (error) {
+            throw error;
+        }
+    },
     /**
-     * Record discount usage (called after booking is confirmed)
+     * Get auto-apply discount for a specific event
      */
-    static async recordDiscountUsage(discountId) {
-        await discountRepository.incrementUsedCount(discountId);
+    async getAutoApplyDiscountForEvent(eventId) {
+        try {
+            // Find auto-apply discount for this event
+            const discount = await (0, db_1.db)('discounts')
+                .select('*')
+                .where({
+                event_id: eventId,
+                auto_apply: true,
+                is_active: true
+            })
+                .first();
+            if (!discount) {
+                return null;
+            }
+            // Check if discount has expired
+            const now = new Date();
+            if (discount.expiry_date && new Date(discount.expiry_date) < now) {
+                return null;
+            }
+            // Check if the discount has reached its maximum usage
+            if (discount.max_uses > 0 && discount.uses_count >= discount.max_uses) {
+                return null;
+            }
+            return discount;
+        }
+        catch (error) {
+            return null;
+        }
+    },
+    /**
+     * Validate an auto-apply discount
+     */
+    async validateAutoApplyDiscount(discountId) {
+        try {
+            const discount = await (0, db_1.db)('discounts')
+                .select('*')
+                .where({ id: discountId })
+                .first();
+            if (!discount || !discount.is_active || !discount.auto_apply) {
+                return null;
+            }
+            // Check if discount has expired
+            const now = new Date();
+            if (discount.expiry_date && new Date(discount.expiry_date) < now) {
+                return null;
+            }
+            // Check if the discount has reached its maximum usage
+            if (discount.max_uses > 0 && discount.uses_count >= discount.max_uses) {
+                return null;
+            }
+            return discount;
+        }
+        catch (error) {
+            return null;
+        }
     }
-}
-exports.DiscountService = DiscountService;
+};

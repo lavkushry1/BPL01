@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
+import { refreshToken } from './authApi';
 
 // Get the API URL from environment variables
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 // Create a default API client instance with common configuration
 export const defaultApiClient = axios.create({
@@ -23,8 +24,61 @@ defaultApiClient.interceptors.response.use(
     console.log('API Response:', response.status, response.config.url);
     return response;
   },
-  error => {
-    console.error('API Error:', error.message, error.config?.url);
+  async (error: AxiosError<ApiErrorResponse>) => {
+    // Handle authentication errors
+    if (error.response?.status === 401) {
+      const originalRequest = error.config;
+      
+      // Only try to refresh once to prevent infinite loops
+      if (!originalRequest || (originalRequest as any)._retry) {
+        // Clear token and redirect to login if already tried refreshing
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        
+        if (window.location.pathname !== '/login' && 
+            window.location.pathname !== '/admin-login') {
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        }
+        return Promise.reject(error);
+      }
+      
+      // Mark this request as retried
+      (originalRequest as any)._retry = true;
+      
+      try {
+        // Try to refresh the token
+        const response = await refreshToken();
+        
+        if (response && response.accessToken) {
+          // Update token in storage
+          localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
+          
+          // Update Auth header for current request
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${response.accessToken}`;
+          }
+          
+          // Update default headers for future requests
+          defaultApiClient.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
+          
+          // Retry the original request with new token
+          return defaultApiClient(originalRequest);
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // Proceed with normal rejection if refresh fails
+      }
+    }
+
+    // Network errors handling (offline mode)
+    if (!error.response && error.code === 'ERR_NETWORK') {
+      console.error('Network error - offline mode activated');
+      // Could dispatch to a store to show offline mode UI
+    }
+
+    // Log errors for debugging
+    logApiError(error);
+
     return Promise.reject(error);
   }
 );
@@ -38,8 +92,7 @@ export const createAuthHeaders = (token: string) => ({
 });
 
 // Define the API base URL using the environment variable
-// Update to match the Express backend URL and port (5001)
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // Storage keys for auth tokens - use the same keys as in authApi.ts
 export const ACCESS_TOKEN_KEY = 'eventia_access_token';
@@ -112,9 +165,9 @@ export const createApiClient = (config?: AxiosRequestConfig): AxiosInstance => {
         localStorage.removeItem(ACCESS_TOKEN_KEY);
         localStorage.removeItem(REFRESH_TOKEN_KEY);
         
-        if (window.location.pathname !== '/login' && 
-            window.location.pathname !== '/admin-login') {
-          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        // Redirect to home page instead of login
+        if (window.location.pathname !== '/') {
+          window.location.href = '/';
         }
       }
 

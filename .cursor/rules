@@ -1,0 +1,106 @@
+# Eventia Development Rules
+
+## Documentation Requirements
+- Always read memory-bank/architecture.md before writing new code
+- Every API endpoint must be documented with Swagger/OpenAPI
+- Include comments for complex business logic
+- Keep the PRD updated when features change
+
+## Code Structure
+- Prefer modular folder structure
+- Group code by feature or domain
+- Use TypeScript for all new code
+- Add appropriate type definitions
+
+## Frontend Rules
+- Create reusable components in appropriate folders
+- Maintain component composition pattern
+- Use React Query for API data fetching
+- Follow existing styling conventions
+- Add responsive design for all UI components
+- Write tests for critical components
+
+## Backend Rules
+- Follow controller-service-repository pattern
+- Add validation to all API endpoints
+- Use Prisma transactions for multi-table operations
+- Log appropriate information at correct levels
+- Add error handling for all async operations
+- Write tests for business logic
+
+## API Design
+- Follow RESTful API design principles
+- Version all API endpoints
+- Use consistent response formats
+- Implement appropriate status codes
+- Add rate limiting for public endpoints
+
+## Security Practices
+- Never store secrets in code
+- Validate all user inputs
+- Implement proper authorization checks
+- Follow least privilege principle
+- Use parameterized queries for database operations
+
+## Git Workflow
+- Use feature branches
+- Write meaningful commit messages
+- Keep PRs focused and manageable in size
+- Update documentation with code changes
+- Write tests before merging
+
+## Performance Considerations
+- Optimize database queries
+- Use appropriate indexes
+- Implement caching where beneficial
+- Lazy-load components when possible
+- Monitor API response times
+
+## Admin Portal Implementation
+- Place admin components in eventia-ticketing-flow1/src/components/admin/
+- Follow naming convention: Admin[Feature]Component.tsx
+- All admin routes must use AdminProtectedRoute for security
+- Admin API endpoints must be protected with admin-only middleware
+- Dashboard UI should use responsive card layouts
+- Implement mobile-optimized tables with collapsible rows
+- Analytics should use chart.js or similar library
+- Event management must include proper validation
+- Use the existing AdminEntry.tsx as entry point for all admin features
+- Admin dashboards must work on 320px wide screens (mobile)
+- All admin forms must be fully accessible (keyboard navigation)
+- Admin API calls should be placed in dedicated adminApi.ts services 
+
+## Mobile-First UI & Performance Optimization
+- Implement PWA capabilities with proper manifest and service worker
+- Service worker cache must not exceed 5MB
+- All touch targets must be at least 48x48px
+- Use AVIF/WEBP image formats with proper fallbacks via <picture> element
+- Create mobile-specific bottom navigation for screens < 768px
+- Implement Core Web Vitals optimizations (LCP < 1.2s, FID < 100ms, CLS < 0.1)
+- Add haptic feedback via Vibration API for key user interactions
+- Apply DNS prefetch for payment gateways and external resources
+- Implement network-aware loading strategies using navigator.connection API
+- Use the Intersection Observer API for lazy loading images and components
+- Add touch gesture support (swipe, pinch-zoom) for mobile interactions
+- Test on low-end devices and throttled network conditions
+- Implement offline functionality for critical application flows 
+
+## Week 12: Testing, Optimization & Deployment
+- All critical flows must have comprehensive test coverage (unit, integration, E2E)
+- Mobile-specific device testing required on iPhone SE and Android Go devices
+- Performance testing must include 3G network throttling (<2s FCP target)
+- Implement Lighthouse CI to verify mobile scores (>85 target)
+- Configure visual regression testing for all mobile breakpoints
+- All WCAG accessibility requirements must be met (AA standard minimum)
+- JavaScript bundles must be code-split by route with <150KB initial load size
+- Memory usage monitoring required with <60MB target on low-end devices
+- Configure CDN with proper caching policies for static assets
+- Implement mobile performance budgets:
+  - Maximum JavaScript size: 150KB (compressed)
+  - Maximum CSS size: 20KB (compressed) 
+  - Maximum image size: 200KB per image
+- Document deployment process with environment configuration
+- Setup error tracking and performance monitoring
+- Test and verify offline capabilities on mobile devices
+- Implement memory leak detection for long-running sessions
+- Create final documentation including browser/device compatibility matrix 

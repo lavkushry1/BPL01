@@ -1,11 +1,24 @@
-
 import express from 'express';
 import { register, login, refreshToken } from '../controllers/authController';
 import { validate } from '../middleware/validate';
 import { userSchema, loginSchema } from '../models/user';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Create a rate limiter for login attempts
+// 5 login attempts per 15 minutes window per IP
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: { 
+    status: 'error',
+    message: 'Too many login attempts, please try again later' 
+  }
+});
 
 /**
  * @swagger
@@ -79,7 +92,7 @@ router.post('/register', validate(z.object({ body: userSchema })), register);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', validate(z.object({ body: loginSchema })), login);
+router.post('/login', loginRateLimiter, validate(z.object({ body: loginSchema })), login);
 
 /**
  * @swagger

@@ -30,7 +30,7 @@
  * - When user clicks on an event card → EventDetail page (/events/:id)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import Navbar from '@/components/layout/Navbar';
@@ -47,6 +47,7 @@ import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import PageTransition from '@/components/ui/page-transition';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { EventSort, SortOption } from '@/components/events/EventSort';
 
 // Define Category type locally since it's not exported from eventApi
 interface Category {
@@ -56,14 +57,32 @@ interface Category {
 
 // Function to map API event to our local event model
 const mapApiToLocalEvent = (apiEvent: any): LocalEvent => {
+  if (!apiEvent) {
+    return {
+      id: 'placeholder',
+      title: 'Loading...',
+      description: '',
+      date: '',
+      time: '',
+      venue: '',
+      category: '',
+      duration: '',
+      image: '',
+      posterImage: '',
+      ticketTypes: [],
+      featured: false,
+      discount: null
+    };
+  }
+  
   // Check if it's an IPL match with teams property
   const isIplMatch = !!apiEvent.teams;
   
   return {
-    id: apiEvent.id,
-    title: isIplMatch 
-      ? `${apiEvent.teams.team1.name} vs ${apiEvent.teams.team2.name}`
-      : apiEvent.title,
+    id: apiEvent.id || 'unknown',
+    title: isIplMatch && apiEvent.teams 
+      ? `${apiEvent.teams.team1?.name || 'Team 1'} vs ${apiEvent.teams.team2?.name || 'Team 2'}`
+      : (apiEvent.title || 'Untitled Event'),
     description: apiEvent.description || '',
     date: apiEvent.date || apiEvent.startDate || '',
     time: apiEvent.time || (new Date(apiEvent.date || apiEvent.startDate || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
@@ -72,18 +91,18 @@ const mapApiToLocalEvent = (apiEvent: any): LocalEvent => {
     duration: apiEvent.duration || '2-3 hours',
     image: apiEvent.imageUrl || apiEvent.image || '',
     posterImage: apiEvent.posterImage || apiEvent.imageUrl || apiEvent.image || '',
-    ticketTypes: isIplMatch 
+    ticketTypes: isIplMatch && Array.isArray(apiEvent.ticketTypes)
       ? apiEvent.ticketTypes.map((tt: any) => ({
-          category: tt.category,
-          price: tt.price,
-          available: tt.available,
-          capacity: tt.capacity || tt.available * 2
+          category: tt?.category || 'General',
+          price: tt?.price || 0,
+          available: tt?.available || 0,
+          capacity: tt?.capacity || tt?.available * 2 || 0
         }))
-      : (apiEvent.ticketCategories || []).map((tc: any) => ({
-          category: tc.name,
-          price: tc.price,
-          available: tc.availableQuantity || 0,
-          capacity: tc.totalCapacity || tc.availableQuantity * 2 || 0
+      : (Array.isArray(apiEvent.ticketCategories) ? apiEvent.ticketCategories : []).map((tc: any) => ({
+          category: tc?.name || 'General',
+          price: tc?.price || 0,
+          available: tc?.availableQuantity || 0,
+          capacity: tc?.totalCapacity || tc?.availableQuantity * 2 || 0
         })),
     featured: apiEvent.featured || false,
     discount: apiEvent.discount || null
@@ -92,7 +111,7 @@ const mapApiToLocalEvent = (apiEvent: any): LocalEvent => {
 
 const Events = () => {
   const { t } = useTranslation();
-  const [sortBy, setSortBy] = useState<string>('date-asc');
+  const [sortBy, setSortBy] = useState<SortOption>('date-asc');
   const [filters, setFilters] = useState<FilterOptions>({
     search: '',
     categories: [],
@@ -132,11 +151,25 @@ const Events = () => {
   });
   
   // Use API data, fallback to mock data if needed
-  const events = eventsData?.events.map(mapApiToLocalEvent) || mockEvents;
+  const events = useMemo(() => {
+    if (isLoading) return [];
+    if (isError) {
+      console.error('Error fetching events:', error);
+      return []; // Don't fallback to mock data, show empty array instead
+    }
+    return eventsData ? eventsData.map((event: ApiEvent) => mapApiToLocalEvent(event)) : [];
+  }, [eventsData, isLoading, isError, error]);
   
   // Get all unique categories from events data
-  const categories = categoriesData?.map((cat: Category) => cat.name) || 
-    [...new Set(events.map(event => event.category))];
+  const categories = useMemo(() => {
+    if (categoriesData && Array.isArray(categoriesData)) {
+      return categoriesData.map((cat: Category) => cat.name);
+    }
+    // Fallback to extracting categories from events if they exist
+    return events && events.length > 0 
+      ? [...new Set(events.map((event) => event.category))]
+      : [];
+  }, [categoriesData, events]);
 
   // Handle filter changes
   const handleFilterChange = (newFilters: FilterOptions) => {
@@ -144,56 +177,79 @@ const Events = () => {
   };
 
   // Filter events based on search term, category, venue, and date
-  const filteredEvents = events.filter(event => {
-    // Filter by search term
-    const matchesSearch = !filters.search || 
-      event.title.toLowerCase().includes(filters.search.toLowerCase()) || 
-      (event.description && event.description.toLowerCase().includes(filters.search.toLowerCase()));
-    
-    // Filter by category
-    const matchesCategory = filters.categories.length === 0 || 
-      filters.categories.includes(event.category);
-    
-    // Filter by date range
-    let matchesDateRange = true;
-    const eventDate = new Date(event.date);
-    
-    if (filters.startDate) {
-      const startDate = new Date(filters.startDate);
-      matchesDateRange = matchesDateRange && eventDate >= startDate;
-    }
-    
-    if (filters.endDate) {
-      const endDate = new Date(filters.endDate);
-      matchesDateRange = matchesDateRange && eventDate <= endDate;
-    }
-    
-    // Filter by location (simplified for demo)
-    const matchesLocation = !filters.location || 
-      event.venue.toLowerCase().includes(filters.location.toLowerCase());
-    
-    return matchesSearch && matchesCategory && matchesDateRange && matchesLocation;
-  });
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      // Filter by search term
+      const matchesSearch = !filters.search || 
+        event.title.toLowerCase().includes(filters.search.toLowerCase()) || 
+        (event.description && event.description.toLowerCase().includes(filters.search.toLowerCase()));
+      
+      // Filter by category
+      const matchesCategory = filters.categories.length === 0 || 
+        filters.categories.includes(event.category);
+      
+      // Filter by date range
+      let matchesDateRange = true;
+      const eventDate = new Date(event.date);
+      
+      if (filters.startDate) {
+        const startDate = new Date(filters.startDate);
+        matchesDateRange = matchesDateRange && eventDate >= startDate;
+      }
+      
+      if (filters.endDate) {
+        const endDate = new Date(filters.endDate);
+        matchesDateRange = matchesDateRange && eventDate <= endDate;
+      }
+      
+      // Filter by location (simplified for demo)
+      const matchesLocation = !filters.location || 
+        event.venue.toLowerCase().includes(filters.location.toLowerCase());
+      
+      return matchesSearch && matchesCategory && matchesDateRange && matchesLocation;
+    });
+  }, [events, filters]);
 
   // Sort events
-  const sortedEvents = [...filteredEvents].sort((a, b) => {
-    switch (sortBy) {
-      case 'date-asc':
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      case 'date-desc':
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      case 'price-asc':
-        return Math.min(...a.ticketTypes.map(t => t.price)) - Math.min(...b.ticketTypes.map(t => t.price));
-      case 'price-desc':
-        return Math.min(...b.ticketTypes.map(t => t.price)) - Math.min(...a.ticketTypes.map(t => t.price));
-      case 'name-asc':
-        return a.title.localeCompare(b.title);
-      case 'name-desc':
-        return b.title.localeCompare(a.title);
-      default:
-        return 0;
-    }
-  });
+  const sortedEvents = useMemo(() => {
+    return [...filteredEvents].sort((a, b) => {
+      switch (sortBy) {
+        case 'date-asc':
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        case 'date-desc':
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        case 'price-asc': {
+          const aMin = a.ticketTypes && a.ticketTypes.length > 0 
+            ? Math.min(...a.ticketTypes.map(t => t.price)) 
+            : Number.MAX_SAFE_INTEGER;
+          const bMin = b.ticketTypes && b.ticketTypes.length > 0 
+            ? Math.min(...b.ticketTypes.map(t => t.price)) 
+            : Number.MAX_SAFE_INTEGER;
+          return aMin - bMin;
+        }
+        case 'price-desc': {
+          const aMax = a.ticketTypes && a.ticketTypes.length > 0 
+            ? Math.max(...a.ticketTypes.map(t => t.price)) 
+            : 0;
+          const bMax = b.ticketTypes && b.ticketTypes.length > 0 
+            ? Math.max(...b.ticketTypes.map(t => t.price)) 
+            : 0;
+          return bMax - aMax;
+        }
+        case 'name-asc':
+          return a.title.localeCompare(b.title);
+        case 'name-desc':
+          return b.title.localeCompare(a.title);
+        default:
+          return 0;
+      }
+    });
+  }, [filteredEvents, sortBy]);
+
+  // Handle sort change
+  const handleSortChange = (value: SortOption) => {
+    setSortBy(value);
+  };
 
   return (
     <PageTransition>
@@ -243,7 +299,7 @@ const Events = () => {
                     All Categories
                   </Badge>
                   
-                  {categories.map(category => (
+                  {categories.map((category: string) => (
                     <Badge 
                       key={category}
                       variant={filters.categories.includes(category) ? 'default' : 'outline'} 
@@ -275,22 +331,10 @@ const Events = () => {
                   {filters.search && <span className="ml-1">for "{filters.search}"</span>}
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Sort by:</span>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[180px] h-9 border-gray-300">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="date-asc">Date (Nearest first)</SelectItem>
-                      <SelectItem value="date-desc">Date (Furthest first)</SelectItem>
-                      <SelectItem value="price-asc">Price (Low to high)</SelectItem>
-                      <SelectItem value="price-desc">Price (High to low)</SelectItem>
-                      <SelectItem value="name-asc">Name (A to Z)</SelectItem>
-                      <SelectItem value="name-desc">Name (Z to A)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <EventSort 
+                  value={sortBy}
+                  onChange={handleSortChange}
+                />
               </div>
             </div>
           </div>
@@ -334,22 +378,26 @@ const Events = () => {
                   <div className="text-6xl mb-6">🎭</div>
                   <h2 className="text-2xl font-bold mb-3 text-gray-800">No events found</h2>
                   <p className="text-gray-600 text-lg">
-                    Try adjusting your filters or search for something else.
+                    {filters.search || filters.categories.length > 0 || filters.startDate || filters.endDate || filters.location
+                      ? "Try adjusting your filters or search for something else."
+                      : "No events are currently available in the backend."}
                   </p>
-                  <Button 
-                    onClick={() => setFilters({
-                      search: '',
-                      categories: [],
-                      startDate: null,
-                      endDate: null,
-                      location: null,
-                      useCurrentLocation: false
-                    })}
-                    className="mt-6 px-6 py-2 text-primary hover:bg-blue-50"
-                    variant="outline"
-                  >
-                    Clear all filters
-                  </Button>
+                  {(filters.search || filters.categories.length > 0 || filters.startDate || filters.endDate || filters.location) && (
+                    <Button 
+                      onClick={() => setFilters({
+                        search: '',
+                        categories: [],
+                        startDate: null,
+                        endDate: null,
+                        location: null,
+                        useCurrentLocation: false
+                      })}
+                      className="mt-6 px-6 py-2 text-primary hover:bg-blue-50"
+                      variant="outline"
+                    >
+                      Clear all filters
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

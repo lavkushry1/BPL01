@@ -3,239 +3,214 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiscountController = void 0;
 const discount_service_1 = require("../services/discount.service");
 const apiResponse_1 = require("../utils/apiResponse");
+const asyncHandler_1 = require("../utils/asyncHandler");
 const apiError_1 = require("../utils/apiError");
-const db_1 = require("../db");
-const logger_1 = require("../utils/logger");
+/**
+ * Controller for handling discount operations
+ */
 class DiscountController {
     /**
      * Create a new discount
-     * @route POST /api/v1/discounts
+     * @route POST /api/discounts
      */
-    static async createDiscount(req, res, next) {
+    static createDiscount = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
-            const discount = await discount_service_1.DiscountService.createDiscount(req.body);
-            apiResponse_1.ApiResponse.success(res, 201, 'Discount created successfully', discount);
+            const discount = await discount_service_1.discountService.createDiscountCode(req.body);
+            return apiResponse_1.ApiResponse.success(res, 201, 'Discount created successfully', discount);
         }
         catch (error) {
-            next(error);
+            throw new apiError_1.ApiError(400, error.message || 'Failed to create discount');
         }
-    }
+    });
     /**
      * Get discount by ID
-     * @route GET /api/v1/discounts/:id
+     * @route GET /api/discounts/:id
      */
-    static async getDiscountById(req, res, next) {
+    static getDiscountById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
             const { id } = req.params;
-            const discount = await discount_service_1.DiscountService.getDiscountById(id);
-            apiResponse_1.ApiResponse.success(res, discount, 'Discount fetched successfully');
+            // Since there's no direct method, we'll get all and filter
+            const discounts = await discount_service_1.discountService.getAllActiveDiscounts();
+            const discount = discounts.find((d) => d.id === id);
+            if (!discount) {
+                throw new apiError_1.ApiError(404, 'Discount not found');
+            }
+            return apiResponse_1.ApiResponse.success(res, 200, 'Discount fetched successfully', discount);
         }
         catch (error) {
-            next(error);
+            throw error instanceof apiError_1.ApiError ? error : new apiError_1.ApiError(500, 'Failed to get discount');
         }
-    }
+    });
     /**
      * Get discount by code
-     * @route GET /api/v1/discounts/code/:code
+     * @route GET /api/discounts/code/:code
      */
-    static async getDiscountByCode(req, res, next) {
+    static getDiscountByCode = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
             const { code } = req.params;
-            const discount = await discount_service_1.DiscountService.getDiscountByCode(code);
-            if (!discount) {
-                apiResponse_1.ApiResponse.success(res, 404, 'Discount not found', {});
-                return;
+            const result = await discount_service_1.discountService.validateDiscountCode(code);
+            if (!result || !result.valid) {
+                throw new apiError_1.ApiError(404, 'Discount not found or invalid');
             }
-            apiResponse_1.ApiResponse.success(res, discount, 'Discount fetched successfully');
+            return apiResponse_1.ApiResponse.success(res, 200, 'Discount fetched successfully', result.discount);
         }
         catch (error) {
-            next(error);
+            throw error instanceof apiError_1.ApiError ? error : new apiError_1.ApiError(500, 'Failed to get discount');
         }
-    }
+    });
     /**
      * Get all discounts
-     * @route GET /api/v1/discounts
+     * @route GET /api/discounts
      */
-    static async getAllDiscounts(req, res, next) {
+    static getAllDiscounts = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const search = req.query.search;
         try {
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const isActive = req.query.isActive === 'true' ? true :
-                req.query.isActive === 'false' ? false : undefined;
-            const eventId = req.query.eventId;
-            const search = req.query.search;
-            const result = await discount_service_1.DiscountService.getAllDiscounts({
+            const discounts = await discount_service_1.discountService.getAllActiveDiscounts();
+            // Apply search if provided
+            const filteredDiscounts = search
+                ? discounts.filter((d) => d.code.toLowerCase().includes(search.toLowerCase()) ||
+                    (d.description && d.description.toLowerCase().includes(search.toLowerCase())))
+                : discounts;
+            // Apply pagination
+            const startIndex = (page - 1) * limit;
+            const endIndex = page * limit;
+            const paginatedDiscounts = filteredDiscounts.slice(startIndex, endIndex);
+            return apiResponse_1.ApiResponse.success(res, 200, 'Discounts fetched successfully', {
+                discounts: paginatedDiscounts,
+                total: filteredDiscounts.length,
                 page,
                 limit,
-                isActive,
-                eventId,
-                search
+                totalPages: Math.ceil(filteredDiscounts.length / limit)
             });
-            apiResponse_1.ApiResponse.success(res, result, 'Discounts fetched successfully');
         }
         catch (error) {
-            next(error);
+            throw new apiError_1.ApiError(500, 'Failed to get discounts');
         }
-    }
+    });
     /**
-     * Update discount
-     * @route PUT /api/v1/discounts/:id
+     * Update a discount
+     * @route PUT /api/discounts/:id
      */
-    static async updateDiscount(req, res, next) {
+    static updateDiscount = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
             const { id } = req.params;
-            const discount = await discount_service_1.DiscountService.updateDiscount(id, req.body);
-            apiResponse_1.ApiResponse.success(res, discount, 'Discount updated successfully');
+            const discount = await discount_service_1.discountService.updateDiscountCode(id, req.body);
+            return apiResponse_1.ApiResponse.success(res, 200, 'Discount updated successfully', discount);
         }
         catch (error) {
-            next(error);
+            throw new apiError_1.ApiError(400, error.message || 'Failed to update discount');
         }
-    }
+    });
     /**
-     * Delete discount
-     * @route DELETE /api/v1/discounts/:id
+     * Delete a discount
+     * @route DELETE /api/discounts/:id
      */
-    static async deleteDiscount(req, res, next) {
+    static deleteDiscount = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
             const { id } = req.params;
-            await discount_service_1.DiscountService.deleteDiscount(id);
-            apiResponse_1.ApiResponse.success(res, {}, 'Discount deleted successfully');
+            await discount_service_1.discountService.deleteDiscountCode(id);
+            return apiResponse_1.ApiResponse.success(res, 200, 'Discount deleted successfully', {});
         }
         catch (error) {
-            next(error);
+            throw new apiError_1.ApiError(400, error.message || 'Failed to delete discount');
         }
-    }
+    });
     /**
-     * Validate and apply discount
-     * @route POST /api/v1/discounts/apply
+     * Apply a discount code
+     * @route POST /api/discounts/apply
      */
-    static async applyDiscount(req, res, next) {
+    static applyDiscount = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
-            const { code, amount, eventId } = req.body;
-            if (!code?.trim() || isNaN(Number(amount))) {
-                throw new apiError_1.ApiError(400, 'Valid code and numeric amount required', 'VALIDATION_ERROR');
+            const { code, amount } = req.body;
+            if (!code || !amount) {
+                throw new apiError_1.ApiError(400, 'Discount code and amount are required');
             }
-            const parsedAmount = parseFloat(amount.toString());
-            if (isNaN(parsedAmount)) {
-                throw new apiError_1.ApiError(400, 'Invalid amount format', 'VALIDATION_ERROR');
+            const parsedAmount = parseFloat(amount);
+            if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                throw new apiError_1.ApiError(400, 'Amount must be a positive number');
             }
-            const result = await discount_service_1.DiscountService.applyDiscount(code, parsedAmount, eventId);
-            apiResponse_1.ApiResponse.success(res, result, 'Discount applied successfully');
+            const validation = await discount_service_1.discountService.validateDiscountCode(code);
+            if (!validation || !validation.valid) {
+                throw new apiError_1.ApiError(400, validation?.message || 'Invalid discount code');
+            }
+            // Apply the discount code by incrementing its usage
+            await discount_service_1.discountService.applyDiscountCode(validation.discount.id);
+            // Calculate the discounted amount
+            const discountValue = validation.discount.value || 0;
+            const finalAmount = Math.max(0, parsedAmount - discountValue);
+            return apiResponse_1.ApiResponse.success(res, 200, 'Discount applied successfully', {
+                originalAmount: parsedAmount,
+                discountAmount: discountValue,
+                finalAmount,
+                discount: validation.discount
+            });
         }
         catch (error) {
-            // Special handling for validation errors from discount service
-            if (error instanceof apiError_1.ApiError &&
-                ['INVALID_DISCOUNT', 'INACTIVE_DISCOUNT', 'EXPIRED_DISCOUNT',
-                    'DISCOUNT_LIMIT_REACHED', 'MINIMUM_AMOUNT_NOT_MET',
-                    'DISCOUNT_EVENT_MISMATCH'].includes(error.code)) {
-                // Return error response
-                res.status(error.statusCode).json({
-                    status: 'error',
-                    statusCode: error.statusCode,
-                    message: error.message,
-                    code: error.code
-                });
-                return;
-            }
-            next(error);
+            throw error instanceof apiError_1.ApiError ? error : new apiError_1.ApiError(400, error.message || 'Failed to apply discount');
         }
-    }
+    });
     /**
-     * Validate a discount code and calculate the applicable discount
-     * @param {Request} req - Express request object
-     * @param {Response} res - Express response object
-     * @returns {Promise<Response>} - Returns discount details if valid
+     * Validate a discount code without applying it
+     * @route POST /api/discounts/validate
      */
-    static validateDiscount = async (req, res) => {
+    static validateDiscountCode = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
-            const { code, booking_id, total_amount } = req.body;
-            // Get the booking to verify it exists and get the event ID
-            const booking = await (0, db_1.db)('bookings')
-                .where('id', booking_id)
-                .select('event_id')
-                .first();
-            if (!booking) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Booking not found'
+            const { code, amount } = req.body;
+            if (!code || !amount) {
+                throw new apiError_1.ApiError(400, 'Discount code and amount are required');
+            }
+            const parsedAmount = parseFloat(amount);
+            if (isNaN(parsedAmount) || parsedAmount <= 0) {
+                throw new apiError_1.ApiError(400, 'Amount must be a positive number');
+            }
+            const validation = await discount_service_1.discountService.validateDiscountCode(code);
+            // If validation failed, return the error message
+            if (!validation || !validation.valid) {
+                return apiResponse_1.ApiResponse.success(res, 200, 'Discount validation result', {
+                    valid: false,
+                    message: validation?.message || 'Invalid discount code'
                 });
             }
-            // Get current date for validation
-            const now = new Date();
-            // Find the discount
-            const discount = await (0, db_1.db)('discounts')
-                .where('code', code)
-                .where('is_active', true)
-                .where('start_date', '<=', now)
-                .where('end_date', '>=', now)
-                .first();
+            // Calculate the discounted amount
+            const discountValue = validation.discount.value || 0;
+            const finalAmount = Math.max(0, parsedAmount - discountValue);
+            return apiResponse_1.ApiResponse.success(res, 200, 'Discount validated successfully', {
+                valid: true,
+                discount: validation.discount,
+                originalAmount: parsedAmount,
+                discountAmount: discountValue,
+                finalAmount
+            });
+        }
+        catch (error) {
+            throw error instanceof apiError_1.ApiError ? error : new apiError_1.ApiError(400, error.message || 'Failed to validate discount');
+        }
+    });
+    /**
+     * Get auto-apply discount for a specific event
+     * @route GET /api/discounts/auto-apply
+     */
+    static getAutoApplyDiscount = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+        try {
+            const { eventId } = req.query;
+            if (!eventId) {
+                throw new apiError_1.ApiError(400, 'Event ID is required');
+            }
+            const discount = await discount_service_1.discountService.getAutoApplyDiscountForEvent(eventId);
             if (!discount) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Invalid discount code'
+                return apiResponse_1.ApiResponse.success(res, 200, 'No auto-apply discount found', {
+                    discount: null
                 });
             }
-            // Check if discount is applicable to this event
-            const isEventDiscountValid = await (0, db_1.db)('event_discounts')
-                .where({
-                discount_id: discount.id,
-                event_id: booking.event_id
-            })
-                .first();
-            // If discount has event restrictions and this event isn't included
-            if (discount.event_specific && !isEventDiscountValid) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Discount code not applicable for this event'
-                });
-            }
-            // Check if discount has been used max times
-            if (discount.max_uses > 0 && discount.used_count >= discount.max_uses) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Discount code has reached maximum usage limit'
-                });
-            }
-            // Check minimum amount if specified
-            if (discount.min_amount && total_amount < discount.min_amount) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Minimum order amount of ₹${discount.min_amount} required for this discount`
-                });
-            }
-            // Calculate discount amount
-            let discountAmount = 0;
-            if (discount.type === 'PERCENTAGE') {
-                discountAmount = (total_amount * discount.value) / 100;
-            }
-            else if (discount.type === 'FIXED') {
-                discountAmount = discount.value;
-            }
-            // Make sure discount doesn't exceed total amount
-            discountAmount = Math.min(discountAmount, total_amount);
-            // Calculate final amount
-            const finalAmount = total_amount - discountAmount;
-            return res.status(200).json({
-                success: true,
-                data: {
-                    discount_id: discount.id,
-                    code: discount.code,
-                    description: discount.description,
-                    discount_amount: discountAmount,
-                    original_amount: total_amount,
-                    final_amount: finalAmount,
-                    discount_type: discount.type,
-                    discount_value: discount.value
-                }
+            return apiResponse_1.ApiResponse.success(res, 200, 'Auto-apply discount fetched successfully', {
+                discount
             });
         }
         catch (error) {
-            logger_1.logger.error('Error validating discount:', error);
-            return res.status(500).json({
-                success: false,
-                message: 'Error validating discount code'
-            });
+            throw error instanceof apiError_1.ApiError ? error : new apiError_1.ApiError(400, error.message || 'Failed to get auto-apply discount');
         }
-    };
+    });
 }
 exports.DiscountController = DiscountController;

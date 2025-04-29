@@ -26,6 +26,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -36,6 +37,9 @@ import { Copy, Check, CopyCheck, AlertCircle, CalendarClock, IndianRupee } from 
 import { usePaymentSettings } from '@/hooks/use-payment-settings';
 import { getBookingById } from '@/services/api/bookingApi';
 import { recordUpiPayment } from '@/services/api/paymentApi';
+import RazorpayPayment from '@/components/payment/RazorpayPayment';
+import UpiPayment from '@/components/payment/UpiPayment';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Get current date and time in local format
 const getCurrentDateTime = () => {
@@ -52,6 +56,7 @@ const formatAmountWithCommas = (amount: number) => {
 };
 
 export default function Payment() {
+  const { t } = useTranslation();
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { activeUpiId, isLoading: isUpiLoading } = usePaymentSettings();
@@ -160,6 +165,28 @@ export default function Payment() {
     }
   };
 
+  // Handle UPI payment success
+  const handleUpiPaymentSuccess = () => {
+    toast({
+      title: t('payment.paymentDetailsSubmitted', 'Payment details submitted'),
+      description: t('payment.paymentVerificationPending', 'We will verify your payment shortly.'),
+    });
+    
+    // Redirect to confirmation page
+    navigate(`/confirmation/${bookingId}`);
+  };
+
+  // Handle card payment success
+  const handleCardPaymentSuccess = (paymentId: string, orderId: string) => {
+    toast({
+      title: t('payment.paymentSuccessful', 'Payment Successful'),
+      description: t('payment.processingOrder', 'Processing your order...'),
+    });
+    
+    // Navigate to confirmation page
+    navigate(`/confirmation/${bookingId}`);
+  };
+
   // Show loading state
   if (isLoading || isUpiLoading) {
     return (
@@ -201,21 +228,21 @@ export default function Payment() {
         <div className="container max-w-3xl">
           {/* Header */}
           <div className="mb-8 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Complete Your Payment</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t('payment.completePayment', 'Complete Your Payment')}</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Pay using UPI and provide the UTR number to confirm your booking
+              {t('payment.chooseMethod', 'Choose your preferred payment method to confirm your booking')}
             </p>
           </div>
           
           {/* Booking summary */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
             <h2 className="text-lg font-semibold mb-4 pb-2 border-b dark:border-gray-700">
-              Booking Summary
+              {t('payment.bookingSummary', 'Booking Summary')}
             </h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Event Details</h3>
+                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment.eventDetails', 'Event Details')}</h3>
                 <p className="font-semibold mb-1">{event.title}</p>
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-1">
                   <CalendarClock className="h-4 w-4 mr-1" />
@@ -231,14 +258,14 @@ export default function Payment() {
               </div>
               
               <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Booking Details</h3>
+                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment.bookingDetails', 'Booking Details')}</h3>
                 <p className="text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">Booking ID:</span>{" "}
+                  <span className="text-gray-600 dark:text-gray-400">{t('payment.bookingId', 'Booking ID')}:</span>{" "}
                   <span className="font-mono">{booking.id.slice(-8).toUpperCase()}</span>
                 </p>
                 <p className="text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">Quantity:</span>{" "}
-                  <span>{booking.quantity} ticket(s)</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t('payment.quantity', 'Quantity')}:</span>{" "}
+                  <span>{booking.quantity} {t('payment.tickets', 'ticket(s)')}</span>
                 </p>
                 <p className="flex items-center font-semibold text-lg">
                   <IndianRupee className="h-4 w-4 mr-1" />
@@ -248,103 +275,57 @@ export default function Payment() {
             </div>
           </div>
           
-          {/* UPI Payment Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
-            <h2 className="text-lg font-semibold mb-4">UPI Payment</h2>
+          {/* Payment methods */}
+          <Tabs defaultValue="upi" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="upi">{t('payment.upiPayment', 'UPI Payment')}</TabsTrigger>
+              <TabsTrigger value="card">{t('payment.cardPayment', 'Card Payment')}</TabsTrigger>
+            </TabsList>
             
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
-              <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-2">
-                Pay using any UPI app
-              </h3>
-              <p className="text-sm text-blue-700 dark:text-blue-400 mb-4">
-                Make a payment of <strong>₹{formatAmountWithCommas(booking.finalAmount)}</strong> to the UPI ID below using any UPI app like PhonePe, Google Pay, Paytm, or your banking app.
-              </p>
-              
-              {/* UPI ID display with copy button */}
-              <div className="relative bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-md flex items-center p-3 mb-4">
-                <span className="text-gray-900 dark:text-gray-100 font-mono flex-grow pr-10">
-                  {activeUpiId || 'UPI ID not available'}
-                </span>
-                <button
-                  onClick={copyToClipboard}
-                  className="absolute right-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors p-1"
-                  disabled={!activeUpiId}
-                  aria-label="Copy UPI ID to clipboard"
-                >
-                  {isCopied ? (
-                    <CopyCheck className="h-5 w-5" />
-                  ) : (
-                    <Copy className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              
-              <div className="text-sm text-blue-700 dark:text-blue-400">
-                <p className="mb-1">
-                  <strong>Instructions:</strong>
-                </p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Open your UPI app and select the Send Money/Pay option</li>
-                  <li>Enter the UPI ID shown above</li>
-                  <li>Enter the exact amount: ₹{formatAmountWithCommas(booking.finalAmount)}</li>
-                  <li>Complete the payment and note down the UTR number/reference ID</li>
-                  <li>Enter the UTR number below to confirm your booking</li>
-                </ol>
-              </div>
-            </div>
+            <TabsContent value="upi">
+              {/* UPI Payment section */}
+              <UpiPayment 
+                bookingId={bookingId || ''}
+                amount={booking?.finalAmount || 0}
+                customerInfo={{
+                  name: deliveryInfo?.name || '',
+                  email: deliveryInfo?.email || '',
+                  phone: deliveryInfo?.phone || ''
+                }}
+                onPaymentSuccess={handleUpiPaymentSuccess}
+              />
+            </TabsContent>
             
-            {/* UTR Input Form */}
-            <form onSubmit={handleSubmitPayment}>
-              <div className="mb-4">
-                <label htmlFor="utrNumber" className="block text-sm font-medium mb-2">
-                  UTR Number / Reference ID
-                </label>
-                <Input
-                  id="utrNumber"
-                  type="text"
-                  value={utrNumber}
-                  onChange={(e) => setUtrNumber(e.target.value)}
-                  placeholder="Enter the UTR number or reference ID from your payment"
-                  className="w-full"
-                  required
-                />
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  The UTR number is a unique transaction reference that appears in your payment confirmation.
-                </p>
-                
-                {errorMessage && (
-                  <div className="mt-2 text-red-600 dark:text-red-400 text-sm flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errorMessage}
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-6 flex items-center justify-between">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Payment time: {getCurrentDateTime()}
-                </p>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    'Confirm Payment'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
+            <TabsContent value="card">
+              {/* Razorpay Card Payment section */}
+              <RazorpayPayment 
+                bookingId={bookingId || ''}
+                amount={booking?.finalAmount || 0}
+                customerInfo={{
+                  name: deliveryInfo?.name || '',
+                  email: deliveryInfo?.email || '',
+                  phone: deliveryInfo?.phone || ''
+                }}
+                onPaymentSuccess={handleCardPaymentSuccess}
+                onPaymentFailure={(error) => {
+                  // Handle payment failure
+                  setErrorMessage(error.description || 'Payment failed. Please try again.');
+                  
+                  toast({
+                    title: t('payment.paymentFailed', 'Payment Failed'),
+                    description: error.description || t('payment.tryAgain', 'Please try again or use a different payment method.'),
+                    variant: "destructive"
+                  });
+                }}
+              />
+            </TabsContent>
+          </Tabs>
           
-          {/* Support Info */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Need help? Contact our support team at{' '}
-              <a href="mailto:support@eventia.com" className="text-blue-600 hover:underline">
-                support@eventia.com
-              </a>
+          {/* Payment safety notice */}
+          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+            <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-2">{t('payment.securityInfo', 'Payment Security')}</h3>
+            <p className="text-blue-700 dark:text-blue-400">
+              {t('payment.securityDetails', 'All payments are secure and encrypted. We never store your payment details. For assistance, contact our support team.')}
             </p>
           </div>
         </div>

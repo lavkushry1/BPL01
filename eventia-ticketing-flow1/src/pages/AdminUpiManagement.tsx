@@ -13,7 +13,8 @@ import {
   getAllUpiSettings,
   createUpiSetting,
   updateUpiSetting,
-  deleteUpiSetting
+  deleteUpiSetting,
+  UpiSetting
 } from '@/services/api/paymentApi';
 import useAuth from '@/hooks/useAuth';
 
@@ -29,15 +30,6 @@ const AdminLayout: React.FC<{children: React.ReactNode}> = ({ children }) => {
     </div>
   );
 };
-
-export interface UpiSetting {
-  id: string;
-  upivpa: string;
-  discountamount: number;
-  isactive: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 const AdminUpiManagement = () => {
   const { isAuthenticated } = useAuth();
@@ -167,179 +159,155 @@ const AdminUpiManagement = () => {
     }
   };
 
-  if (configError) {
+  // Simplified inner content to avoid layout nesting when used as a component
+  const UpiManagementContent = () => (
+    <div className="max-w-4xl mx-auto px-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">UPI Payment Settings</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-2">
+          Manage UPI IDs for receiving payments and generating QR codes
+        </p>
+      </div>
+      
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Add New UPI ID</CardTitle>
+          <CardDescription>
+            Add a new UPI ID for payments. Only one UPI ID can be active at a time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAddUpiSetting} className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <Input
+                type="text"
+                placeholder="UPI ID (e.g., business@ybl)"
+                value={newUpiId}
+                onChange={(e) => setNewUpiId(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="md:w-1/4">
+              <Input
+                type="number"
+                placeholder="Discount (₹)"
+                value={newDiscountAmount}
+                onChange={(e) => setNewDiscountAmount(parseInt(e.target.value))}
+                min="0"
+                className="w-full"
+              />
+            </div>
+            <Button type="submit" disabled={isSubmitting} className="whitespace-nowrap">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              {isSubmitting ? 'Adding...' : 'Add UPI ID'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>All UPI IDs</CardTitle>
+          <CardDescription>
+            View and manage UPI IDs for payment collection
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : configError ? (
+            <div className="flex items-center p-6 text-red-600 bg-red-50 rounded-md border border-red-200">
+              <AlertCircle className="h-5 w-5 mr-3" />
+              <p>{configError}</p>
+            </div>
+          ) : upiSettings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+              <AlertCircle className="h-10 w-10 text-amber-500 mb-4" />
+              <h3 className="text-lg font-medium">No UPI IDs configured</h3>
+              <p className="text-sm text-gray-500 mt-2">
+                Add your first UPI ID to start receiving payments.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>UPI ID</TableHead>
+                  <TableHead>Discount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {upiSettings.map((setting) => (
+                  <TableRow key={setting.id}>
+                    <TableCell className="font-medium">{setting.upivpa}</TableCell>
+                    <TableCell>
+                      {setting.discountamount > 0 ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          ₹{setting.discountamount}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-500">No discount</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          checked={setting.isactive} 
+                          onCheckedChange={() => handleToggleActive(setting.id, setting.isactive)}
+                        />
+                        <span className={`text-sm ${setting.isactive ? 'text-green-600' : 'text-gray-500'}`}>
+                          {setting.isactive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-500 text-sm">
+                      {new Date(setting.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleDeleteUpiSetting(setting.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-between border-t px-6 py-4">
+          <p className="text-sm text-gray-500">
+            {upiSettings.filter(s => s.isactive).length} active UPI IDs
+          </p>
+          <Button variant="outline" onClick={fetchUpiSettings}>
+            Refresh
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+
+  // When used as a standalone page
+  if (window.location.pathname.includes('/admin/upi-settings')) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-full">
-          <Card className="max-w-md w-full">
-            <CardHeader>
-              <CardTitle className="flex items-center text-amber-500">
-                <AlertCircle className="mr-2 h-5 w-5" />
-                Configuration Error
-              </CardTitle>
-              <CardDescription>
-                There was a problem loading the UPI management features.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {configError}
-              </p>
-              <Button onClick={fetchUpiSettings}>
-                Try Again
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="container mx-auto py-8">
+          <UpiManagementContent />
         </div>
       </AdminLayout>
     );
   }
 
-  return (
-    <AdminLayout>
-      <div className="container px-4 py-6">
-        <h1 className="text-2xl font-bold mb-6">UPI Payment Management</h1>
-        
-        {/* Add new UPI setting form */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Add New UPI</CardTitle>
-            <CardDescription>
-              Create a new UPI payment option with optional discount
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddUpiSetting} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="upiId" className="block text-sm font-medium mb-1">
-                    UPI ID
-                  </label>
-                  <Input
-                    id="upiId"
-                    type="text"
-                    value={newUpiId}
-                    onChange={(e) => setNewUpiId(e.target.value)}
-                    placeholder="example@okbank"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="discountAmount" className="block text-sm font-medium mb-1">
-                    Discount Amount (₹)
-                  </label>
-                  <Input
-                    id="discountAmount"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={newDiscountAmount}
-                    onChange={(e) => setNewDiscountAmount(Number(e.target.value))}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isSubmitting || isLoading}>
-                  {isSubmitting ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add UPI ID
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-        
-        {/* UPI settings list */}
-        <Card>
-          <CardHeader>
-            <CardTitle>UPI IDs</CardTitle>
-            <CardDescription>
-              Manage existing UPI payment options
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </div>
-            ) : upiSettings.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No UPI settings found. Add your first UPI ID above.
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>UPI ID</TableHead>
-                    <TableHead>Discount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Added On</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {upiSettings.map((setting) => (
-                    <TableRow key={setting.id}>
-                      <TableCell className="font-medium">{setting.upivpa}</TableCell>
-                      <TableCell>
-                        {setting.discountamount > 0 ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            ₹{setting.discountamount}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-500">No discount</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Switch 
-                            checked={setting.isactive} 
-                            onCheckedChange={() => handleToggleActive(setting.id, setting.isactive)}
-                          />
-                          <span className={`text-sm ${setting.isactive ? 'text-green-600' : 'text-gray-500'}`}>
-                            {setting.isactive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-gray-500 text-sm">
-                        {new Date(setting.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          onClick={() => handleDeleteUpiSetting(setting.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-between border-t px-6 py-4">
-            <p className="text-sm text-gray-500">
-              {upiSettings.filter(s => s.isactive).length} active UPI IDs
-            </p>
-            <Button variant="outline" onClick={fetchUpiSettings}>
-              Refresh
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    </AdminLayout>
-  );
+  // When used as a component in the dashboard
+  return <UpiManagementContent />;
 };
 
 export default AdminUpiManagement;
