@@ -38,4 +38,4 @@ build/
 
 # Cache directories
 .cache/
-.temp/ 
+.temp/ node_modules/
