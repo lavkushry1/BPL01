@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String           @id @default(uuid())
+  email             String           @unique
+  name              String
+  password          String
+  role              UserRole         @default(USER)
+  verified          Boolean          @default(false)
+  verificationToken String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  verifiedPayments  BookingPayment[] @relation("VerifiedPayments")
+  bookings          Booking[]
+  createdEvents     Event[]          @relation("UserEvents")
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+model Event {
+  id               String           @id @default(uuid())
+  title            String
+  description      String
+  startDate        DateTime         @map("start_date")
+  endDate          DateTime         @map("end_date")
+  location         String
+  status           EventStatus      @default(DRAFT)
+  capacity         Int?
+  imageUrl         String?          @map("image_url")
+  organizerId      String           @map("organizer_id")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  pricingLogs      PricingLog[]
+  pricingRules     PricingRule[]
+  bookings         Booking[]
+  organizer        User             @relation("UserEvents", fields: [organizerId], references: [id], onDelete: Cascade)
+  seats            Seat[]
+  ticketCategories TicketCategory[]
+  categories       Category[]       @relation("EventCategories")
+  discounts        Discount[]       @relation("EventDiscounts")
+
+  @@map("events")
+}
+
+model Booking {
+  id              String           @id @default(uuid())
+  userId          String           @map("user_id")
+  eventId         String           @map("event_id")
+  status          BookingStatus    @default(PENDING)
+  quantity        Int              @default(1)
+  finalAmount     Decimal          @map("final_amount") @db.Decimal(10, 2)
+  seats           Json?
+  discountId      String?          @map("discount_id")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  bookingPayment  BookingPayment?
+  discount        Discount?        @relation(fields: [discountId], references: [id])
+  event           Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryDetails DeliveryDetails?
+  payment         Payment?
+
+  @@map("bookings")
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  bookingId String        @unique @map("booking_id")
+  amount    Decimal       @db.Decimal(10, 2)
+  status    PaymentStatus @default(PENDING)
+  method    String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model BookingPayment {
+  id          String    @id @default(uuid())
+  bookingId   String    @unique @map("booking_id")
+  amount      Decimal   @db.Decimal(10, 2)
+  utrNumber   String?   @map("utr_number")
+  paymentDate DateTime? @map("payment_date")
+  status      String    @default("pending")
+  verifiedBy  String?   @map("verified_by")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  admin       User?     @relation("VerifiedPayments", fields: [verifiedBy], references: [id])
+
+  @@map("booking_payments")
+}
+
+model UpiSettings {
+  id             String   @id @default(uuid())
+  upivpa         String
+  discountamount Decimal  @db.Decimal(10, 2)
+  isactive       Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@map("upi_settings")
+}
+
+model DeliveryDetails {
+  id        String   @id @default(uuid())
+  bookingId String   @unique @map("booking_id")
+  name      String
+  email     String
+  phone     String
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_details")
+}
+
+model Discount {
+  id          String       @id @default(uuid())
+  code        String       @unique
+  type        DiscountType
+  value       Decimal      @db.Decimal(10, 2)
+  maxUses     Int          @default(0) @map("max_uses")
+  usedCount   Int          @default(0) @map("used_count")
+  minAmount   Decimal?     @map("min_amount") @db.Decimal(10, 2)
+  startDate   DateTime     @map("start_date")
+  endDate     DateTime     @map("end_date")
+  isActive    Boolean      @default(true) @map("is_active")
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  bookings    Booking[]
+  events      Event[]      @relation("EventDiscounts")
+
+  @@map("discounts")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events    Event[]  @relation("EventCategories")
+
+  @@map("categories")
+}
+
+model TicketCategory {
+  id           String       @id @default(uuid())
+  name         String
+  description  String?
+  price        Decimal      @db.Decimal(10, 2)
+  minimumPrice Decimal?     @db.Decimal(10, 2)
+  totalSeats   Int
+  bookedSeats  Int          @default(0)
+  eventId      String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  pricingLogs  PricingLog[]
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("ticket_categories")
+}
+
+model PricingRule {
+  id              String   @id @default(uuid())
+  name            String
+  description     String
+  type            String
+  conditions      Json
+  adjustmentType  String
+  adjustmentValue Decimal  @db.Decimal(10, 2)
+  priority        Int
+  isActive        Boolean  @default(true)
+  isGlobal        Boolean  @default(false)
+  eventId         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  event           Event?   @relation(fields: [eventId], references: [id])
+
+  @@index([eventId])
+  @@index([isActive])
+  @@index([isGlobal])
+  @@index([type])
+}
+
+model PricingLog {
+  id               String         @id @default(uuid())
+  eventId          String
+  ticketCategoryId String
+  basePrice        Decimal        @db.Decimal(10, 2)
+  finalPrice       Decimal        @db.Decimal(10, 2)
+  adjustments      String
+  quantity         Int
+  calculatedAt     DateTime       @default(now())
+  event            Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketCategory   TicketCategory @relation(fields: [ticketCategoryId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([ticketCategoryId])
+  @@index([calculatedAt])
+}
+
+model Seat {
+  id            String   @id @default(uuid())
+  label         String
+  section       String
+  row           String
+  seatNumber    Int
+  status        String   @default("available")
+  price         Decimal  @db.Decimal(10, 2)
+  eventId       String
+  lockedBy      String?  @map("locked_by")
+  lockExpiresAt DateTime? @map("lock_expires_at")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, section, row, seatNumber])
+  @@index([status])
+  @@index([eventId, status])
+  @@map("seats")
+}
+
+model ReservationExpiryQueue {
+  id          String   @id @default(uuid())
+  bookingId   String   @unique
+  expiresAt   DateTime @map("expires_at")
+  processed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@index([processed])
+  @@map("reservation_expiry_queue")
+}
+
+model TicketGenerationQueue {
+  id            String    @id @default(uuid())
+  bookingId     String    @unique
+  nextAttemptAt DateTime? @map("next_attempt_at")
+  attempts      Int       @default(0)
+  maxAttempts   Int       @default(3) @map("max_attempts")
+  status        String    @default("pending")
+  error         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([nextAttemptAt, attempts])
+  @@map("ticket_generation_queue")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  family    String   // Track token family for enhanced security
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([family])
+}
+
+enum UserRole {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}

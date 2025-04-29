@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="9d5e223e-ed4c-47ee-83c1-b0bfb42596bd" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../App_forwarder/sms_app/lib/telephonyn.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80043669_6202447165.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80109992_6201950294.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80139438_7870019080.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80140502_9060925361.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80245962_7488767156.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80601665_9934613288.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80657627_7563816609.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80660758_6205756240.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_80918714_7061376540.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_81146678_9709381867.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_81189056_6287913025.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_81408933_8709663706.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_81514324_7256041762.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_81719861_8521841138.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_81772968_7903933161.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82087109_6299541258.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82220670_6202791469.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82251256_6209034367.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82389442_7970300208.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82397672_9264288085.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82408256_7209634339.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82437199_7903859331.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82468498_6202140905.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82469875_6205153060.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82472876_9199592105.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82478605_6201752672.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82478884_8409525319.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82501064_7061692776.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82502381_8102490819.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82518373_8780235632.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82522910_8709362492.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82531901_7368096694.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82536573_7782001081.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82545763_9801962609.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82546997_6202737016.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82551510_8409854507.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82568731_9693709457.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82606414_9353986447.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82610558_8102808953.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82629625_7209807587.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82631049_9631961420.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82631455_9608076029.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82631582_9473131645.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82640513_9508585470.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82676972_8651011475.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82690234_8051749374.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82695139_9128791875.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82695507_7808532613.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82719047_7857937216.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82738470_9060767703.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/.env.example" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/docker-compose.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/config/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/config/knexfile.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/config/swagger.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/controllers/authController.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/controllers/booking.controller.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/controllers/payment.controller.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/db/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/db/migrations/20230501000001_initial_schema.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/db/migrations/20240426000004_payment_tables.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/docs/components/payment.components.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/docs/swagger.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/auth.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/errorHandler.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/validate.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/models/booking.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/models/payment.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/models/user.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/auth.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/booking.routes.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/payment.routes.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/v1/index.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/server.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/services/payment.service.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/utils/apiError.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/utils/apiResponse.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/utils/logger.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/validations/payment.validation.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/tsconfig.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/BookingModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/BookingModal.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/ConfirmationPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/ConfirmationPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/SeatMap.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/SeatMap.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/events/EventCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/events/EventCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/home/FeaturedEvents.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/home/FeaturedEvents.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DeliveryDetailsForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DeliveryDetailsForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DiscountForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DiscountForm.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/UpiPayment.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/UpiPayment.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/data/eventsData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/data/eventsData.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/booking.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/booking.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/discount.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/discount.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/en.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/en.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/hi.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/hi.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/lib/utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/lib/utils.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/main.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/main.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/ARVenuePreview.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/ARVenuePreview.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/AdminDiscountManagement.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/AdminDiscountManagement.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Checkout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Checkout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Confirmation.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Confirmation.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/DeliveryDetails.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/DeliveryDetails.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/EventDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/EventDetail.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Events.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Events.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/IPLTickets.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/IPLTickets.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Payment.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Payment.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/services/api/paymentApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/services/api/paymentApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/ios/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/all_garage_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/all_restaurants_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/all_rides_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/all_stay_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/complete_posts_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/complete_posts_reaction_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/complete_rides_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/create_ride_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/edit_location_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/edit_ride_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/get_ridedetails_for_edit_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/get_rides_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/get_sponsor_notification.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/more_details_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/my_post_details.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/my_post_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/other_rides_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/profile_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/search_riders_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/search_rrides_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/start_ride_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Providers/providers.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Screens/SearchScreen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Screens/create_ride_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Screens/google_map_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Services/constants.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Services/google_places_api.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Services/repository.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Services/rides_api_repository.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Widgets/button.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Widgets/inputfield_with_border.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Widgets/loading_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Widgets/snack_bar.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/const/app_colors.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/const/app_strings.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/map_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/search_places.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/macos/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/.env" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/assets/images/car.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/assets/images/locate_me.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/assets/images/map_icon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/assets/images/up_right.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/Providers/navigation_provider.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/controllers/home_controller.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/controllers/navigation_controller.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/main.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/models/directions_model.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/pages/home_page.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/utils/constants.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/widgets/bottom_bar.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/widgets/destination_box.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/widgets/directions_status_bar.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Back to Work/navigationgmap/lib/widgets/search_bar.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../DAA.docx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../FastAPI-The-Complete-Course-main/Project_1/books.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../HelloWorld.Rmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PwDSPRO/Project1/WebScrap2/WebScrapper2.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../PwDSPRO/Project1/WebScrap2/WebScrapper2.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PwDSPRO/Project1/WebScrapper" beforeDir="false" afterPath="$PROJECT_DIR$/../PwDSPRO/Project1/WebScrapper" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PwDSPRO/PwDsPro" beforeDir="false" afterPath="$PROJECT_DIR$/../PwDSPRO/PwDsPro" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/Artbox/artbox/assets/images/body_templete.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/.metadata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/analysis_options.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/debug/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/kotlin/com/example/google_clone/MainActivity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/drawable-v21/launch_background.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/drawable/launch_background.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/values-night/styles.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/main/res/values/styles.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/app/src/profile/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/gradle.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/android/settings.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/assets/images/Google_logo.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/assets/images/Mic_icon.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/assets/images/More_apps.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/assets/images/Search_icon.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Flutter/AppFrameworkInfo.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Flutter/Debug.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Flutter/Release.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcodeproj/project.pbxproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/AppDelegate.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Base.lproj/LaunchScreen.storyboard" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Base.lproj/Main.storyboard" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/Runner/Runner-Bridging-Header.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/ios/RunnerTests/RunnerTests.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/colours.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/main.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/mobile_screen_layout.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/responsive_layout_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/screens/search_screen.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/web_screen_layout.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/footer_text.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/language_text.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/mobile_footer.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/search.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/search_button.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/search_buttons.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/search_header.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/search_tab.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/search_tabs.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/traslation_buttons.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/lib/widgets/web_footer.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/flutter/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/flutter/generated_plugin_registrant.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/flutter/generated_plugins.cmake" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/main.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/my_application.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/linux/my_application.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Flutter/Flutter-Debug.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Flutter/Flutter-Release.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner.xcodeproj/project.pbxproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/AppDelegate.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Base.lproj/MainMenu.xib" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Configs/AppInfo.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Configs/Debug.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Configs/Release.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Configs/Warnings.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/DebugProfile.entitlements" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/MainFlutterWindow.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/Runner/Release.entitlements" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/macos/RunnerTests/RunnerTests.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/pubspec.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/pubspec.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/test/widget_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/web/favicon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/web/icons/Icon-192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/web/icons/Icon-512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/web/icons/Icon-maskable-192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/web/icons/Icon-maskable-512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/web/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/web/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/flutter/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/flutter/generated_plugin_registrant.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/flutter/generated_plugins.cmake" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/Runner.rc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/flutter_window.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/flutter_window.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/main.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/resource.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/resources/app_icon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/runner.exe.manifest" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/utils.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/utils.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/win32_window.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/google_clone/windows/runner/win32_window.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/drawable/button_bg.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/drawable/button_bg_outline.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/drawable/button_outline.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/drawable/ic_my_clubs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/layout/activity_main.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/values/colors.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/values/developer-config.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/map_integration/android/app/src/main/res/values/strings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/.metadata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/.vscode/settings.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/analysis_options.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/debug/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/kotlin/com/example/mapbox_integration/MainActivity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/drawable-v21/launch_background.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/drawable/launch_background.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/mipmap-hdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/mipmap-mdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/values-night/styles.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/values/developer-config.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/main/res/values/styles.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/app/src/profile/AndroidManifest.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/build.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/gradle.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/java_pid18248.hprof" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/android/settings.gradle" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Flutter/AppFrameworkInfo.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Flutter/Debug.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Flutter/Release.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcodeproj/project.pbxproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/AppDelegate.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Base.lproj/LaunchScreen.storyboard" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Base.lproj/Main.storyboard" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/Runner/Runner-Bridging-Header.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/ios/RunnerTests/RunnerTests.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/lib/main.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/lib/platform_channel.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/flutter/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/flutter/generated_plugin_registrant.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/flutter/generated_plugin_registrant.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/flutter/generated_plugins.cmake" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/main.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/my_application.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/linux/my_application.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Flutter/Flutter-Debug.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Flutter/Flutter-Release.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner.xcodeproj/project.pbxproj" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner.xcworkspace/contents.xcworkspacedata" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/AppDelegate.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Base.lproj/MainMenu.xib" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Configs/AppInfo.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Configs/Debug.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Configs/Release.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Configs/Warnings.xcconfig" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/DebugProfile.entitlements" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/MainFlutterWindow.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/Runner/Release.entitlements" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/macos/RunnerTests/RunnerTests.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/pubspec.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/pubspec.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/test/widget_test.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/web/favicon.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/web/icons/Icon-192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/web/icons/Icon-512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/web/icons/Icon-maskable-192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/web/icons/Icon-maskable-512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/web/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/web/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/flutter/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/flutter/generated_plugin_registrant.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/flutter/generated_plugin_registrant.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/flutter/generated_plugins.cmake" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/Runner.rc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/flutter_window.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/flutter_window.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/main.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/resource.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/resources/app_icon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/runner.exe.manifest" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/utils.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/utils.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/win32_window.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapbox_integration/windows/runner/win32_window.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/mapkitjs-jwt-token-generator" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/assets/web/map.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/assets/web/script.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/assets/web/style.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/ios/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/ios/Podfile.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/macos/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/scripts/AuthKey_P35NWTG52J.p8" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/scripts/client_secret_generate.rb" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/my_map_app/scripts/generate_jwt.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/new_web_view/ios/Lavkush Dev/AccountAuthenticationModificationViewController.swift" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/new_web_view/ios/Lavkush Dev/Base.lproj/MainInterface.storyboard" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/new_web_view/ios/Lavkush Dev/Info.plist" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/new_web_view/ios/Podfile.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/generated/source/buildConfig/debug/com/example/mapbox_navigation_app/BuildConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/generated/source/buildConfig/release/com/example/mapbox_navigation_app/BuildConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/.last_build_id" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/AssetManifest.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/AssetManifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/FontManifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/NOTICES.Z" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/fonts/MaterialIcons-Regular.otf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/isolate_snapshot_data" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/kernel_blob.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/shaders/ink_sparkle.frag" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_assets/vm_snapshot_data" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/flutter_build.d" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/debug/libs.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/.last_build_id" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/arm64-v8a/app.so" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/armeabi-v7a/app.so" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_assets/AssetManifest.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_assets/AssetManifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_assets/FontManifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_assets/NOTICES.Z" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_assets/fonts/MaterialIcons-Regular.otf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_assets/shaders/ink_sparkle.frag" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/flutter_build.d" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/libs.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/flutter/release/x86_64/app.so" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/intermediates/metadata_application_id/release/application-id.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/kotlinToolingMetadata/kotlin-tooling-metadata.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/tmp/packJniLibsflutterBuildDebug/MANIFEST.MF" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/build/tmp/packJniLibsflutterBuildRelease/MANIFEST.MF" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/src/main/java/com/example/mapbox_navigation/MapboxNavigationActivity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Tes/test app/mapbox_navigation_app/android/app/src/main/kotlin/com/example/mapbox_navigation_app/MapboxNavigationActivity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Web with PY/core/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Web with PY/core/.idea/core.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Web with PY/core/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Web with PY/core/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Web with PY/core/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Web with PY/core/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ads/all loan data/merged_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/../ads/all loan data/merged_data.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../apple_mapkit_webview/assets/html/mapkit.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../apple_mapkit_webview/ios/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../apple_mapkit_webview/lib/webview_page.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../apple_mapkit_webview/macos/Podfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../test/test.Rproj" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="2vzmNzXTHp3NVfdGyLXMGrzd9CP" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/lavkushkumar/Desktop/BPL1&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.standard&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.standard&quot;: &quot;&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMConfigurable&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/lavkushkumar/Desktop/BPL1/eventia-ticketing-flow1/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-WS-251.23774.424" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9d5e223e-ed4c-47ee-83c1-b0bfb42596bd" name="Changes" comment="" />
+      <created>1745156242518</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1745156242518</updated>
+      <workItem from="1745156244669" duration="605000" />
+      <workItem from="1745156871066" duration="2566000" />
+      <workItem from="1745160901004" duration="2294000" />
+      <workItem from="1745299777857" duration="39000" />
+      <workItem from="1745673955956" duration="3009000" />
+      <workItem from="1745765925235" duration="4111000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/eventia-backend-express/src/services/seatLocking.service.ts</url>
+          <line>24</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

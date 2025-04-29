@@ -1,0 +1,373 @@
+{
+  "version": "1.0.0",
+  "apiBasePath": "/api",
+  "frontendUrl": "http://localhost:3000",
+  "designSystem": {
+    "tokens": {
+      "path": "eventia-ticketing-flow1/src/styles/tokens.json",
+      "cssVariables": "eventia-ticketing-flow1/src/styles/theme.css"
+    },
+    "components": {
+      "button": {
+        "path": "eventia-ticketing-flow1/src/components/ui/button.tsx"
+      },
+      "hero": {
+        "path": "eventia-ticketing-flow1/src/components/home/Hero.tsx"
+      },
+      "featuredEvents": {
+        "path": "eventia-ticketing-flow1/src/components/home/FeaturedEvents.tsx"
+      },
+      "filterBar": {
+        "path": "eventia-ticketing-flow1/src/components/events/FilterBar.tsx"
+      },
+      "eventCard": {
+        "path": "eventia-ticketing-flow1/src/components/events/EventCard.tsx"
+      }
+    }
+  },
+  "features": {
+    "authentication": {
+      "name": "User Authentication",
+      "frontendLocation": {
+        "component": "AdminLogin.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/AdminLogin.tsx"
+      },
+      "backendEndpoints": {
+        "login": {
+          "method": "POST",
+          "path": "/auth/login",
+          "controller": "authController.login",
+          "status": "implemented"
+        },
+        "register": {
+          "method": "POST",
+          "path": "/auth/register",
+          "controller": "authController.register",
+          "status": "implemented"
+        },
+        "logout": {
+          "method": "POST",
+          "path": "/auth/logout",
+          "controller": "authController.logout", 
+          "status": "implemented"
+        }
+      },
+      "assets": {
+        "loginImage": "/assets/login-bg.jpg"
+      }
+    },
+    "eventListing": {
+      "name": "Event Listing",
+      "frontendLocation": {
+        "component": "Events.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/Events.tsx"
+      },
+      "backendEndpoints": {
+        "getAllEvents": {
+          "method": "GET",
+          "path": "/events",
+          "controller": "EventController.getAllEvents",
+          "status": "implemented"
+        },
+        "getFilteredEvents": {
+          "method": "GET",
+          "path": "/events?category={category}&date={date}",
+          "controller": "EventController.getAllEvents",
+          "status": "implemented"
+        }
+      }
+    },
+    "eventDetail": {
+      "name": "Event Detail",
+      "frontendLocation": {
+        "component": "EventDetail.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/EventDetail.tsx"
+      },
+      "backendEndpoints": {
+        "getEventById": {
+          "method": "GET",
+          "path": "/events/:id",
+          "controller": "EventController.getEventById",
+          "status": "implemented"
+        }
+      }
+    },
+    "seatMap": {
+      "name": "Seat Map",
+      "frontendLocation": {
+        "component": "SeatMap.tsx",
+        "path": "eventia-ticketing-flow1/src/components/booking/SeatMap.tsx"
+      },
+      "backendEndpoints": {
+        "getSeatMapById": {
+          "method": "GET",
+          "path": "/seat-maps/:id",
+          "controller": "seat.controller.getSeatMapById",
+          "status": "implemented"
+        },
+        "getSeatsForVenue": {
+          "method": "GET",
+          "path": "/venues/:venueId/seats",
+          "controller": "seat.controller.getSeatsForVenue",
+          "status": "implemented"
+        }
+      }
+    },
+    "seatLocking": {
+      "name": "Seat Locking/Reservation",
+      "frontendLocation": {
+        "component": "EventDetail.tsx (handleSeatSelect)",
+        "path": "eventia-ticketing-flow1/src/pages/EventDetail.tsx"
+      },
+      "backendEndpoints": {
+        "lockSeat": {
+          "method": "POST",
+          "path": "/seats/:seatId/lock",
+          "controller": "seatLocking.controller.lockSeat",
+          "status": "implemented"
+        },
+        "unlockSeat": {
+          "method": "POST",
+          "path": "/seats/:seatId/unlock",
+          "controller": "seatLocking.controller.unlockSeat",
+          "status": "implemented"
+        }
+      },
+      "websocket": {
+        "events": ["seat-status-changed"]
+      }
+    },
+    "booking": {
+      "name": "Booking Creation",
+      "frontendLocation": {
+        "component": "EventDetail.tsx (handleAddToCart)",
+        "path": "eventia-ticketing-flow1/src/pages/EventDetail.tsx"
+      },
+      "backendEndpoints": {
+        "createBooking": {
+          "method": "POST",
+          "path": "/bookings",
+          "controller": "booking.controller.createBooking",
+          "status": "implemented"
+        },
+        "getBookingById": {
+          "method": "GET",
+          "path": "/bookings/:id",
+          "controller": "booking.controller.getBookingById",
+          "status": "implemented"
+        }
+      }
+    },
+    "deliveryDetails": {
+      "name": "Delivery Details",
+      "frontendLocation": {
+        "component": "DeliveryDetails.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/DeliveryDetails.tsx"
+      },
+      "backendEndpoints": {
+        "saveDeliveryDetails": {
+          "method": "POST",
+          "path": "/bookings/:bookingId/delivery-details",
+          "controller": "booking.controller.saveDeliveryDetails",
+          "status": "implemented"
+        }
+      }
+    },
+    "payment": {
+      "name": "UPI Payment",
+      "frontendLocation": {
+        "component": "UpiPayment.tsx",
+        "path": "eventia-ticketing-flow1/src/components/payment/UpiPayment.tsx"
+      },
+      "backendEndpoints": {
+        "getPaymentSettings": {
+          "method": "GET",
+          "path": "/payments/settings",
+          "controller": "payment.controller.getPaymentSettings",
+          "status": "implemented"
+        },
+        "createPayment": {
+          "method": "POST",
+          "path": "/payments",
+          "controller": "payment.controller.createPayment",
+          "status": "implemented"
+        },
+        "getPaymentByBookingId": {
+          "method": "GET",
+          "path": "/payments/booking/:bookingId",
+          "controller": "payment.controller.getPaymentByBookingId",
+          "status": "implemented"
+        }
+      }
+    },
+    "utrVerification": {
+      "name": "UTR Verification",
+      "frontendLocation": {
+        "component": "UpiPayment.tsx (handleSubmit)",
+        "path": "eventia-ticketing-flow1/src/components/payment/UpiPayment.tsx"
+      },
+      "backendEndpoints": {
+        "submitUtrVerification": {
+          "method": "POST",
+          "path": "/payments/:id/utr",
+          "controller": "payment.controller.submitUtrVerification",
+          "status": "implemented"
+        }
+      }
+    },
+    "paymentStatus": {
+      "name": "Payment Status Check",
+      "frontendLocation": {
+        "component": "UpiPayment.tsx",
+        "path": "eventia-ticketing-flow1/src/components/payment/UpiPayment.tsx"
+      },
+      "backendEndpoints": {
+        "getPaymentStatus": {
+          "method": "GET",
+          "path": "/payments/:id/status",
+          "controller": "payment.controller.getPaymentStatus",
+          "status": "implemented"
+        }
+      }
+    },
+    "discountCode": {
+      "name": "Discount Code Application",
+      "frontendLocation": {
+        "component": "DiscountForm.tsx",
+        "path": "eventia-ticketing-flow1/src/components/payment/DiscountForm.tsx"
+      },
+      "backendEndpoints": {
+        "applyDiscount": {
+          "method": "POST",
+          "path": "/discounts/apply",
+          "controller": "discount.controller.applyDiscount",
+          "status": "implemented"
+        },
+        "validateDiscount": {
+          "method": "GET",
+          "path": "/discounts/validate/:code",
+          "controller": "discount.controller.validateDiscount",
+          "status": "implemented"
+        }
+      }
+    },
+    "arVenuePreview": {
+      "name": "AR Venue Preview",
+      "frontendLocation": {
+        "component": "ARVenuePreview.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/ARVenuePreview.tsx"
+      },
+      "backendEndpoints": {},
+      "assets": {
+        "venueModels": {
+          "path": "/assets/models/",
+          "formats": ["gltf", "usdz"]
+        }
+      }
+    },
+    "adminEventManagement": {
+      "name": "Admin Event Management",
+      "frontendLocation": {
+        "component": "AdminEventManagement.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/AdminEventManagement.tsx"
+      },
+      "backendEndpoints": {
+        "createEvent": {
+          "method": "POST",
+          "path": "/admin/events",
+          "controller": "EventController.createEvent",
+          "status": "implemented"
+        },
+        "updateEvent": {
+          "method": "PUT",
+          "path": "/admin/events/:id",
+          "controller": "EventController.updateEvent",
+          "status": "implemented"
+        },
+        "deleteEvent": {
+          "method": "DELETE",
+          "path": "/admin/events/:id",
+          "controller": "EventController.deleteEvent",
+          "status": "implemented"
+        }
+      }
+    },
+    "adminUpiManagement": {
+      "name": "Admin UPI Management",
+      "frontendLocation": {
+        "component": "AdminUpiManagement.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/AdminUpiManagement.tsx"
+      },
+      "backendEndpoints": {
+        "updateUpiSettings": {
+          "method": "PUT",
+          "path": "/admin/payment-settings/upi",
+          "controller": "payment.controller.updateUpiSettings",
+          "status": "implemented"
+        }
+      }
+    },
+    "adminUtrVerification": {
+      "name": "Admin UTR Verification",
+      "frontendLocation": {
+        "component": "AdminUtrVerification.tsx",
+        "path": "eventia-ticketing-flow1/src/pages/AdminUtrVerification.tsx"
+      },
+      "backendEndpoints": {
+        "listUnverifiedPayments": {
+          "method": "GET",
+          "path": "/admin/payments/unverified",
+          "controller": "payment.controller.listUnverifiedPayments",
+          "status": "implemented"
+        },
+        "verifyPayment": {
+          "method": "PUT",
+          "path": "/admin/payments/:id/verify",
+          "controller": "payment.controller.verifyPayment",
+          "status": "implemented"
+        },
+        "rejectPayment": {
+          "method": "PUT",
+          "path": "/admin/payments/:id/reject",
+          "controller": "payment.controller.rejectPayment",
+          "status": "implemented"
+        }
+      }
+    },
+    "ticketGeneration": {
+      "name": "Ticket Generation",
+      "frontendLocation": {
+        "component": "ConfirmationPage.tsx",
+        "path": "eventia-ticketing-flow1/src/components/booking/ConfirmationPage.tsx"
+      },
+      "backendEndpoints": {
+        "generateTicket": {
+          "method": "POST",
+          "path": "/tickets/generate/:bookingId",
+          "controller": "ticket.controller.generateTicket",
+          "status": "implemented"
+        },
+        "getTicketById": {
+          "method": "GET",
+          "path": "/tickets/:id",
+          "controller": "ticket.controller.getTicketById",
+          "status": "implemented"
+        }
+      }
+    }
+  },
+  "missingEndpoints": [],
+  "staticAssets": {
+    "baseUrl": "/assets/",
+    "images": {
+      "logo": "/logo.png",
+      "backgrounds": {
+        "login": "/backgrounds/login-bg.jpg",
+        "events": "/backgrounds/events-bg.jpg"
+      },
+      "icons": {
+        "path": "/icons/"
+      }
+    }
+  }
+} 

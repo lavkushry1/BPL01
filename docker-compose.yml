@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: eventia_db
+    environment:
+      POSTGRES_USER: eventia
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-securepass}
+      POSTGRES_DB: eventia
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - eventia-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: eventia_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redispassword}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - eventia-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  adminer:
+    image: adminer:latest
+    container_name: eventia_adminer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    networks:
+      - eventia-net
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./eventia-backend-express
+      dockerfile: ${NODE_ENV:-development}.Dockerfile
+    container_name: eventia_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://eventia:${DB_PASSWORD:-securepass}@postgres:5432/eventia
+      PORT: 4000
+      NODE_ENV: ${NODE_ENV:-development}
+      JWT_SECRET: ${JWT_SECRET:-eventia_jwt_secret_key_2024}
+      JWT_EXPIRY: ${JWT_EXPIRY:-7d}
+      CORS_ORIGIN: ${FRONTEND_URL:-http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-smtp.mailtrap.io}
+      SMTP_PORT: ${SMTP_PORT:-2525}
+      SMTP_USER: ${SMTP_USER:-your_mailtrap_user}
+      SMTP_PASS: ${SMTP_PASS:-your_mailtrap_password}
+      SMTP_FROM: ${SMTP_FROM:-Eventia <noreply@eventia.com>}
+      TICKET_STORAGE_PATH: ./public/tickets
+      QRCODE_STORAGE_PATH: ./public/qrcodes
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
+      TZ: ${TZ:-UTC}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - backend_data:/app/public
+      - backend_logs:/app/logs
+      - ./eventia-backend-express:/app
+    ports:
+      - "4000:4000"
+    networks:
+      - eventia-net
+    command: ${NODE_ENV:-development} != "production" && "npm run dev" || "node dist/server.js"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./eventia-ticketing-flow1
+      dockerfile: ${NODE_ENV:-development}.Dockerfile
+    container_name: eventia_frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      VITE_API_BASE_URL: ${API_URL:-http://localhost:4000}
+      NODE_ENV: ${NODE_ENV:-development}
+    volumes:
+      - ./eventia-ticketing-flow1:/app
+    ports:
+      - "5173:5173"
+    networks:
+      - eventia-net
+    command: ${NODE_ENV:-development} != "production" && "npm run dev -- --host 0.0.0.0" || ""
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_data:
+  backend_logs:
+
+networks:
+  eventia-net:
+    driver: bridge
