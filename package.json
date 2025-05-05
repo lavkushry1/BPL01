@@ -21,7 +21,8 @@
     "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
     "migrate": "cd eventia-backend-express && npm run migrate",
     "migrate:undo": "cd eventia-backend-express && npm run migrate:undo",
-    "seed": "cd eventia-backend-express && npm run seed"
+    "seed": "cd eventia-backend-express && npm run seed",
+    "clean": "chmod +x ./cleanup.sh && ./cleanup.sh"
   },
   "keywords": [
     "ticketing",
@@ -34,10 +35,12 @@
   "author": "Eventia Team",
   "license": "MIT",
   "devDependencies": {
+    "@types/qrcode": "^1.5.5",
     "concurrently": "^8.2.2"
   },
   "dependencies": {
     "@radix-ui/react-separator": "^1.1.4",
+    "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0"
   }
 }

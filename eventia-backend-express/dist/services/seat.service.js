@@ -569,5 +569,33 @@ class SeatService {
             return 0;
         }
     }
+    /**
+     * Get unavailable seats from a list of seat IDs
+     * @param prisma Prisma client instance (can be transaction)
+     * @param seatIds Array of seat IDs to check
+     * @returns Array of unavailable seat IDs
+     */
+    static async getUnavailableSeats(prisma, seatIds) {
+        try {
+            const seats = await prisma.seat.findMany({
+                where: {
+                    id: { in: seatIds },
+                    OR: [
+                        { status: { not: 'AVAILABLE' } },
+                        {
+                            status: 'LOCKED',
+                            lockedUntil: { gt: new Date() }
+                        }
+                    ]
+                },
+                select: { id: true }
+            });
+            return seats.map((seat) => seat.id);
+        }
+        catch (error) {
+            console.error('Error getting unavailable seats:', error);
+            return [];
+        }
+    }
 }
 exports.SeatService = SeatService;

@@ -16,13 +16,23 @@ const logger_1 = require("./utils/logger");
 const http_1 = require("http");
 const websocket_service_1 = require("./services/websocket.service");
 const job_service_1 = require("./services/job.service");
-// Routes
+// Routes - Import all route files
+const auth_1 = __importDefault(require("./routes/auth"));
 const user_routes_1 = __importDefault(require("./routes/user.routes"));
 const event_routes_1 = __importDefault(require("./routes/event.routes"));
 const booking_routes_1 = __importDefault(require("./routes/booking.routes"));
 const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 const discount_routes_1 = __importDefault(require("./routes/discount.routes"));
 const health_routes_1 = __importDefault(require("./routes/health.routes"));
+const seat_routes_1 = __importDefault(require("./routes/seat.routes"));
+const seat_lock_routes_1 = __importDefault(require("./routes/seat.lock.routes"));
+const ticketCategory_routes_1 = __importDefault(require("./routes/ticketCategory.routes"));
+const ticket_routes_1 = __importDefault(require("./routes/ticket.routes"));
+const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
+const stateSync_routes_1 = __importDefault(require("./routes/stateSync.routes"));
+const payment_initialize_routes_1 = __importDefault(require("./routes/payment.initialize.routes"));
+const utrVerification_routes_1 = __importDefault(require("./routes/utrVerification.routes"));
+const payment_routes_2 = __importDefault(require("./routes/v1/payment.routes"));
 const createApp = async () => {
     const app = (0, express_1.default)();
     const server = (0, http_1.createServer)(app);
@@ -48,12 +58,24 @@ const createApp = async () => {
         credentials: true
     }));
     // Setup API routes
+    // Legacy route setup - keep for backward compatibility
     app.use('/api', routes_1.default);
+    // Register all routes with consistent /api/v1 prefix
+    app.use('/api/v1/auth', auth_1.default);
     app.use('/api/v1/users', user_routes_1.default);
     app.use('/api/v1/events', event_routes_1.default);
     app.use('/api/v1/bookings', booking_routes_1.default);
     app.use('/api/v1/payments', payment_routes_1.default);
+    app.use('/api/v1/payments', payment_routes_2.default);
+    app.use('/api/v1/payment-initialize', payment_initialize_routes_1.default);
     app.use('/api/v1/discounts', discount_routes_1.default);
+    app.use('/api/v1/seats', seat_routes_1.default);
+    app.use('/api/v1/seat-locks', seat_lock_routes_1.default);
+    app.use('/api/v1/ticket-categories', ticketCategory_routes_1.default);
+    app.use('/api/v1/tickets', ticket_routes_1.default);
+    app.use('/api/v1/admin', admin_routes_1.default);
+    app.use('/api/v1/state-sync', stateSync_routes_1.default);
+    app.use('/api/v1/verify-utr', utrVerification_routes_1.default);
     app.use('/api/v1/health', health_routes_1.default);
     // Setup Swagger documentation
     (0, swagger_1.setupSwagger)(app);

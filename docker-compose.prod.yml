@@ -80,13 +80,24 @@ services:
       dockerfile: Dockerfile.prod
       args:
         VITE_API_URL: ${API_URL}
+        VITE_WS_URL: ${WS_URL}
         VITE_SENTRY_DSN: ${FRONTEND_SENTRY_DSN}
+        VITE_APP_VERSION: ${APP_VERSION:-1.0.0}
+        VITE_RELEASE_ID: ${RELEASE_ID:-1.0.0}
+        VITE_PAYMENT_GATEWAY_PUBLIC_KEY: ${PAYMENT_GATEWAY_PUBLIC_KEY}
     container_name: eventia-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - eventia-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Nginx for routing and serving static files
   nginx:
@@ -101,12 +112,21 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./certbot/conf:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - backend
-      - frontend
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     networks:
       - eventia-network
     command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Certbot for SSL certificates
   certbot:

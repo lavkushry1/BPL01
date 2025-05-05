@@ -1,114 +1,130 @@
 import { Response } from 'express';
 
+export interface ApiResponseOptions {
+  statusCode?: number;
+  metadata?: Record<string, any>;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  headers?: Record<string, string>;
+  [key: string]: any; // Allow for additional arbitrary properties
+}
+
 /**
- * Utility for sending standardized API responses
+ * Utility class for standardized API responses
  */
 export class ApiResponse {
   /**
-   * Send a successful response
-   * 
+   * Send a success response
    * @param res Express response object
-   * @param data Response data or status code
+   * @param statusCode HTTP status code
    * @param message Success message
-   * @param meta Response metadata (optional)
+   * @param data Response data
+   * @param options Additional response options
    */
   static success(
-    res: Response,
-    data: any = null,
-    message: string = 'Success',
-    meta: Record<string, any> = {}
-  ): Response {
-    const statusCode = typeof data === 'number' ? data : 200;
-    const responseData = typeof data === 'number' ? null : data;
-    
-    return res.status(statusCode).json({
-      status: 'success',
-      message,
-      data: responseData,
-      meta,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  /**
-   * Send a created response (201)
-   * 
-   * @param res Express response object
-   * @param data Response data
-   * @param message Success message
-   */
-  static created(
-    res: Response,
-    data: any = null,
-    message: string = 'Created successfully'
-  ): Response {
-    return res.status(201).json({
-      status: 'success',
-      message,
-      data,
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  /**
-   * Send a paginated response
-   * 
-   * @param res Express response object
-   * @param statusCode HTTP status code (defaults to 200)
-   * @param message Success message
-   * @param data Response data
-   * @param pagination Pagination details
-   */
-  static paginated(
-    res: Response,
+    res: Response, 
     statusCode: number = 200,
-    message: string = 'Success',
-    data: any[],
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
+    message: string = 'Success', 
+    data: any = null,
+    options: ApiResponseOptions = {}
+  ) {
+    // Set headers if provided
+    if (options.headers) {
+      Object.entries(options.headers).forEach(([key, value]) => {
+        res.setHeader(key, value);
+      });
     }
-  ): Response {
+
     return res.status(statusCode).json({
-      status: 'success',
+      success: true,
       message,
       data,
-      meta: {
-        pagination
-      },
-      timestamp: new Date().toISOString()
+      metadata: options.metadata || {},
+      ...(options.pagination && { pagination: options.pagination }),
     });
   }
 
   /**
    * Send an error response
-   * 
    * @param res Express response object
    * @param statusCode HTTP status code
    * @param message Error message
-   * @param errorCode Error code (optional)
-   * @param errors Validation errors (optional)
+   * @param errorCode Error code for client reference
+   * @param errors Additional error details
    */
   static error(
     res: Response,
     statusCode: number = 500,
-    message: string = 'An error occurred',
-    errorCode: string = 'INTERNAL_ERROR',
+    message: string = 'Internal Server Error',
+    errorCode: string = 'INTERNAL_SERVER_ERROR',
     errors: any = null
-  ): Response {
-    const response: Record<string, any> = {
-      status: 'error',
+  ) {
+    return res.status(statusCode).json({
+      success: false,
       message,
-      error_code: errorCode,
-      timestamp: new Date().toISOString()
-    };
+      errorCode,
+      errors,
+    });
+  }
 
-    if (errors) {
-      response.errors = errors;
-    }
+  /**
+   * Send a paginated list response
+   * @param res Express response object
+   * @param data List data
+   * @param page Current page
+   * @param limit Items per page
+   * @param total Total number of items
+   * @param message Success message
+   */
+  static paginated(
+    res: Response,
+    data: any[],
+    page: number,
+    limit: number,
+    total: number,
+    message: string = 'Data retrieved successfully'
+  ) {
+    const totalPages = Math.ceil(total / limit);
+    
+    return this.success(
+      res, 
+      200, 
+      message, 
+      data, 
+      {
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages
+        }
+      }
+    );
+  }
 
-    return res.status(statusCode).json(response);
+  /**
+   * Send a created resource response
+   * @param res Express response object
+   * @param data Created resource data
+   * @param message Success message
+   */
+  static created(
+    res: Response,
+    data: any,
+    message: string = 'Resource created successfully'
+  ) {
+    return this.success(res, 201, message, data);
+  }
+
+  /**
+   * Send a no content response
+   * @param res Express response object
+   */
+  static noContent(res: Response) {
+    return res.status(204).end();
   }
 }

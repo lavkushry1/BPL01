@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-// Define the API base URL using import.meta.env for Vite compatibility
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+import { API_BASE_URL } from './apiUtils';
 
 // Define interfaces for user data
 export interface User {
@@ -96,6 +94,39 @@ export interface AddressResponse {
   data: Address;
 }
 
+// Define interface for user profile with address
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  };
+  role: string;
+  verified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Define interface for profile update request
+export interface ProfileUpdateRequest {
+  name?: string;
+  phone?: string;
+  address?: {
+    line1?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+  };
+}
+
 // Create axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -125,7 +156,7 @@ const userApi = {
    * @param data Registration data
    */
   register: (data: RegisterRequest) => {
-    return apiClient.post<AuthResponse>('/api/auth/register', data);
+    return apiClient.post<AuthResponse>('/auth/register', data);
   },
 
   /**
@@ -133,21 +164,21 @@ const userApi = {
    * @param data Login credentials
    */
   login: (data: LoginRequest) => {
-    return apiClient.post<AuthResponse>('/api/auth/login', data);
+    return apiClient.post<AuthResponse>('/auth/login', data);
   },
 
   /**
    * Logout current user
    */
   logout: () => {
-    return apiClient.post('/api/auth/logout');
+    return apiClient.post('/auth/logout');
   },
 
   /**
    * Get current user profile
    */
   getCurrentUser: () => {
-    return apiClient.get<UserResponse>('/api/users/me');
+    return apiClient.get<UserResponse>('/users/me');
   },
 
   /**
@@ -155,7 +186,7 @@ const userApi = {
    * @param data Profile data to update
    */
   updateProfile: (data: UpdateProfileRequest) => {
-    return apiClient.patch<UserResponse>('/api/users/me', data);
+    return apiClient.patch<UserResponse>('/users/me', data);
   },
 
   /**
@@ -163,7 +194,7 @@ const userApi = {
    * @param data Password change data
    */
   changePassword: (data: ChangePasswordRequest) => {
-    return apiClient.post('/api/users/me/change-password', data);
+    return apiClient.post('/users/me/change-password', data);
   },
 
   /**
@@ -171,7 +202,7 @@ const userApi = {
    * @param data Password reset request data
    */
   requestPasswordReset: (data: ResetPasswordRequest) => {
-    return apiClient.post('/api/auth/forgot-password', data);
+    return apiClient.post('/auth/forgot-password', data);
   },
 
   /**
@@ -180,7 +211,7 @@ const userApi = {
    * @param password New password
    */
   resetPassword: (token: string, password: string) => {
-    return apiClient.post('/api/auth/reset-password', { token, password });
+    return apiClient.post('/auth/reset-password', { token, password });
   },
 
   /**
@@ -188,21 +219,21 @@ const userApi = {
    * @param token Verification token
    */
   verifyEmail: (token: string) => {
-    return apiClient.post('/api/auth/verify-email', { token });
+    return apiClient.post('/auth/verify-email', { token });
   },
 
   /**
    * Resend verification email
    */
   resendVerificationEmail: () => {
-    return apiClient.post('/api/auth/resend-verification');
+    return apiClient.post('/auth/resend-verification');
   },
 
   /**
    * Get user addresses
    */
   getUserAddresses: () => {
-    return apiClient.get<AddressesResponse>('/api/users/me/addresses');
+    return apiClient.get<AddressesResponse>('/users/me/addresses');
   },
 
   /**
@@ -210,7 +241,7 @@ const userApi = {
    * @param address Address data
    */
   addUserAddress: (address: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    return apiClient.post<AddressResponse>('/api/users/me/addresses', address);
+    return apiClient.post<AddressResponse>('/users/me/addresses', address);
   },
 
   /**
@@ -219,7 +250,7 @@ const userApi = {
    * @param address Address data to update
    */
   updateUserAddress: (addressId: string, address: Partial<Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
-    return apiClient.patch<AddressResponse>(`/api/users/me/addresses/${addressId}`, address);
+    return apiClient.patch<AddressResponse>(`/users/me/addresses/${addressId}`, address);
   },
 
   /**
@@ -227,7 +258,7 @@ const userApi = {
    * @param addressId Address ID
    */
   deleteUserAddress: (addressId: string) => {
-    return apiClient.delete(`/api/users/me/addresses/${addressId}`);
+    return apiClient.delete(`/users/me/addresses/${addressId}`);
   },
 
   /**
@@ -235,7 +266,7 @@ const userApi = {
    * @param addressId Address ID
    */
   setDefaultAddress: (addressId: string) => {
-    return apiClient.post<AddressResponse>(`/api/users/me/addresses/${addressId}/set-default`);
+    return apiClient.post<AddressResponse>(`/users/me/addresses/${addressId}/set-default`);
   },
 
   /**
@@ -243,7 +274,36 @@ const userApi = {
    * @param preferences User preferences
    */
   updatePreferences: (preferences: Partial<UserPreferences>) => {
-    return apiClient.patch<UserResponse>('/api/users/me/preferences', { preferences });
+    return apiClient.patch<UserResponse>('/users/me/preferences', { preferences });
+  },
+
+  /**
+   * Get user profile with detailed information
+   * @returns Promise with user profile data
+   */
+  getUserProfile: async (): Promise<UserProfile> => {
+    try {
+      const response = await apiClient.get<{ status: string; data: UserProfile }>('/users/me');
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update user profile
+   * @param data Profile data to update
+   * @returns Updated user profile
+   */
+  updateUserProfileDetails: async (data: ProfileUpdateRequest): Promise<UserProfile> => {
+    try {
+      const response = await apiClient.patch<{ status: string; data: UserProfile }>('/users/me', data);
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to update user profile:', error);
+      throw error;
+    }
   }
 };
 

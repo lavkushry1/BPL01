@@ -1,11 +1,11 @@
 import { Payment, UpiSettings } from '../models/payment.model';
-import { defaultApiClient } from '@/services/api/apiUtils';
-import { 
-  recordUpiPayment, 
-  verifyPayment, 
-  getActiveUpiSettings, 
+import { defaultApiClient } from '../services/api/apiUtils';
+import {
+  recordUpiPayment,
+  verifyPayment,
+  getActiveUpiSettings,
   updateUpiSetting
-} from '@/services/api/paymentApi';
+} from '../services/api/paymentApi';
 
 export const paymentService = {
   /**
@@ -15,7 +15,7 @@ export const paymentService = {
     try {
       const response = await recordUpiPayment({
         bookingId: payment.booking_id,
-        utrNumber: payment.utr_number,
+        utrNumber: payment.utr_number || '',
         paymentDate: payment.payment_date
       });
       return payment as any; // Type conversion needed

@@ -1,0 +1,191 @@
+{
+  "events": [
+    {
+      "id": "1",
+      "title": "IPL 2025: Mumbai Indians vs Chennai Super Kings",
+      "description": "Exciting T20 cricket match between Mumbai Indians and Chennai Super Kings",
+      "start_date": "2025-04-10T18:00:00Z",
+      "end_date": "2025-04-10T22:00:00Z",
+      "location": "Wankhede Stadium, Mumbai",
+      "status": "PUBLISHED",
+      "images": [
+        {
+          "id": "img1",
+          "url": "/mocks/images/mi-csk.jpg",
+          "is_featured": true
+        }
+      ],
+      "poster_image": "/mocks/images/mi-csk.jpg",
+      "teams": {
+        "team1": {
+          "name": "Mumbai Indians",
+          "shortName": "MI",
+          "logo": "/mocks/images/mi-logo.svg"
+        },
+        "team2": {
+          "name": "Chennai Super Kings",
+          "shortName": "CSK",
+          "logo": "/mocks/images/csk-logo.svg"
+        }
+      },
+      "ticket_types": [
+        {
+          "id": "premium",
+          "name": "Premium Stand",
+          "price": 5000,
+          "quantity": 200,
+          "available": 150
+        },
+        {
+          "id": "general",
+          "name": "General Stand",
+          "price": 2000,
+          "quantity": 500,
+          "available": 350
+        }
+      ],
+      "organizer": {
+        "id": "org1",
+        "name": "BCCI",
+        "logo": "/mocks/images/bcci-logo.svg"
+      }
+    },
+    {
+      "id": "2",
+      "title": "Taylor Swift: The Eras Tour",
+      "description": "Taylor Swift's Eras Tour comes to Mumbai!",
+      "start_date": "2025-05-15T19:00:00Z",
+      "end_date": "2025-05-15T23:00:00Z",
+      "location": "DY Patil Stadium, Navi Mumbai",
+      "status": "PUBLISHED",
+      "images": [
+        {
+          "id": "img2",
+          "url": "/mocks/images/taylor-swift.jpg",
+          "is_featured": true
+        }
+      ],
+      "poster_image": "/mocks/images/taylor-swift.jpg",
+      "ticket_types": [
+        {
+          "id": "vip",
+          "name": "VIP Experience",
+          "price": 12000,
+          "quantity": 100,
+          "available": 25
+        },
+        {
+          "id": "premium",
+          "name": "Premium Seating",
+          "price": 8000,
+          "quantity": 300,
+          "available": 150
+        },
+        {
+          "id": "general",
+          "name": "General Admission",
+          "price": 4000,
+          "quantity": 1000,
+          "available": 600
+        }
+      ],
+      "organizer": {
+        "id": "org2",
+        "name": "BookMyShow Live",
+        "logo": "/mocks/images/bms-logo.svg"
+      }
+    },
+    {
+      "id": "3",
+      "title": "International Food Festival",
+      "description": "Explore cuisines from around the world",
+      "start_date": "2025-03-20T11:00:00Z",
+      "end_date": "2025-03-22T22:00:00Z",
+      "location": "Mahalaxmi Race Course, Mumbai",
+      "status": "PUBLISHED",
+      "images": [
+        {
+          "id": "img3",
+          "url": "/mocks/images/food-festival.jpg",
+          "is_featured": true
+        }
+      ],
+      "poster_image": "/mocks/images/food-festival.jpg",
+      "ticket_types": [
+        {
+          "id": "premium",
+          "name": "Premium Pass",
+          "price": 1500,
+          "quantity": 500,
+          "available": 350
+        },
+        {
+          "id": "general",
+          "name": "General Entry",
+          "price": 800,
+          "quantity": 2000,
+          "available": 1200
+        }
+      ],
+      "organizer": {
+        "id": "org3",
+        "name": "Food Lovers India",
+        "logo": "/mocks/images/food-lovers-logo.svg"
+      }
+    }
+  ],
+  "event-seats": {
+    "1": {
+      "event_id": "1",
+      "sections": ["Premium Stand", "General Stand"],
+      "seats": {
+        "Premium Stand": [
+          { "id": "seat-a1", "label": "A-1", "status": "AVAILABLE", "price": 5000, "section": "Premium Stand", "row": "A" },
+          { "id": "seat-a2", "label": "A-2", "status": "AVAILABLE", "price": 5000, "section": "Premium Stand", "row": "A" },
+          { "id": "seat-a3", "label": "A-3", "status": "BOOKED", "price": 5000, "section": "Premium Stand", "row": "A" },
+          { "id": "seat-a12", "label": "A-12", "status": "AVAILABLE", "price": 5000, "section": "Premium Stand", "row": "A" }
+        ],
+        "General Stand": [
+          { "id": "seat-b1", "label": "B-1", "status": "AVAILABLE", "price": 2000, "section": "General Stand", "row": "B" },
+          { "id": "seat-b2", "label": "B-2", "status": "AVAILABLE", "price": 2000, "section": "General Stand", "row": "B" },
+          { "id": "seat-b3", "label": "B-3", "status": "AVAILABLE", "price": 2000, "section": "General Stand", "row": "B" }
+        ]
+      }
+    }
+  },
+  "bookings": [],
+  "payments": [
+    {
+      "id": "pay-1",
+      "booking_id": "book-1",
+      "amount": 5000,
+      "status": "COMPLETED",
+      "payment_method": "UPI",
+      "transaction_id": "txn-123456",
+      "created_at": "2023-02-15T10:30:00Z"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "ticket-1",
+      "booking_id": "book-1",
+      "event_id": "1",
+      "seat_id": "seat-a12",
+      "section": "Premium Stand",
+      "row": "A",
+      "seat": "A-12",
+      "price": 5000,
+      "status": "ISSUED",
+      "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhE...",
+      "created_at": "2023-02-15T10:35:00Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "user-123",
+      "name": "Test User",
+      "email": "test@example.com",
+      "role": "USER"
+    }
+  ]
+} 

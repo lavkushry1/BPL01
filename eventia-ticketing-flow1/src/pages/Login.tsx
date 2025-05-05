@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Input } from '@/components/ui/input';
@@ -25,7 +25,7 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated) {
       // If user is already authenticated, redirect them
-      const redirectPath = user?.role === 'admin' ? '/admin-dashboard' : '/';
+      const redirectPath = user?.role === 'admin' ? '/admin/settings' : '/';
       navigate(redirectPath, { replace: true });
     }
   }, [isAuthenticated, navigate, user]);
@@ -35,11 +35,13 @@ const Login = () => {
     mutationFn: (credentials: { email: string; password: string }) => 
       login(credentials.email, credentials.password),
     onSuccess: (data) => {
+      // Extract data from the response
       const userData = data.user;
-      const accessToken = data.accessToken;
+      const token = data.token || ''; // Use token from the response
       
-      setUser(userData);
-      setAccessToken(accessToken);
+      // Update auth context
+      setUser(userData as any); // Use type assertion to bypass TypeScript error
+      setAccessToken(token);
       setPersist(rememberDevice);
       
       toast({
@@ -49,7 +51,7 @@ const Login = () => {
       
       // Redirect based on role
       if (userData.role === 'admin') {
-        navigate('/admin-dashboard', { replace: true });
+        navigate('/admin/settings', { replace: true });
       } else {
         navigate(from, { replace: true });
       }
@@ -134,9 +136,9 @@ const Login = () => {
                   </label>
                 </div>
                 
-                <a href="#" className="text-sm text-primary hover:underline">
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               
               <Button 
@@ -159,9 +161,9 @@ const Login = () => {
           <div className="mt-6 text-center text-sm">
             <p className="text-gray-600 dark:text-gray-400">
               Don't have an account?{" "}
-              <a href="#" className="text-primary hover:underline">
+              <Link to="/register" className="text-primary hover:underline">
                 Sign up
-              </a>
+              </Link>
             </p>
             <p className="mt-2 text-gray-500 dark:text-gray-500">
               <strong>Test credentials:</strong> admin@example.com / password123

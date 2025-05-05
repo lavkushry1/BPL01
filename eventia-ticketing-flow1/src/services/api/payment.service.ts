@@ -7,6 +7,28 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
+// Create a configured axios instance
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to requests if available
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 /**
  * Interface for payment data
  */
@@ -52,30 +74,8 @@ export const verifyUtrPayment = async (paymentData: PaymentData): Promise<{
   transactionId?: string;
 }> => {
   try {
-    // In a production app, you would make an API call like:
-    // const response = await axios.post(`${API_URL}/payments/verify-utr`, paymentData);
-    // return response.data;
-    
-    // For now, we'll simulate verification with mock data
-    console.log('Verifying UTR payment:', paymentData);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simple validation - in real app this would check against actual payment records
-    if (!paymentData.utrNumber || paymentData.utrNumber.length < 8) {
-      return {
-        verified: false,
-        message: 'Invalid UTR number. Please check and try again.'
-      };
-    }
-    
-    // Mock successful verification
-    return {
-      verified: true,
-      message: 'Payment verified successfully',
-      transactionId: `tx-${Date.now()}`
-    };
+    const response = await apiClient.post('/payments/verify-utr', paymentData);
+    return response.data;
   } catch (error) {
     console.error('Error verifying UTR payment:', error);
     throw new Error('Failed to verify payment');
@@ -93,24 +93,8 @@ export const createBooking = async (bookingData: BookingData): Promise<{
   message: string;
 }> => {
   try {
-    // In a production app, you would make an API call like:
-    // const response = await axios.post(`${API_URL}/bookings`, bookingData);
-    // return response.data;
-    
-    // For now, we'll return mock data
-    console.log('Creating booking with payment:', bookingData);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Generate a booking ID
-    const bookingId = `BK${Date.now().toString().slice(-8)}`;
-    
-    return {
-      success: true,
-      bookingId,
-      message: 'Booking created successfully'
-    };
+    const response = await apiClient.post('/bookings', bookingData);
+    return response.data;
   } catch (error) {
     console.error('Error creating booking:', error);
     throw new Error('Failed to create booking');

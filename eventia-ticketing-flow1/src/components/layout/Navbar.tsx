@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
-import { Ticket, Calendar, Home, User, Moon, Sun, Menu, X, Settings } from 'lucide-react';
+import { Ticket, Calendar, Home, User, Moon, Sun, Menu, X, Settings, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import LogoutButton from '@/components/auth/LogoutButton';
@@ -44,7 +44,42 @@ const Navbar = () => {
   const navLinks = [
     { name: t('navbar.home'), path: '/', icon: <Home className="h-4 w-4 mr-2" /> },
     { name: t('navbar.events'), path: '/events', icon: <Calendar className="h-4 w-4 mr-2" /> },
-    { name: t('navbar.ipl'), path: '/ipl-tickets', icon: <Ticket className="h-4 w-4 mr-2" /> },
+    { 
+      name: t('navbar.ipl'), 
+      path: '/ipl-tickets', 
+      icon: <Ticket className="h-4 w-4 mr-2" />,
+      highlight: true,
+      badge: 'NEW'
+    },
+    { 
+      name: t('navbar.search'), 
+      path: '/search', 
+      icon: <Search className="h-4 w-4 mr-2" />,
+      highlight: true,
+      badge: 'NEW'
+    },
+  ];
+
+  // Navigation links
+  const navigationLinks = [
+    { 
+      name: 'Home', 
+      href: '/' 
+    },
+    { 
+      name: 'Events', 
+      href: '/events' 
+    },
+    { 
+      name: 'IPL Tickets', 
+      href: '/ipl-tickets',
+      isPrimary: true,
+      newTag: true
+    },
+    { 
+      name: 'Support', 
+      href: '/support' 
+    }
   ];
 
   return (
@@ -70,11 +105,17 @@ const Navbar = () => {
                 to={link.path}
                 className={cn(
                   "text-foreground/80 hover:text-primary transition-colors px-3 py-2 rounded-md flex items-center",
-                  location.pathname === link.path && "text-primary font-medium"
+                  location.pathname === link.path && "text-primary font-medium",
+                  link.highlight && "bg-primary/10 text-primary font-medium"
                 )}
               >
                 {link.icon}
                 {link.name}
+                {link.badge && (
+                  <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-red-500 text-white font-bold">
+                    {link.badge}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -139,11 +180,17 @@ const Navbar = () => {
                     to={link.path}
                     className={cn(
                       "flex items-center py-3 px-4 rounded-md text-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors",
-                      location.pathname === link.path && "bg-accent/50 text-primary font-medium"
+                      location.pathname === link.path && "bg-accent/50 text-primary font-medium",
+                      link.highlight && "bg-primary/10 text-primary font-medium"
                     )}
                   >
                     {link.icon}
                     {link.name}
+                    {link.badge && (
+                      <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-red-500 text-white font-bold">
+                        {link.badge}
+                      </span>
+                    )}
                   </Link>
                 ))}
 
@@ -163,7 +210,7 @@ const Navbar = () => {
                     
                     {/* Admin dashboard link for admins */}
                     {user?.role === 'admin' && (
-                      <Link to="/admin-dashboard" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
+                      <Link to="/admin/settings" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
                         <Settings className="h-4 w-4 mr-2" />
                         Admin Dashboard
                       </Link>

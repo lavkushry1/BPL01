@@ -20,9 +20,7 @@
  * - SeatReservation model for temporary holds
  */
 import axios from 'axios';
-
-// Define the API base URL using import.meta.env for Vite compatibility
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+import { API_BASE_URL } from './apiUtils';
 
 // Define interfaces for seat map data
 export interface SeatSection {
@@ -127,75 +125,14 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Mock seat map API service
+// SeatMap API service
 const seatMapApi = {
+  /**
+   * Get seat map by ID
+   * @param id Seat map ID
+   */
   getSeatMapById: async (id: string) => {
-    // Simulating API request delay
-    await new Promise(resolve => setTimeout(resolve, 700));
-    
-    // Return a mock response
-    return {
-      data: {
-        data: {
-          id,
-          venue_id: 'venue-123',
-          name: 'Main Hall Seating',
-          sections: [
-            {
-              id: 'section-1',
-              name: 'Floor',
-              rows: [
-                {
-                  id: 'row-a',
-                  name: 'A',
-                  seats: Array.from({ length: 10 }, (_, i) => ({
-                    id: `seat-a-${i+1}`,
-                    row: 'A',
-                    number: `${i+1}`,
-                    status: Math.random() > 0.2 ? 'available' : 'booked',
-                    price: 99.99,
-                    category: 'Standard',
-                    section_id: 'section-1'
-                  }))
-                },
-                {
-                  id: 'row-b',
-                  name: 'B',
-                  seats: Array.from({ length: 12 }, (_, i) => ({
-                    id: `seat-b-${i+1}`,
-                    row: 'B',
-                    number: `${i+1}`,
-                    status: Math.random() > 0.3 ? 'available' : 'booked',
-                    price: 99.99,
-                    category: 'Standard',
-                    section_id: 'section-1'
-                  }))
-                }
-              ]
-            },
-            {
-              id: 'section-2',
-              name: 'VIP',
-              rows: [
-                {
-                  id: 'row-v',
-                  name: 'V',
-                  seats: Array.from({ length: 8 }, (_, i) => ({
-                    id: `seat-v-${i+1}`,
-                    row: 'V',
-                    number: `${i+1}`,
-                    status: Math.random() > 0.5 ? 'available' : 'booked',
-                    price: 199.99,
-                    category: 'VIP',
-                    section_id: 'section-2'
-                  }))
-                }
-              ]
-            }
-          ]
-        }
-      }
-    };
+    return apiClient.get<SeatMapResponse>(`/seat-maps/${id}`);
   },
 
   /**
@@ -237,7 +174,7 @@ const seatMapApi = {
    * @param sectionId Section ID
    */
   getSeatsBySection: (seatMapId: string, sectionId: string) => {
-    return apiClient.get<{status: string; data: Seat[]}>(`/api/seat-maps/${seatMapId}/sections/${sectionId}/seats`);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/api/seat-maps/${seatMapId}/sections/${sectionId}/seats`);
   },
 
   /**
@@ -254,7 +191,7 @@ const seatMapApi = {
    * @param userId User ID
    */
   getUserSelectedSeats: (userId: string) => {
-    return apiClient.get<{status: string; data: Seat[]}>(`/api/users/${userId}/selected-seats`);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/api/users/${userId}/selected-seats`);
   },
 
   /**
@@ -262,7 +199,7 @@ const seatMapApi = {
    * @param bookingId Booking ID
    */
   getSeatsByBookingId: (bookingId: string) => {
-    return apiClient.get<{status: string; data: Seat[]}>(`/api/bookings/${bookingId}/seats`);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/api/bookings/${bookingId}/seats`);
   }
 };
 

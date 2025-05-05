@@ -91,7 +91,7 @@ const UserMenu = () => {
         {isAdmin && (
           <>
             <DropdownMenuItem asChild>
-              <Link to="/admin-dashboard" className="cursor-pointer">
+              <Link to="/admin/settings" className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Admin Dashboard</span>
               </Link>
@@ -101,7 +101,7 @@ const UserMenu = () => {
         )}
         
         <DropdownMenuItem asChild>
-          <Link to="/my-profile" className="cursor-pointer">
+          <Link to="/profile" className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
             <span>My Profile</span>
           </Link>

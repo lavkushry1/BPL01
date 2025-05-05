@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { 
-  createBooking, 
-  getBookingById, 
+import {
+  createBooking,
+  getBookingById,
   saveDeliveryDetails,
   updateBookingStatus,
   cancelBooking
 } from '../controllers/booking.controller';
 import { validate } from '../middleware/validate';
 import * as bookingValidation from '../validations/booking.validation';
-import { auth } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -152,7 +152,7 @@ router.put('/:id/status', updateBookingStatus);
  */
 router.post(
   '/:id/cancel',
-  auth(),
+  authenticate,
   validate(bookingValidation.cancelBookingSchema),
   cancelBooking
 );

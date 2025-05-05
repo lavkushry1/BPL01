@@ -48,6 +48,11 @@ const verifyToken = (token) => {
         throw new Error('JWT secret is not configured');
     }
     try {
+        // Validate token format before verification
+        if (!token || typeof token !== 'string' || !token.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/)) {
+            logger_1.logger.debug(`Token verification failed: invalid token format`);
+            return null;
+        }
         // Use any to bypass typing issues
         const jwtVerify = jsonwebtoken_1.default.verify;
         return jwtVerify(token, config_1.config.jwt.secret, {
@@ -56,7 +61,19 @@ const verifyToken = (token) => {
         });
     }
     catch (error) {
-        logger_1.logger.debug(`Token verification failed: ${error.message}`);
+        const errorMessage = error.message;
+        logger_1.logger.debug(`Token verification failed: ${errorMessage}`);
+        // Log additional details for debugging
+        if (errorMessage.includes('jwt malformed')) {
+            try {
+                // Log first few characters of token for debugging
+                const tokenPreview = token.substring(0, 20) + '...';
+                logger_1.logger.debug(`Malformed token starts with: ${tokenPreview}`);
+            }
+            catch (e) {
+                logger_1.logger.debug('Could not log token preview');
+            }
+        }
         return null;
     }
 };

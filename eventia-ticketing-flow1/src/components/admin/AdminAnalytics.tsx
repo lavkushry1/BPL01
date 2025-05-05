@@ -1,40 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PieChart, BarChart, TrendingUp, Users, Calendar, CreditCard } from 'lucide-react';
+import { PieChart, BarChart, TrendingUp, Users, Calendar, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Mock data for demonstration
-const MOCK_REVENUE_DATA = [
-  { month: 'Jan', value: 12500 },
-  { month: 'Feb', value: 18200 },
-  { month: 'Mar', value: 15800 },
-  { month: 'Apr', value: 22400 },
-  { month: 'May', value: 19600 },
-  { month: 'Jun', value: 24800 },
-];
+// Analytics data type definitions
+interface AnalyticsDataPoint {
+  month: string;
+  value: number;
+}
 
-const MOCK_USER_DATA = [
-  { month: 'Jan', value: 245 },
-  { month: 'Feb', value: 308 },
-  { month: 'Mar', value: 367 },
-  { month: 'Apr', value: 412 },
-  { month: 'May', value: 498 },
-  { month: 'Jun', value: 576 },
-];
-
-const MOCK_EVENTS_DATA = [
-  { month: 'Jan', value: 5 },
-  { month: 'Feb', value: 8 },
-  { month: 'Mar', value: 6 },
-  { month: 'Apr', value: 12 },
-  { month: 'May', value: 9 },
-  { month: 'Jun', value: 15 },
-];
+interface AnalyticsSummary {
+  revenue: {
+    data: AnalyticsDataPoint[];
+    growth: number;
+    totalRevenue: number;
+    avgTicketPrice: number;
+    totalTickets: number;
+    refunds: number;
+  };
+  users: {
+    data: AnalyticsDataPoint[];
+    growth: number;
+    totalUsers: number;
+    newUsers: number;
+    activeUsers: number;
+    retention: number;
+  };
+  events: {
+    data: AnalyticsDataPoint[];
+    growth: number;
+    totalEvents: number;
+    activeEvents: number;
+    avgAttendance: number;
+    soldOut: number;
+  };
+}
 
 // Simple bar chart component
-const SimpleBarChart = ({ data, maxHeight = 200 }: { data: { month: string; value: number }[], maxHeight?: number }) => {
+const SimpleBarChart = ({ data, maxHeight = 200 }: { data: AnalyticsDataPoint[], maxHeight?: number }) => {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[200px]">
+        <p className="text-muted-foreground">No data available</p>
+      </div>
+    );
+  }
+  
   const maxValue = Math.max(...data.map(item => item.value));
   
   return (
@@ -62,19 +75,114 @@ const SimpleBarChart = ({ data, maxHeight = 200 }: { data: { month: string; valu
 const AdminAnalytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('6months');
   const [analyticsType, setAnalyticsType] = useState('revenue');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsSummary | null>(null);
+  
+  // Fetch analytics data from API
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch(`/api/admin/analytics?timeRange=${timeRange}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch analytics data');
+        }
+        
+        const data = await response.json();
+        setAnalyticsData(data);
+      } catch (err) {
+        console.error('Error fetching analytics data:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAnalyticsData();
+  }, [timeRange]);
   
   const renderChart = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-[200px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className="flex items-center justify-center h-[200px]">
+          <p className="text-red-500">Error loading data: {error}</p>
+        </div>
+      );
+    }
+    
+    if (!analyticsData) {
+      return (
+        <div className="flex items-center justify-center h-[200px]">
+          <p className="text-muted-foreground">No data available</p>
+        </div>
+      );
+    }
+    
     switch (analyticsType) {
       case 'revenue':
-        return <SimpleBarChart data={MOCK_REVENUE_DATA} />;
+        return <SimpleBarChart data={analyticsData.revenue.data} />;
       case 'users':
-        return <SimpleBarChart data={MOCK_USER_DATA} />;
+        return <SimpleBarChart data={analyticsData.users.data} />;
       case 'events':
-        return <SimpleBarChart data={MOCK_EVENTS_DATA} />;
+        return <SimpleBarChart data={analyticsData.events.data} />;
       default:
-        return <SimpleBarChart data={MOCK_REVENUE_DATA} />;
+        return <SimpleBarChart data={analyticsData.revenue.data} />;
     }
   };
+  
+  // Get the current metrics for the selected analytics type
+  const getCurrentMetrics = () => {
+    if (!analyticsData) return null;
+    
+    switch (analyticsType) {
+      case 'revenue':
+        return {
+          growth: analyticsData.revenue.growth,
+          metrics: [
+            { label: 'Total Revenue', value: `₹${analyticsData.revenue.totalRevenue.toLocaleString()}` },
+            { label: 'Avg. Ticket Price', value: `₹${analyticsData.revenue.avgTicketPrice.toLocaleString()}` },
+            { label: 'Total Tickets', value: analyticsData.revenue.totalTickets.toLocaleString() },
+            { label: 'Refunds', value: `₹${analyticsData.revenue.refunds.toLocaleString()}` }
+          ]
+        };
+      case 'users':
+        return {
+          growth: analyticsData.users.growth,
+          metrics: [
+            { label: 'Total Users', value: analyticsData.users.totalUsers.toLocaleString() },
+            { label: 'New Users', value: `+${analyticsData.users.newUsers.toLocaleString()}` },
+            { label: 'Active Users', value: analyticsData.users.activeUsers.toLocaleString() },
+            { label: 'Retention', value: `${analyticsData.users.retention}%` }
+          ]
+        };
+      case 'events':
+        return {
+          growth: analyticsData.events.growth,
+          metrics: [
+            { label: 'Total Events', value: analyticsData.events.totalEvents.toString() },
+            { label: 'Active Events', value: analyticsData.events.activeEvents.toString() },
+            { label: 'Avg. Attendance', value: `${analyticsData.events.avgAttendance}%` },
+            { label: 'Sold Out', value: analyticsData.events.soldOut.toString() }
+          ]
+        };
+      default:
+        return null;
+    }
+  };
+  
+  const currentMetrics = getCurrentMetrics();
   
   return (
     <Card className="w-full">
@@ -124,37 +232,33 @@ const AdminAnalytics: React.FC = () => {
                   <h3 className="text-xl font-bold">Revenue</h3>
                   <p className="text-muted-foreground">Revenue trend over time</p>
                 </div>
-                <div className="mt-2 sm:mt-0">
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-green-500 font-semibold">+12.5%</span>
-                    <span className="text-muted-foreground text-sm">vs previous period</span>
+                {currentMetrics && (
+                  <div className="mt-2 sm:mt-0">
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <span className="text-green-500 font-semibold">
+                        {currentMetrics.growth >= 0 ? '+' : ''}{currentMetrics.growth}%
+                      </span>
+                      <span className="text-muted-foreground text-sm">vs previous period</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               
               <div className="chart-container">
                 {renderChart()}
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Total Revenue</div>
-                  <div className="text-xl font-bold">₹113,300</div>
+              {currentMetrics && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {currentMetrics.metrics.map((metric, index) => (
+                    <div key={index} className="bg-muted/40 p-3 rounded-md">
+                      <div className="text-muted-foreground text-sm">{metric.label}</div>
+                      <div className="text-xl font-bold">{metric.value}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Avg. Ticket Price</div>
-                  <div className="text-xl font-bold">₹1,240</div>
-                </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Total Tickets</div>
-                  <div className="text-xl font-bold">2,156</div>
-                </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Refunds</div>
-                  <div className="text-xl font-bold">₹5,480</div>
-                </div>
-              </div>
+              )}
             </div>
           </TabsContent>
           
@@ -165,37 +269,33 @@ const AdminAnalytics: React.FC = () => {
                   <h3 className="text-xl font-bold">User Growth</h3>
                   <p className="text-muted-foreground">New user registrations over time</p>
                 </div>
-                <div className="mt-2 sm:mt-0">
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-green-500 font-semibold">+15.8%</span>
-                    <span className="text-muted-foreground text-sm">vs previous period</span>
+                {currentMetrics && (
+                  <div className="mt-2 sm:mt-0">
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <span className="text-green-500 font-semibold">
+                        {currentMetrics.growth >= 0 ? '+' : ''}{currentMetrics.growth}%
+                      </span>
+                      <span className="text-muted-foreground text-sm">vs previous period</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               
               <div className="chart-container">
                 {renderChart()}
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Total Users</div>
-                  <div className="text-xl font-bold">2,406</div>
+              {currentMetrics && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {currentMetrics.metrics.map((metric, index) => (
+                    <div key={index} className="bg-muted/40 p-3 rounded-md">
+                      <div className="text-muted-foreground text-sm">{metric.label}</div>
+                      <div className="text-xl font-bold">{metric.value}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">New Users</div>
-                  <div className="text-xl font-bold">+576</div>
-                </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Active Users</div>
-                  <div className="text-xl font-bold">1,845</div>
-                </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Retention</div>
-                  <div className="text-xl font-bold">76.8%</div>
-                </div>
-              </div>
+              )}
             </div>
           </TabsContent>
           
@@ -206,47 +306,55 @@ const AdminAnalytics: React.FC = () => {
                   <h3 className="text-xl font-bold">Event Statistics</h3>
                   <p className="text-muted-foreground">Events created and ticket sales</p>
                 </div>
-                <div className="mt-2 sm:mt-0">
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-green-500 font-semibold">+66.7%</span>
-                    <span className="text-muted-foreground text-sm">vs previous period</span>
+                {currentMetrics && (
+                  <div className="mt-2 sm:mt-0">
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      <span className="text-green-500 font-semibold">
+                        {currentMetrics.growth >= 0 ? '+' : ''}{currentMetrics.growth}%
+                      </span>
+                      <span className="text-muted-foreground text-sm">vs previous period</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               
               <div className="chart-container">
                 {renderChart()}
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Total Events</div>
-                  <div className="text-xl font-bold">55</div>
+              {currentMetrics && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {currentMetrics.metrics.map((metric, index) => (
+                    <div key={index} className="bg-muted/40 p-3 rounded-md">
+                      <div className="text-muted-foreground text-sm">{metric.label}</div>
+                      <div className="text-xl font-bold">{metric.value}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Active Events</div>
-                  <div className="text-xl font-bold">24</div>
-                </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Avg. Attendance</div>
-                  <div className="text-xl font-bold">78.2%</div>
-                </div>
-                <div className="bg-muted/40 p-3 rounded-md">
-                  <div className="text-muted-foreground text-sm">Sold Out</div>
-                  <div className="text-xl font-bold">12</div>
-                </div>
-              </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" size="sm">Export Data</Button>
-        <Button variant="outline" size="sm">View Full Report</Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => window.location.href = `/api/admin/analytics/export?timeRange=${timeRange}&type=${analyticsType}`}
+        >
+          Export Data
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => window.location.href = `/admin/reports/${analyticsType}?timeRange=${timeRange}`}
+        >
+          View Full Report
+        </Button>
       </CardFooter>
     </Card>
   );
 };
 
-export default AdminAnalytics; 
+export default AdminAnalytics;

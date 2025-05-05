@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-// Define the API base URL using import.meta.env for Vite compatibility
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+import { API_BASE_URL } from './apiUtils';
 
 // Define interfaces for ticket data
 export interface Ticket {
@@ -95,7 +93,7 @@ const ticketApi = {
    * @param bookingId Booking ID
    */
   getTicketsByBookingId: (bookingId: string) => {
-    return apiClient.get<TicketsResponse>(`/api/bookings/${bookingId}/tickets`);
+    return apiClient.get<TicketsResponse>(`/bookings/${bookingId}/tickets`);
   },
 
   /**
@@ -103,7 +101,7 @@ const ticketApi = {
    * @param ticketId Ticket ID
    */
   getTicketById: (ticketId: string) => {
-    return apiClient.get<TicketResponse>(`/api/tickets/${ticketId}`);
+    return apiClient.get<TicketResponse>(`/tickets/${ticketId}`);
   },
 
   /**
@@ -111,7 +109,7 @@ const ticketApi = {
    * @param data Ticket generation data
    */
   generateTickets: (data: GenerateTicketsRequest) => {
-    return apiClient.post<TicketsResponse>('/api/tickets/generate', data);
+    return apiClient.post<TicketsResponse>('/tickets/generate', data);
   },
 
   /**
@@ -120,7 +118,7 @@ const ticketApi = {
    * @param reason Optional cancellation reason
    */
   cancelTicket: (ticketId: string, reason?: string) => {
-    return apiClient.patch<TicketResponse>(`/api/tickets/${ticketId}/cancel`, { reason });
+    return apiClient.patch<TicketResponse>(`/tickets/${ticketId}/cancel`, { reason });
   },
 
   /**
@@ -128,7 +126,7 @@ const ticketApi = {
    * @param data Check-in data
    */
   checkInTicket: (data: CheckInRequest) => {
-    return apiClient.post<CheckInResponse>('/api/tickets/check-in', data);
+    return apiClient.post<CheckInResponse>('/tickets/check-in', data);
   },
 
   /**
@@ -137,7 +135,7 @@ const ticketApi = {
    * @param email Optional different email to send to
    */
   resendTicket: (ticketId: string, email?: string) => {
-    return apiClient.post<{status: string; message: string}>(`/api/tickets/${ticketId}/resend`, { email });
+    return apiClient.post<{ status: string; message: string }>(`/tickets/${ticketId}/resend`, { email });
   },
 
   /**
@@ -146,8 +144,8 @@ const ticketApi = {
    * @param eventId Event ID
    */
   verifyTicket: (ticketId: string, eventId: string) => {
-    return apiClient.get<{status: string; data: {valid: boolean; message: string; ticket?: Ticket}}>(
-      `/api/tickets/${ticketId}/verify?event_id=${eventId}`
+    return apiClient.get<{ status: string; data: { valid: boolean; message: string; ticket?: Ticket } }>(
+      `/tickets/${ticketId}/verify?event_id=${eventId}`
     );
   },
 
@@ -164,8 +162,8 @@ const ticketApi = {
       limit: limit.toString(),
       ...(status && { status }),
     }).toString();
-    
-    return apiClient.get<TicketsResponse>(`/api/users/${userId}/tickets?${query}`);
+
+    return apiClient.get<TicketsResponse>(`/users/${userId}/tickets?${query}`);
   },
 
   /**
@@ -173,7 +171,7 @@ const ticketApi = {
    * @param ticketId Ticket ID
    */
   downloadTicket: (ticketId: string) => {
-    return apiClient.get<Blob>(`/api/tickets/${ticketId}/download`, {
+    return apiClient.get<Blob>(`/tickets/${ticketId}/download`, {
       responseType: 'blob'
     });
   },
@@ -191,8 +189,8 @@ const ticketApi = {
       limit: limit.toString(),
       ...(status && { status }),
     }).toString();
-    
-    return apiClient.get<TicketsResponse>(`/api/events/${eventId}/tickets?${query}`);
+
+    return apiClient.get<TicketsResponse>(`/events/${eventId}/tickets?${query}`);
   },
 
   /**
@@ -201,7 +199,7 @@ const ticketApi = {
    * @param data Updated ticket data
    */
   updateTicket: (ticketId: string, data: Partial<Ticket>) => {
-    return apiClient.patch<TicketResponse>(`/api/tickets/${ticketId}`, data);
+    return apiClient.patch<TicketResponse>(`/tickets/${ticketId}`, data);
   }
 };
 

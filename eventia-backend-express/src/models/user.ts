@@ -1,6 +1,6 @@
-
 import { z } from 'zod';
 import { db } from '../db';
+import { v4 as uuidv4 } from 'uuid';
 
 // Schema for validation
 export const userSchema = z.object({
@@ -17,13 +17,13 @@ export const loginSchema = z.object({
 
 export type User = z.infer<typeof userSchema>;
 
-export type UserWithId = User & { id: number; created_at: Date; updated_at: Date };
+export type UserWithId = User & { id: string; createdAt: Date; updatedAt: Date };
 
 // User model class
 class UserModel {
   tableName = 'users';
 
-  async findById(id: number): Promise<UserWithId | null> {
+  async findById(id: string): Promise<UserWithId | null> {
     return await db(this.tableName).where({ id }).first();
   }
 
@@ -32,14 +32,22 @@ class UserModel {
   }
 
   async create(user: User): Promise<UserWithId> {
-    const [newUser] = await db(this.tableName).insert(user).returning('*');
+    // Generate a UUID for the user
+    const userWithId = {
+      ...user,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const [newUser] = await db(this.tableName).insert(userWithId).returning('*');
     return newUser;
   }
 
-  async update(id: number, userData: Partial<User>): Promise<UserWithId | null> {
+  async update(id: string, userData: Partial<User>): Promise<UserWithId | null> {
     const [updatedUser] = await db(this.tableName)
       .where({ id })
-      .update({ ...userData, updated_at: new Date() })
+      .update({ ...userData, updatedAt: new Date() })
       .returning('*');
     
     return updatedUser || null;

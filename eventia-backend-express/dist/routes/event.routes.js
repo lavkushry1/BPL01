@@ -4,6 +4,7 @@ const express_1 = require("express");
 const event_controller_1 = require("../controllers/event.controller");
 const auth_1 = require("../middleware/auth");
 const validate_1 = require("../middleware/validate");
+const upload_1 = require("../middleware/upload");
 const zod_1 = require("zod");
 // Create validation schemas using Zod
 const createEventSchema = zod_1.z.object({
@@ -428,4 +429,6 @@ router.delete('/admin/events/:id', auth_1.authenticate, checkAdmin, event_contro
  *         description: Server error
  */
 router.get('/:id/seats', event_controller_1.EventController.getEventSeats);
+// File upload route for event images
+router.post('/upload-image', auth_1.authenticate, upload_1.uploadSingle, event_controller_1.EventController.uploadEventImage);
 exports.default = router;

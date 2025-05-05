@@ -5,6 +5,9 @@ import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { WebsocketService } from './websocket.service';
+import { PrismaClient } from '@prisma/client';
+import config from '../config';
+import prisma from '../db/prisma';
 
 /**
  * Ticket service for generating tickets, QR codes and PDFs
@@ -21,7 +24,7 @@ export class TicketService {
       const booking = await db('bookings')
         .where('id', bookingId)
         .first();
-      
+
       if (!booking) {
         throw new Error('Booking not found');
       }
@@ -37,14 +40,14 @@ export class TicketService {
 
       // Check if booking has seat IDs or just ticket quantities
       const ticketIds: string[] = [];
-      
+
       if (booking.seat_ids && booking.seat_ids.length > 0) {
         // For seated events, create ticket per seat
         for (const seatId of booking.seat_ids) {
           const seat = await db('seats')
             .where('id', seatId)
             .first();
-          
+
           if (!seat) {
             continue;
           }
@@ -58,7 +61,7 @@ export class TicketService {
             price: seat.price,
             ticketType: 'seated'
           });
-          
+
           ticketIds.push(ticketId);
         }
       } else if (booking.ticket_types) {
@@ -72,7 +75,7 @@ export class TicketService {
               price: ticketType.price,
               ticketType: ticketType.id
             });
-            
+
             ticketIds.push(ticketId);
           }
         }
@@ -118,7 +121,7 @@ export class TicketService {
   }): Promise<string> {
     const ticketId = uuidv4();
     const ticketNumber = this.generateTicketNumber();
-    
+
     // Generate QR code
     const qrCodeData = await this.generateQRCode({
       ticketId,
@@ -126,12 +129,12 @@ export class TicketService {
       eventId: params.eventId,
       ticketNumber
     });
-    
+
     // Store QR code image
     const qrCodePath = path.join(__dirname, '../../public/qrcodes', `${ticketId}.png`);
     fs.mkdirSync(path.dirname(qrCodePath), { recursive: true });
     fs.writeFileSync(qrCodePath, qrCodeData);
-    
+
     // Create ticket record
     await db('tickets').insert({
       id: ticketId,
@@ -148,7 +151,7 @@ export class TicketService {
       created_at: new Date(),
       updated_at: new Date()
     });
-    
+
     return ticketId;
   }
 
@@ -171,14 +174,14 @@ export class TicketService {
       number: data.ticketNumber,
       ts: Date.now() // Timestamp for verification
     });
-    
+
     // Generate QR code
     const qrBuffer = await QRCode.toBuffer(payload, {
       errorCorrectionLevel: 'H',
       margin: 1,
       scale: 8
     });
-    
+
     return qrBuffer;
   }
 
@@ -201,7 +204,7 @@ export class TicketService {
     try {
       // Normalize the ticket ID - handle any parameter format
       let ticketId: string;
-      
+
       if (typeof param === 'object' && param !== null) {
         if ('ticketId' in param) {
           ticketId = String(param.ticketId);
@@ -214,69 +217,69 @@ export class TicketService {
       } else {
         ticketId = String(param);
       }
-      
+
       // Get ticket details
       const ticket = await db('tickets')
         .where('id', ticketId)
         .first();
-      
+
       if (!ticket) {
         throw new Error('Ticket not found');
       }
-      
+
       // Get booking and event details
       const booking = await db('bookings')
         .where('id', ticket.booking_id)
         .first();
-      
+
       const event = await db('events')
         .where('id', ticket.event_id)
         .first();
-      
+
       if (!event) {
         throw new Error('Event not found');
       }
-      
+
       // Create PDF directory if it doesn't exist
       const pdfDir = path.join(__dirname, '../../public/tickets');
       fs.mkdirSync(pdfDir, { recursive: true });
-      
+
       // PDF filename
       const pdfFilename = `ticket_${ticket.id}.pdf`;
       const pdfPath = path.join(pdfDir, pdfFilename);
-      
+
       // Create PDF document
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50
       });
-      
+
       // Pipe output to file
       const stream = fs.createWriteStream(pdfPath);
       doc.pipe(stream);
-      
+
       // Add ticket content
       doc.fontSize(20).text('EVENT TICKET', { align: 'center' });
       doc.moveDown();
-      
+
       // Event details
       doc.fontSize(16).text(event.title, { align: 'center' });
       doc.fontSize(12).text(`Date: ${new Date(event.start_date).toLocaleDateString()}`, { align: 'center' });
       doc.fontSize(12).text(`Time: ${new Date(event.start_date).toLocaleTimeString()}`, { align: 'center' });
       doc.moveDown();
-      
+
       // Ticket details
       doc.fontSize(14).text('Ticket Information');
       doc.fontSize(12).text(`Ticket #: ${ticket.ticket_number}`);
-      
+
       if (ticket.seat_info) {
         doc.fontSize(12).text(`Seat: ${ticket.seat_info}`);
       }
-      
+
       doc.fontSize(12).text(`Type: ${ticket.ticket_type}`);
       doc.fontSize(12).text(`Price: ${ticket.price.toFixed(2)}`);
       doc.moveDown();
-      
+
       // Add QR code
       const qrPath = path.join(__dirname, '../../public', ticket.qr_code_url);
       if (fs.existsSync(qrPath)) {
@@ -285,17 +288,17 @@ export class TicketService {
           align: 'center'
         });
       }
-      
+
       // Add terms and conditions
       doc.moveDown();
       doc.fontSize(10).text('Terms and Conditions:', { underline: true });
       doc.fontSize(8).text('1. This ticket must be presented at the venue for entry.');
       doc.fontSize(8).text('2. Please arrive at least 30 minutes before the event start time.');
       doc.fontSize(8).text('3. This ticket is non-refundable and non-transferable.');
-      
+
       // Finalize PDF
       doc.end();
-      
+
       // Wait for the stream to finish
       return new Promise((resolve, reject) => {
         stream.on('finish', () => {
@@ -326,14 +329,14 @@ export class TicketService {
         .where('id', ticketId)
         .where('event_id', eventId)
         .first();
-      
+
       if (!ticket) {
         return {
           valid: false,
           message: 'Ticket not found for this event'
         };
       }
-      
+
       // Check ticket status
       if (ticket.status === 'used') {
         return {
@@ -342,7 +345,7 @@ export class TicketService {
           ticket
         };
       }
-      
+
       if (ticket.status === 'cancelled') {
         return {
           valid: false,
@@ -350,22 +353,22 @@ export class TicketService {
           ticket
         };
       }
-      
+
       // Check event date
       const event = await db('events')
         .where('id', eventId)
         .first();
-      
+
       if (!event) {
         return {
           valid: false,
           message: 'Event not found'
         };
       }
-      
+
       const eventDate = new Date(event.start_date);
       const now = new Date();
-      
+
       if (eventDate < new Date(now.setDate(now.getDate() - 1))) {
         return {
           valid: false,
@@ -373,7 +376,7 @@ export class TicketService {
           ticket
         };
       }
-      
+
       return {
         valid: true,
         message: 'Ticket is valid',
@@ -400,7 +403,7 @@ export class TicketService {
     try {
       // Verify ticket first
       const verification = await this.verifyTicket(ticketId, eventId);
-      
+
       if (!verification.valid) {
         return {
           success: false,
@@ -408,7 +411,7 @@ export class TicketService {
           ticket: verification.ticket
         };
       }
-      
+
       // Mark ticket as used
       await db('tickets')
         .where('id', ticketId)
@@ -418,12 +421,12 @@ export class TicketService {
           check_in_location: location || null,
           updated_at: new Date()
         });
-      
+
       // Get updated ticket
       const updatedTicket = await db('tickets')
         .where('id', ticketId)
         .first();
-      
+
       return {
         success: true,
         message: 'Ticket checked in successfully',
@@ -450,40 +453,40 @@ export class TicketService {
       const booking = await db('bookings')
         .where('id', bookingId)
         .first();
-      
+
       if (!booking) {
         throw new Error('Booking not found');
       }
-      
+
       if (booking.status !== 'confirmed') {
         throw new Error(`Cannot generate tickets for booking in ${booking.status} state`);
       }
-      
+
       // Check if tickets already exist for this booking
       const existingTickets = await db('tickets')
         .where('booking_id', bookingId)
         .select('id');
-      
+
       if (existingTickets.length > 0) {
         // Tickets already generated, return their IDs
         return existingTickets.map(ticket => ticket.id);
       }
-      
+
       // Generate tickets
       const ticketIds = await this.generateTickets(bookingId);
-      
+
       if (ticketIds.length === 0) {
         throw new Error('No tickets generated');
       }
-      
+
       // Generate PDFs asynchronously
       this.generatePDFsAsync(ticketIds);
-      
+
       // Remove from generation queue if present
       await db('ticket_generation_queue')
         .where('booking_id', bookingId)
         .delete();
-      
+
       // Send notification to admin
       try {
         WebsocketService.sendToUser(adminId, 'tickets_generated', {
@@ -494,11 +497,11 @@ export class TicketService {
       } catch (error) {
         console.warn('Failed to send admin notification:', error);
       }
-      
+
       return ticketIds;
     } catch (error) {
       console.error('Error generating tickets for booking:', error);
-      
+
       // Update retry queue with error information
       try {
         await db('ticket_generation_queue')
@@ -512,11 +515,11 @@ export class TicketService {
       } catch (queueError) {
         console.error('Error updating ticket generation queue:', queueError);
       }
-      
+
       throw error;
     }
   }
-  
+
   /**
    * Generate PDFs for multiple tickets asynchronously
    * @param ticketIds Array of ticket IDs
@@ -533,7 +536,7 @@ export class TicketService {
       }
     })();
   }
-  
+
   /**
    * Process ticket generation queue
    * This should be called by a cron job
@@ -545,20 +548,20 @@ export class TicketService {
   }> {
     try {
       const now = new Date();
-      
+
       // Find tickets due for processing
       const queueItems = await db('ticket_generation_queue')
         .where('next_attempt_at', '<', now)
         .whereRaw('attempts < max_attempts')
         .select('*');
-      
+
       if (queueItems.length === 0) {
         return { processed: 0, success: 0, failed: 0 };
       }
-      
+
       let success = 0;
       let failed = 0;
-      
+
       // Process each queued item
       for (const item of queueItems) {
         try {
@@ -567,7 +570,7 @@ export class TicketService {
         } catch (error) {
           console.error(`Failed to generate tickets for booking ${item.booking_id}:`, error);
           failed++;
-          
+
           // If max attempts reached, mark as failed and notify admin
           if (item.attempts >= item.maxAttempts - 1) {
             try {
@@ -581,7 +584,7 @@ export class TicketService {
                   last_error: errorMessage,
                   updated_at: db.fn.now()
                 });
-              
+
               // Send notification to admin about failed generation
               WebsocketService.sendToUser(item.admin_id, 'tickets_generation_failed', {
                 booking_id: item.booking_id,
@@ -593,7 +596,7 @@ export class TicketService {
           }
         }
       }
-      
+
       return {
         processed: queueItems.length,
         success,
@@ -602,6 +605,132 @@ export class TicketService {
     } catch (error) {
       console.error('Error processing ticket generation queue:', error);
       return { processed: 0, success: 0, failed: 0 };
+    }
+  }
+
+  /**
+   * Generates tickets for a booking
+   * @param prisma Prisma client instance
+   * @param bookingId Booking ID
+   * @param seats Array of seats
+   */
+  static async generateTicketsForBookingPrisma(
+    prisma: any,
+    bookingId: string,
+    seats: any[]
+  ): Promise<string[]> {
+    try {
+      // Get booking details
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: {
+          event: true,
+          user: true
+        }
+      });
+
+      if (!booking) {
+        throw new Error(`Booking ${bookingId} not found`);
+      }
+
+      // Create ticket records and generate QR codes
+      const ticketPromises = seats.map(async (seat: any) => {
+        // Generate unique ticket code
+        const ticketNumber = `TKT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+
+        // Create ticket in database
+        const ticket = await prisma.ticket.create({
+          data: {
+            ticketNumber,
+            bookingId: booking.id,
+            userId: booking.userId,
+            eventId: booking.eventId,
+            seatId: seat.id,
+            status: 'ACTIVE'
+          }
+        });
+
+        // Generate QR code for ticket
+        const qrData = JSON.stringify({
+          ticketId: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          eventId: booking.eventId,
+          seatId: seat.id,
+          section: seat.section,
+          row: seat.row,
+          seatNumber: seat.seatNumber
+        });
+
+        // Ensure directory exists
+        const qrDir = path.join(__dirname, '../../public/tickets');
+        if (!fs.existsSync(qrDir)) {
+          fs.mkdirSync(qrDir, { recursive: true });
+        }
+
+        // Generate and save QR code
+        const qrPath = path.join(qrDir, `${ticket.id}.png`);
+        await QRCode.toFile(qrPath, qrData, {
+          errorCorrectionLevel: 'H'
+        });
+
+        // Update ticket with QR code path
+        return prisma.ticket.update({
+          where: { id: ticket.id },
+          data: {
+            qrCodeUrl: `/tickets/${ticket.id}.png`
+          }
+        });
+      });
+
+      // Wait for all tickets to be created
+      const tickets = await Promise.all(ticketPromises);
+
+      // Notify via WebSocket
+      WebsocketService.notifyTicketsGenerated(
+        bookingId,
+        booking.user.id,
+        tickets.length
+      );
+
+      return tickets.map((ticket: any) => ticket.id);
+    } catch (error) {
+      console.error('Error generating tickets:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Gets a ticket by ID
+   * @param ticketId Ticket ID
+   * @returns Ticket with related data
+   */
+  static async getTicketById(ticketId: string): Promise<any> {
+    try {
+      // With the current schema, we can't use the include option since
+      // we haven't defined the relationships in the Prisma schema
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId }
+      });
+
+      // If needed, fetch related data separately
+      if (ticket) {
+        const booking = ticket.bookingId ?
+          await prisma.booking.findUnique({ where: { id: ticket.bookingId } }) : null;
+
+        const event = ticket.eventId ?
+          await prisma.event.findUnique({ where: { id: ticket.eventId } }) : null;
+
+        return {
+          ...ticket,
+          booking,
+          event
+        };
+      }
+
+      return ticket;
+    } catch (error) {
+      console.error(`Error getting ticket ${ticketId}:`, error);
+      throw error;
     }
   }
 }

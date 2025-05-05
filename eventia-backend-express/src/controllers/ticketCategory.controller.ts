@@ -14,7 +14,6 @@ const createTicketCategory = catchAsync(async (req: Request, res: Response) => {
     name, 
     description, 
     price, 
-    minimumPrice, 
     totalSeats,
     eventId 
   } = req.body;
@@ -33,7 +32,6 @@ const createTicketCategory = catchAsync(async (req: Request, res: Response) => {
       name,
       description,
       price,
-      minimumPrice,
       totalSeats,
       bookedSeats: 0,
       eventId
@@ -82,7 +80,6 @@ const updateTicketCategory = catchAsync(async (req: Request, res: Response) => {
     name, 
     description, 
     price, 
-    minimumPrice, 
     totalSeats 
   } = req.body;
 
@@ -101,7 +98,6 @@ const updateTicketCategory = catchAsync(async (req: Request, res: Response) => {
       name,
       description,
       price,
-      minimumPrice,
       totalSeats
     }
   });

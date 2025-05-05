@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Calendar, MapPin, ArrowRight, Star } from 'lucide-react';
+import { Calendar, MapPin, ArrowRight, Star, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ export interface IPLMatchCardProps {
     };
   };
   altText?: string;
+  dataSource?: 'admin' | 'api' | 'mock' | string;
 }
 
 const IPLMatchCard = ({ 
@@ -41,7 +42,8 @@ const IPLMatchCard = ({
   startingPrice, 
   featured = false,
   teams,
-  altText 
+  altText,
+  dataSource = 'unknown'
 }: IPLMatchCardProps) => {
   const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
@@ -74,6 +76,36 @@ const IPLMatchCard = ({
     if (altText) return altText;
     return `IPL Match: ${teams.team1.name} vs ${teams.team2.name} poster`;
   };
+  
+  // Get badge color and text for data source
+  const getDataSourceBadge = () => {
+    switch(dataSource) {
+      case 'admin':
+        return { 
+          label: 'Admin',
+          className: 'bg-yellow-100 text-yellow-800 border-yellow-300' 
+        };
+      case 'api':
+        return { 
+          label: 'API',
+          className: 'bg-green-100 text-green-800 border-green-300' 
+        };
+      case 'mock':
+        return { 
+          label: 'Mock',
+          className: 'bg-blue-100 text-blue-800 border-blue-300' 
+        };
+      case 'real_mock':
+        return { 
+          label: 'Real Data',
+          className: 'bg-purple-100 text-purple-800 border-purple-300' 
+        };
+      default:
+        return null;
+    }
+  };
+  
+  const sourceInfo = getDataSourceBadge();
 
   // Return null if ID is missing to prevent broken links
   if (!id) {
@@ -99,6 +131,19 @@ const IPLMatchCard = ({
           </div>
         </div>
       )}
+
+      {/* Data Source Badge - top left corner */}
+      <div className="absolute top-2 left-2 z-10">
+        {sourceInfo && (
+          <Badge 
+            variant="outline" 
+            className={`flex items-center gap-1 ${sourceInfo.className}`}
+          >
+            <Database className="h-3 w-3" />
+            <span className="text-xs">{sourceInfo.label}</span>
+          </Badge>
+        )}
+      </div>
 
       {/* Poster Image */}
       <div className="relative w-full pt-[56.25%]"> {/* 16:9 aspect ratio */}

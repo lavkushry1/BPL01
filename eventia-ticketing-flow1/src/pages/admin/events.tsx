@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/layouts/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -34,25 +34,62 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, MoreVertical, PlusCircle, RefreshCw } from 'lucide-react';
+import { Pencil, Trash2, MoreVertical, PlusCircle, RefreshCw, Eye, ExternalLink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import AdminEventForm from '@/components/admin/AdminEventForm';
-import { fetchAdminEvents, deleteEvent } from '@/services/api/adminEventApi';
+import { fetchAdminEvents, deleteEvent, updateEvent } from '@/services/api/adminEventApi';
 import { Event } from '@/services/api/eventApi';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const AdminEventsPage = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [localEvents, setLocalEvents] = useState<Event[]>([]);
   
   const queryClient = useQueryClient();
+  
+  // Load local events on component mount
+  useEffect(() => {
+    const storageKey = 'admin_created_events';
+    const storedEvents = localStorage.getItem(storageKey);
+    if (storedEvents) {
+      try {
+        const parsedEvents = JSON.parse(storedEvents);
+        setLocalEvents(parsedEvents);
+      } catch (e) {
+        console.error('Error parsing stored events:', e);
+      }
+    }
+  }, []);
   
   // Fetch events
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['adminEvents'],
     queryFn: () => fetchAdminEvents(),
+  });
+  
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string, data: Partial<any> }) => updateEvent(id, data),
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Event updated successfully',
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['adminEvents'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update event',
+        variant: 'destructive',
+      });
+      console.error('Update error:', error);
+    },
   });
   
   // Delete mutation
@@ -100,6 +137,78 @@ const AdminEventsPage = () => {
     setEditingEvent(null);
   };
   
+  // Handle publish click - make event visible on public page
+  const handlePublishClick = async (event: Event) => {
+    // Update event status to published
+    const updatedEvent = {
+      ...event,
+      status: 'published' as const
+    };
+    
+    try {
+      // Update via API if possible
+      await updateMutation.mutateAsync({ 
+        id: event.id, 
+        data: { status: 'published' } 
+      });
+      
+      // Update local storage regardless of API success/failure
+      const storageKey = 'admin_created_events';
+      const storedEvents = localStorage.getItem(storageKey);
+      let events: Event[] = [];
+      
+      if (storedEvents) {
+        events = JSON.parse(storedEvents);
+      }
+      
+      // Check if event exists and update it
+      const eventIndex = events.findIndex(e => e.id === event.id);
+      if (eventIndex >= 0) {
+        events[eventIndex] = { ...events[eventIndex], ...updatedEvent };
+      } else {
+        events.push(updatedEvent);
+      }
+      
+      // Save back to localStorage
+      localStorage.setItem(storageKey, JSON.stringify(events));
+      setLocalEvents(events);
+      
+      toast({
+        title: 'Success',
+        description: 'Event published and now visible on public page',
+        variant: 'default',
+      });
+    } catch (error) {
+      console.error('Error publishing event:', error);
+      toast({
+        title: 'Note',
+        description: 'Event published locally but API update failed',
+        variant: 'default',
+      });
+    }
+  };
+  
+  // Combine API events and local events
+  const allEvents = useMemo(() => {
+    const apiEvents = data?.data?.events || [];
+    
+    // Create a map to deduplicate events by ID
+    const eventMap = new Map();
+    
+    // Add API events to the map
+    apiEvents.forEach(event => {
+      eventMap.set(event.id, event);
+    });
+    
+    // Add or override with local events
+    localEvents.forEach(event => {
+      eventMap.set(event.id, event);
+    });
+    
+    // Convert map back to array
+    return Array.from(eventMap.values());
+  }, [data?.data?.events, localEvents]);
+  
   // Get status badge variant
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -140,6 +249,16 @@ const AdminEventsPage = () => {
               Refresh
             </Button>
             
+            <Button
+              onClick={() => window.open('/events', '_blank')}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View Public Page
+            </Button>
+            
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-1">
@@ -168,7 +287,7 @@ const AdminEventsPage = () => {
               Try Again
             </Button>
           </div>
-        ) : data?.data?.events?.length === 0 ? (
+        ) : allEvents?.length === 0 ? (
           <div className="bg-gray-50 border border-gray-200 p-8 rounded-lg text-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
             <p className="text-gray-500 mb-4">Get started by creating your first event</p>
@@ -187,11 +306,11 @@ const AdminEventsPage = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead className="w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.data?.events?.map((event: Event) => (
+                {allEvents?.map((event: Event) => (
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.title}</TableCell>
                     <TableCell>{event.category}</TableCell>
@@ -199,24 +318,51 @@ const AdminEventsPage = () => {
                     <TableCell>{event.venue || event.location}</TableCell>
                     <TableCell>{getStatusBadge(event.status)}</TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditClick(event)}>
-                            <Pencil className="h-4 w-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteClick(event.id)}
-                            className="text-red-600"
+                      <div className="flex space-x-1">
+                        {event.status === 'published' ? (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            title="View on public page"
+                            onClick={() => window.open(`/events/${event.id}`, '_blank')}
                           >
-                            <Trash2 className="h-4 w-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            title="Publish event"
+                            onClick={() => handlePublishClick(event)}
+                          >
+                            <Eye className="h-4 w-4 text-gray-400" />
+                          </Button>
+                        )}
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditClick(event)}>
+                              <Pencil className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            {event.status !== 'published' && (
+                              <DropdownMenuItem onClick={() => handlePublishClick(event)}>
+                                <Eye className="h-4 w-4 mr-2" /> Publish
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteClick(event.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

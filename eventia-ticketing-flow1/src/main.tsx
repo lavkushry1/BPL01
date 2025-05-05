@@ -7,9 +7,23 @@ import * as Sentry from '@sentry/react';
 import { BrowserTracing } from '@sentry/tracing';
 import { initServiceWorker } from './utils/serviceWorker';
 import { toast } from './hooks/use-toast';
+import { QueryClient } from '@tanstack/react-query';
+import CombinedProviders from './contexts/CombinedProviders';
 
 // Import error tracker to initialize it
 import './utils/errorTracker';
+
+// Create a React Query client with default options
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+});
 
 // Initialize Service Worker for PWA capabilities
 initServiceWorker(() => {
@@ -65,6 +79,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <CombinedProviders queryClient={queryClient}>
+      <App />
+    </CombinedProviders>
   </React.StrictMode>
 );

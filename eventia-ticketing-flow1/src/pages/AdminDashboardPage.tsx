@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Shield, 
-  Users, 
-  Ticket, 
-  Calendar, 
-  Settings, 
-  TruckIcon, 
+import {
+  Shield,
+  Users,
+  Ticket,
+  Calendar,
+  Settings,
+  TruckIcon,
   CreditCard,
   PieChart,
-  LogOut 
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useAuth from '@/hooks/useAuth';
@@ -21,13 +21,14 @@ import { toast } from '@/hooks/use-toast';
 import AdminUpiManagement from './AdminUpiManagement';
 import AdminEventManagement from './AdminEventManagement';
 import UserManagement from '../components/admin/UserManagement';
+import UpiSettingsManager from '../components/admin/UpiSettingsManager';
 
 interface AdminDashboardPageProps {
   activeTab?: 'overview' | 'users' | 'events' | 'deliveries' | 'payments' | 'settings';
 }
 
-const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ 
-  activeTab = 'overview' 
+const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
+  activeTab = 'overview'
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -87,50 +88,50 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       <div className="container mx-auto py-8 px-4">
         <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="w-full border-b rounded-none p-0 flex">
-            <TabsTrigger 
-              value="overview" 
+            <TabsTrigger
+              value="overview"
               className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
             >
               <PieChart className="h-4 w-4 mr-2" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger 
-              value="users" 
+            <TabsTrigger
+              value="users"
               className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
             >
               <Users className="h-4 w-4 mr-2" />
               Users
             </TabsTrigger>
-            <TabsTrigger 
-              value="events" 
+            <TabsTrigger
+              value="events"
               className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
             >
               <Calendar className="h-4 w-4 mr-2" />
               Events
             </TabsTrigger>
-            <TabsTrigger 
-              value="deliveries" 
+            <TabsTrigger
+              value="deliveries"
               className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
             >
               <TruckIcon className="h-4 w-4 mr-2" />
               Deliveries
             </TabsTrigger>
-            <TabsTrigger 
-              value="payments" 
+            <TabsTrigger
+              value="payments"
               className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
             >
               <CreditCard className="h-4 w-4 mr-2" />
               Payments
             </TabsTrigger>
-            <TabsTrigger 
-              value="settings" 
+            <TabsTrigger
+              value="settings"
               className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
             >
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Dashboard Overview */}
           <TabsContent value="overview" className="space-y-6">
             <div className="flex items-center mb-6">
@@ -139,7 +140,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 Welcome back, {user?.name || 'Admin'}
               </p>
             </div>
-            
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -153,7 +154,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Events</CardTitle>
@@ -166,7 +167,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Pending Deliveries</CardTitle>
@@ -179,7 +180,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Revenue</CardTitle>
@@ -193,7 +194,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                 </CardContent>
               </Card>
             </div>
-            
+
             <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader>
@@ -227,7 +228,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Quick Actions</CardTitle>
@@ -256,13 +257,13 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </Card>
             </div>
           </TabsContent>
-          
+
           {/* User Management */}
           <TabsContent value="users" className="space-y-4">
             <h2 className="text-2xl font-bold mb-6">User Management</h2>
             <UserManagement />
           </TabsContent>
-          
+
           {/* Event Management */}
           <TabsContent value="events" className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
@@ -276,7 +277,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               <AdminEventManagement />
             </div>
           </TabsContent>
-          
+
           {/* Delivery Management */}
           <TabsContent value="deliveries" className="space-y-4">
             <h2 className="text-2xl font-bold mb-6">Delivery Management</h2>
@@ -292,7 +293,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Payment Approval */}
           <TabsContent value="payments" className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
@@ -306,21 +307,28 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
               <AdminUpiManagement />
             </div>
           </TabsContent>
-          
+
           {/* Settings */}
           <TabsContent value="settings" className="space-y-4">
             <h2 className="text-2xl font-bold mb-6">System Settings</h2>
-            <Card>
-              <CardHeader>
-                <CardTitle>Application Settings</CardTitle>
-                <CardDescription>
-                  Configure system preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Settings content will display here, allowing configuration of system-wide preferences and options.</p>
-              </CardContent>
-            </Card>
+
+            <div className="space-y-6">
+              {/* UPI Payment Settings */}
+              <UpiSettingsManager />
+
+              {/* General Settings Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>General Settings</CardTitle>
+                  <CardDescription>
+                    Configure system preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>Additional system settings will display here, allowing configuration of system-wide preferences and options.</p>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

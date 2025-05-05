@@ -3,175 +3,147 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eventia - You're Offline</title>
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#4f46e5">
+  <title>Eventia - Offline</title>
   <style>
-    * {
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      line-height: 1.6;
-      color: #333;
-      background-color: #f9fafb;
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       min-height: 100vh;
+      background-color: #f8f9fa;
+      color: #343a40;
+      text-align: center;
+      padding: 0 20px;
     }
-    .offline-container {
+    
+    .container {
       max-width: 600px;
       margin: 0 auto;
-      padding: 2rem 1rem;
-      text-align: center;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      padding: 40px 20px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-    .header {
-      background-color: #4f46e5;
-      color: white;
-      padding: 1rem;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .logo {
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
+    
     h1 {
       font-size: 2rem;
       margin-bottom: 1rem;
-      color: #1f2937;
+      color: #5c62ec;
     }
+    
     p {
+      font-size: 1.1rem;
+      line-height: 1.6;
       margin-bottom: 1.5rem;
-      color: #4b5563;
+      color: #4a4a4a;
     }
+    
     .icon {
-      width: 120px;
-      height: 120px;
-      margin-bottom: 2rem;
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      color: #5c62ec;
     }
+    
     .btn {
       display: inline-block;
-      background-color: #4f46e5;
+      background-color: #5c62ec;
       color: white;
-      padding: 0.75rem 1.5rem;
-      border-radius: 0.375rem;
+      padding: 12px 24px;
+      border-radius: 6px;
       text-decoration: none;
-      font-weight: 500;
-      transition: background-color 0.3s;
+      font-weight: 600;
+      transition: background-color 0.2s;
       border: none;
       cursor: pointer;
-      margin-top: 1rem;
+      font-size: 1rem;
     }
+    
     .btn:hover {
-      background-color: #4338ca;
+      background-color: #4951d8;
     }
+    
     .cached-content {
       margin-top: 2rem;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 2rem;
       width: 100%;
     }
-    .footer {
-      padding: 1rem;
-      text-align: center;
-      background-color: #f3f4f6;
-      color: #6b7280;
-      font-size: 0.875rem;
+    
+    .cached-item {
+      background-color: #f1f3f9;
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
     }
-    @media (max-width: 640px) {
+    
+    @media (max-width: 480px) {
       h1 {
         font-size: 1.5rem;
       }
+      
+      p {
+        font-size: 1rem;
+      }
+      
       .icon {
-        width: 80px;
-        height: 80px;
+        font-size: 3rem;
       }
     }
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="logo">Eventia</div>
-  </header>
-
-  <main class="offline-container">
-    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m-3.536-3.536a5 5 0 010-7.072m-3.183 1.757L7.88 14.445a1 1 0 01-1.32.083L3.5 12.25a1 1 0 01-.083-1.32l3.536-4.95a1 1 0 011.32-.084l2.597 1.86a5.97 5.97 0 012.835-1.203 6 6 0 012.044.16l-2.657 2.657z" />
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.121 15.121L12 12m2.121-2.121l1.415-1.414M12 12L8.464 8.464" />
-    </svg>
-
-    <h1>You're Offline</h1>
-    <p>It looks like you've lost your internet connection. Some features may be unavailable until you're back online.</p>
+  <div class="container">
+    <div class="icon">📶</div>
+    <h1>You're offline</h1>
+    <p>It looks like you've lost your internet connection. Some features may be limited until you're back online.</p>
+    <p>Don't worry, you can still view some cached content and we'll automatically reconnect when your internet returns.</p>
     
-    <button class="btn" id="reload-btn">Try Again</button>
+    <button class="btn" onclick="window.location.reload()">Try again</button>
     
-    <div class="cached-content" id="cached-events">
-      <h2>Previously Viewed Events</h2>
-      <p>Your previously viewed events will appear here when you're offline.</p>
-      <!-- Cached content will be dynamically inserted here -->
+    <div id="cached-content" class="cached-content">
+      <!-- Cached content will appear here if available -->
     </div>
-  </main>
-
-  <footer class="footer">
-    <p>&copy; 2025 Eventia. All rights reserved.</p>
-  </footer>
+  </div>
 
   <script>
-    // Check if we're back online periodically
-    window.addEventListener('online', () => {
-      window.location.reload();
-    });
-    
-    // Reload button
-    document.getElementById('reload-btn').addEventListener('click', () => {
-      window.location.reload();
-    });
-    
-    // We could attempt to load cached events from IndexedDB or Cache API here
-    async function loadCachedEvents() {
-      try {
-        // This is a placeholder - in a real app, you'd retrieve cached events
-        // from IndexedDB or localStorage
-        const cachedEvents = []; // Would be populated from storage
-        
-        const cachedEventsContainer = document.getElementById('cached-events');
-        
-        if (cachedEvents && cachedEvents.length > 0) {
-          let html = '<h2>Previously Viewed Events</h2><ul class="event-list">';
-          
-          cachedEvents.forEach(event => {
-            html += `
-              <li class="event-item">
-                <h3>${event.title}</h3>
-                <p>${event.date}</p>
-              </li>
-            `;
+    // Check if service worker is registered
+    if ('serviceWorker' in navigator) {
+      // Display available cached pages if any
+      caches.open('eventia-pwa-cache-v1').then(cache => {
+        return cache.keys().then(keys => {
+          const cachedPages = keys.filter(request => {
+            const url = new URL(request.url);
+            return url.origin === location.origin && 
+                   !url.pathname.includes('.') && 
+                   url.pathname !== '/offline.html';
           });
           
-          html += '</ul>';
-          cachedEventsContainer.innerHTML = html;
-        } else {
-          cachedEventsContainer.innerHTML = `
-            <h2>Previously Viewed Events</h2>
-            <p>No cached events available offline.</p>
-          `;
-        }
-      } catch (error) {
-        console.error('Failed to load cached events:', error);
-      }
+          const cachedContent = document.getElementById('cached-content');
+          
+          if (cachedPages.length > 0) {
+            cachedContent.innerHTML = '<h2>Available offline pages:</h2>';
+            
+            cachedPages.slice(0, 5).forEach(request => {
+              const url = new URL(request.url);
+              const link = document.createElement('a');
+              link.href = url.pathname;
+              link.textContent = url.pathname === '/' ? 'Home' : url.pathname;
+              
+              const div = document.createElement('div');
+              div.classList.add('cached-item');
+              div.appendChild(link);
+              
+              cachedContent.appendChild(div);
+            });
+          }
+        });
+      }).catch(error => {
+        console.error('Error checking cache:', error);
+      });
     }
-    
-    // Load cached events when page loads
-    loadCachedEvents();
   </script>
 </body>
 </html> 

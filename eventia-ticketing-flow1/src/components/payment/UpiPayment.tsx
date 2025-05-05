@@ -11,13 +11,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { ArrowRight, Clock, AlertTriangle, CheckCircle, QrCode, Copy, Info, Smartphone, CreditCard } from 'lucide-react';
+import { ArrowRight, Clock, AlertTriangle, CheckCircle, QrCode, Copy, Info, Smartphone, CreditCard, AlertCircle, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import QRCodeGenerator from './QRCodeGenerator';
 import * as paymentApi from '@/services/api/paymentApi';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import configService from '@/config/appConfig';
 import UpiGuideTooltip from './UpiGuideTooltip';
+import ErrorBoundary from '@/components/utils/ErrorBoundary';
+import { API_BASE_URL } from '@/config';
+import { defaultApiClient } from '@/services/api/apiUtils';
 
 interface UpiPaymentProps {
   bookingId: string;
@@ -52,7 +55,7 @@ interface UpiApp {
 const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customerInfo }: UpiPaymentProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  
+
   const [upiId, setUpiId] = useState<string>('');
   const [utrNumber, setUtrNumber] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -69,6 +72,8 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
   const [qrValue, setQrValue] = useState<string>('');
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [detectedInstalledApps, setDetectedInstalledApps] = useState<string[]>([]);
+  const [isGeneratingQr, setIsGeneratingQr] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Define popular UPI apps
   const upiApps: UpiApp[] = [
@@ -85,7 +90,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
       const userAgent = navigator.userAgent || navigator.vendor;
       const isMobileDevice = /android|iPhone|iPad|iPod|webOS|Windows Phone/i.test(userAgent);
       setIsMobile(isMobileDevice);
-      
+
       // Auto-show UPI apps section on mobile devices
       if (isMobileDevice) {
         setShowUpiApps(true);
@@ -108,36 +113,49 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
       try {
         setIsLoading(true);
         setQrLoadError(false);
-        
-        const response = await paymentApi.getPaymentSettings();
-        
-        if (response.data?.data?.upi?.vpa) {
-          setUpiId(response.data.data.upi.vpa);
+
+        console.log('UpiPayment component: Fetching UPI settings');
+
+        // Attempt to get UPI setting from the admin API endpoint
+        let activeUpiId = '9122036484@hdfc'; // Set the required UPI ID as default
+
+        try {
+          const adminUpiResponse = await defaultApiClient.get('/admin/upi');
           
-          // Generate QR code for the payment
-          const { qrUrl, upiUrl } = await paymentApi.generateUpiQrCode(amount, bookingId);
-          setQrValue(upiUrl);
-          setQrCodeUrl(qrUrl);
-        } else {
-          // Using hardcoded fallback UPI ID
-          setUpiId('eventia@okicici');
-          console.info('Using fallback UPI ID as no settings found');
-          
-          // Generate fallback QR code
-          const fallbackUpiUrl = `upi://pay?pa=eventia@okicici&pn=EventiaTickets&am=${amount}&tr=${bookingId}&cu=INR`;
-          setQrValue(fallbackUpiUrl);
-          setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fallbackUpiUrl)}`);
+          if (adminUpiResponse?.data) {
+            const adminUpiData = adminUpiResponse.data;
+            console.log('Admin UPI settings response:', adminUpiData);
+
+            if (adminUpiData?.data?.upivpa) {
+              activeUpiId = adminUpiData.data.upivpa;
+              console.log(`Using UPI ID from admin API: ${activeUpiId}`);
+            }
+          } else {
+            console.log('Admin UPI API returned error, using required UPI ID');
+          }
+        } catch (adminApiError) {
+          console.log('Error fetching admin UPI settings, using required UPI ID:', adminApiError);
         }
+
+        // Set the active UPI ID in state
+        setUpiId(activeUpiId);
+
+        // Generate the QR code with the active UPI ID
+        await generateQrCode(activeUpiId);
       } catch (error) {
-        console.error('Error fetching UPI settings:', error);
+        console.error('Error in fetchUpiSettings:', error);
         setQrLoadError(true);
-        // Using hardcoded fallback UPI ID
-        setUpiId('eventia@okicici');
-        toast({
-          title: t('payment.errorFetchingUpi', 'Error fetching UPI details'),
-          description: t('payment.usingFallback', 'Using fallback UPI ID'),
-          variant: "destructive",
-        });
+
+        // Use required UPI ID as fallback and try to generate QR
+        const defaultUpiId = '9122036484@hdfc';
+        setUpiId(defaultUpiId);
+        console.log(`Using required UPI ID after error: ${defaultUpiId}`);
+
+        try {
+          await generateQrCode(defaultUpiId);
+        } catch (qrError) {
+          console.error('Failed to generate QR code with required UPI ID:', qrError);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -147,12 +165,12 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
     const checkExistingPayment = async () => {
       try {
         const response = await paymentApi.getPaymentByBookingId(bookingId);
-        
+
         // If payment exists and has UTR number, pre-fill it
         if (response.data?.data?.payment_method?.upi_details?.utr_number) {
           setUtrNumber(response.data.data.payment_method.upi_details.utr_number);
           setPaymentId(response.data.data.id);
-          
+
           toast({
             title: t('payment.existingUtrFound', 'Existing UTR found'),
             description: t('payment.utrPrefilled', 'Your previous UTR number has been filled'),
@@ -166,7 +184,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
 
     fetchUpiSettings();
     if (bookingId) checkExistingPayment();
-    
+
     // Cleanup timer on unmount
     return () => {
       // Cleanup function
@@ -176,25 +194,25 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
   // Try to detect installed UPI apps
   const detectInstalledApps = async () => {
     const detectedApps: string[] = [];
-    
+
     // Check for app availability using intent scheme
     const checkAppAvailability = async (app: UpiApp) => {
       return new Promise<boolean>((resolve) => {
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
-        
+
         // Set timeout to catch if app intent fails
         const timeout = setTimeout(() => {
           resolve(false);
           document.body.removeChild(iframe);
         }, 500);
-        
+
         // Create a link to test if the app is installed
         try {
           if (iframe.contentWindow) {
             iframe.contentWindow.location.href = `intent://#Intent;scheme=upi;package=${app.package};end`;
-            
+
             // If we get here without error, app might be installed
             clearTimeout(timeout);
             resolve(true);
@@ -207,7 +225,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
         }
       });
     };
-    
+
     // Check each app
     for (const app of upiApps) {
       try {
@@ -219,7 +237,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
         console.log(`Error checking availability for ${app.name}:`, e);
       }
     }
-    
+
     setDetectedInstalledApps(detectedApps);
   };
 
@@ -232,11 +250,11 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
       });
       return;
     }
-    
+
     const timer = setInterval(() => {
       setRemainingTime(prev => prev - 1);
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [remainingTime, t]);
 
@@ -256,7 +274,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
   const handleUtrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUtrNumber(value);
-    
+
     if (utrTouched) {
       if (!value.trim()) {
         setUtrError(t('payment.utrRequired', 'UTR number is required'));
@@ -267,10 +285,10 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
       }
     }
   };
-  
+
   const handleUtrBlur = () => {
     setUtrTouched(true);
-    
+
     if (!utrNumber.trim()) {
       setUtrError(t('payment.utrRequired', 'UTR number is required'));
     } else if (!validateUtrNumber(utrNumber)) {
@@ -282,15 +300,15 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateUtrNumber(utrNumber)) {
       setUtrError(t('payment.invalidUtrNumber', 'Please enter a valid UTR number'));
       return;
     }
-    
+
     setSubmitting(true);
     setUtrError(null);
-    
+
     try {
       // API call to submit the UTR
       const paymentMethod: PaymentMethod = {
@@ -300,7 +318,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
           utr_number: utrNumber
         }
       };
-      
+
       if (paymentId) {
         // Update existing payment using submitUtrVerification
         await paymentApi.submitUtrVerification(paymentId, utrNumber);
@@ -312,15 +330,15 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
           currency: 'INR',
           payment_method: paymentMethod
         });
-        
+
         setPaymentId(response.data?.data?.id);
       }
-      
+
       toast({
         title: t('payment.utrSubmitted', 'Payment details submitted'),
         description: t('payment.paymentVerification', 'We have received your payment details and will verify them shortly.')
       });
-      
+
       // If parent provided success callback, call it
       if (onPaymentSuccess) {
         onPaymentSuccess();
@@ -331,7 +349,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
     } catch (error: any) {
       console.error('Error submitting payment:', error);
       setPaymentError(error.response?.data?.message || t('payment.errorSubmittingUtr', 'There was a problem submitting your payment details. Please try again.'));
-      
+
       toast({
         title: t('payment.submissionFailed', 'Submission failed'),
         description: error.response?.data?.message || t('payment.errorProcessingPayment', 'There was a problem processing your payment. Please try again.'),
@@ -342,45 +360,95 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
     }
   };
 
-  const refreshQrCode = async () => {
-    setQrLoadError(false);
-    setIsLoading(true);
-    
-    const fetchUpiSettings = async () => {
-      try {
-        const response = await paymentApi.getPaymentSettings();
-        
-        if (response.data?.data?.upi?.vpa) {
-          setUpiId(response.data.data.upi.vpa);
-          
-          // Generate QR code for the payment
-          const { qrUrl, upiUrl } = await paymentApi.generateUpiQrCode(amount, bookingId);
-          setQrValue(upiUrl);
-          setQrCodeUrl(qrUrl);
-          
-          setQrLoadError(false);
-        } else {
-          throw new Error('No UPI settings found');
-        }
-      } catch (error) {
-        console.error('Error refreshing QR code:', error);
+  /**
+   * Generate QR code for UPI payment
+   */
+  const generateQrCode = async (upiId: string) => {
+    try {
+      setQrLoadError(false);
+      setIsGeneratingQr(true);
+
+      // Create payload for QR code generation request
+      const qrPayload = {
+        upiId: upiId,
+        amount: amount,
+        referenceId: bookingId,
+        customerName: customerInfo?.name || 'Customer'
+      };
+
+      // Use defaultApiClient which already has the base URL configured
+      const response = await defaultApiClient.post('/payments/generate-qr', qrPayload);
+
+      if (response?.data?.data?.qrImageUrl) {
+        setQrCodeUrl(response.data.data.qrImageUrl);
+        setQrValue(response.data.data.qrText || '');
+        // We've successfully generated a QR code
+      } else {
+        console.error('QR generation response missing qrImageUrl', response);
         setQrLoadError(true);
-        toast({
-          title: t('payment.errorRefreshingQr', 'Error refreshing QR code'),
-          description: t('payment.tryAgainLater', 'Please try again later'),
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
-    await fetchUpiSettings();
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      setQrLoadError(true);
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
+
+  /**
+   * Refresh the QR code (used when payment expires)
+   */
+  const refreshQrCode = async () => {
+    try {
+      setIsRefreshing(true);
+      setQrLoadError(false);
+
+      // Try to get updated UPI settings first
+      let activeUpiId = upiId;
+
+      try {
+        const adminUpiResponse = await defaultApiClient.get('/admin/upi');
+
+        if (adminUpiResponse?.data) {
+          const adminUpiData = adminUpiResponse.data;
+          
+          if (adminUpiData?.data?.upivpa) {
+            activeUpiId = adminUpiData.data.upivpa;
+            setUpiId(activeUpiId);
+            console.log(`Using refreshed UPI ID from admin API: ${activeUpiId}`);
+          }
+        }
+      } catch (adminApiError) {
+        console.log('Error refreshing UPI settings, using existing UPI ID:', adminApiError);
+      }
+
+      // Generate a new QR code
+      await generateQrCode(activeUpiId);
+      
+      // Reset expiration timer
+      setRemainingTime(15 * 60); // 15 minutes
+      
+      toast({
+        title: t('payment.qrRefreshed', 'QR Code Refreshed'),
+        description: t('payment.newQrGenerated', 'A new payment QR code has been generated'),
+      });
+    } catch (error) {
+      console.error('Error refreshing QR code:', error);
+      setQrLoadError(true);
+      
+      toast({
+        title: t('payment.qrRefreshFailed', 'QR Refresh Failed'),
+        description: t('payment.tryAgainLater', 'Please try again in a few moments'),
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const copyUpiId = () => {
     if (!upiId) return;
-    
+
     navigator.clipboard.writeText(upiId)
       .then(() => {
         toast({
@@ -406,14 +474,14 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
     try {
       // If specific app is selected, use app-specific deep link
       let upiDeepLink = '';
-      
+
       if (app) {
         upiDeepLink = await paymentApi.getUpiAppDeepLink(amount, bookingId, app.package);
       } else {
         // Generic UPI URL
         upiDeepLink = getUpiPaymentUrl();
       }
-      
+
       // For iOS devices, fallback to universal links for UPI apps
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isIOS && app) {
@@ -432,10 +500,10 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
             break;
         }
       }
-      
+
       // Open the UPI app
       window.location.href = upiDeepLink;
-      
+
       // After a delay, remind user to come back and submit UTR
       setTimeout(() => {
         // Only show the reminder if the user is still on the same page
@@ -466,7 +534,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
       });
       return;
     }
-    
+
     try {
       // Define the payment methods
       const supportedPaymentMethods = [
@@ -493,7 +561,7 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
           },
         }
       ];
-      
+
       // Define the payment details
       const paymentDetails = {
         total: {
@@ -504,19 +572,19 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
           },
         },
       };
-      
+
       // Create a new PaymentRequest
       const request = new PaymentRequest(
         supportedPaymentMethods,
         paymentDetails
       );
-      
+
       // Show the payment UI
       const response = await request.show();
-      
+
       // Process the response - in real implementation, you would verify the payment
       await response.complete('success');
-      
+
       // Show a prompt to enter UTR number
       toast({
         title: t('payment.paymentInitiated', 'Payment Initiated'),
@@ -546,76 +614,136 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
           <span>{formatTime(remainingTime)}</span>
         </div>
       </div>
-      
+
       {/* UPI Payment Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* QR Code Section */}
         <div className="bg-card border rounded-lg p-4 flex flex-col items-center">
           <h4 className="text-sm font-medium mb-4 text-center">{t('payment.scanQr', 'Scan QR with any UPI app')}</h4>
-          
-          <QRCodeGenerator
-            value={qrValue}
-            size={200}
-            paymentDetails={{ upiId, amount, description: `Booking #${bookingId.substring(0, 8)}` }}
-            className="mb-4"
-            isLoading={isLoading}
-            onRetry={refreshQrCode}
-            errorMessage={qrLoadError ? t('payment.qrLoadError', 'Error loading QR code') : undefined}
-          />
-          
-          <div className="w-full mt-2 space-y-2">
-            <div className="flex items-center justify-between p-2 bg-muted rounded">
-              <div className="text-sm font-medium overflow-hidden text-ellipsis">{upiId}</div>
-              <Button variant="ghost" size="icon" onClick={copyUpiId} className="h-8 w-8">
-                <Copy className="h-4 w-4" />
-              </Button>
+
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
-            
-            {/* Mobile UPI App Links */}
-            {isMobile && (
-              <div className="mt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => setShowUpiApps(!showUpiApps)}
-                >
-                  <Smartphone className="h-4 w-4 mr-2" />
-                  {showUpiApps 
-                    ? t('payment.hideUpiApps', 'Hide UPI Apps') 
-                    : t('payment.openWithApp', 'Open with UPI App')}
-                </Button>
-                
-                {showUpiApps && (
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    {upiApps.map((app) => (
+          ) : (
+            <div className="flex flex-col items-center">
+              {/* Display QR code for payment */}
+              <div className="flex flex-col items-center mb-6">
+                <ErrorBoundary
+                  fallback={
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center" style={{ minHeight: 200, minWidth: 200 }}>
+                      <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                        {t('payment.qrGenerationFailed', 'Unable to generate QR code. Please try again.')}
+                      </p>
+                      <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                        <p className="font-medium text-primary">{upiId}</p>
+                        <p className="mt-1">Amount: ₹{amount.toLocaleString('en-IN')}</p>
+                      </div>
                       <Button
-                        key={app.package}
                         variant="outline"
                         size="sm"
-                        className="h-auto py-2 px-3 flex flex-col items-center gap-1"
-                        style={{ 
-                          opacity: detectedInstalledApps.length > 0 && !detectedInstalledApps.includes(app.package) ? 0.5 : 1,
-                        }}
-                        onClick={() => handleUpiDeepLink(app)}
+                        className="mt-3"
+                        onClick={() => generateQrCode(upiId)}
                       >
-                        <span className="text-lg">{app.icon}</span>
-                        <span className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
-                          {app.name}
-                        </span>
+                        <RefreshCw size={16} className="mr-2" />
+                        {t('payment.tryAgain', 'Try Again')}
                       </Button>
-                    ))}
+                    </div>
+                  }
+                  onError={(error) => {
+                    console.error('QRCodeGenerator error caught by ErrorBoundary:', error);
+                    // Update parent component state to show we're using fallback
+                    setQrLoadError(true);
+                  }}
+                >
+                  <QRCodeGenerator
+                    value={qrValue}
+                    size={200}
+                    isLoading={isGeneratingQr}
+                    errorMessage={qrLoadError ? t('payment.qrGenerationFailed', 'Unable to generate QR code. Please try again.') : undefined}
+                    onRetry={() => refreshQrCode()}
+                    paymentDetails={{
+                      upiId: upiId,
+                      amount: amount,
+                      description: `Booking ID: ${bookingId}`
+                    }}
+                  />
+                </ErrorBoundary>
+
+                {!isGeneratingQr && !qrLoadError && (
+                  <Button
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => refreshQrCode()}
+                  >
+                    <RefreshCw size={16} className="mr-2" />
+                    {t('payment.refreshQr', 'Refresh QR')}
+                  </Button>
+                )}
+              </div>
+
+              {/* UPI ID information */}
+              <div className="w-full mt-2 space-y-2">
+                <div className="flex justify-between items-center gap-2 mb-4">
+                  <div className="text-xs text-muted-foreground">UPI ID</div>
+                  <div className="text-sm font-medium overflow-hidden text-ellipsis">{upiId || '9122036484@hdfc'}</div>
+                  <button
+                    className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                    onClick={copyUpiId}
+                    title={t('payment.copyUpiId', 'Copy UPI ID')}
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+
+                {/* Mobile UPI App Links */}
+                {isMobile && (
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setShowUpiApps(!showUpiApps)}
+                    >
+                      <Smartphone className="h-4 w-4 mr-2" />
+                      {showUpiApps
+                        ? t('payment.hideUpiApps', 'Hide UPI Apps')
+                        : t('payment.openWithApp', 'Open with UPI App')}
+                    </Button>
+
+                    {showUpiApps && (
+                      <div className="grid grid-cols-3 gap-2 mt-3">
+                        {upiApps.map((app) => (
+                          <Button
+                            key={app.package}
+                            variant="outline"
+                            size="sm"
+                            className="h-auto py-2 px-3 flex flex-col items-center gap-1"
+                            style={{
+                              opacity: detectedInstalledApps.length > 0 && !detectedInstalledApps.includes(app.package) ? 0.5 : 1,
+                            }}
+                            onClick={() => handleUpiDeepLink(app)}
+                          >
+                            <span className="text-lg">{app.icon}</span>
+                            <span className="text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                              {app.name}
+                            </span>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-        
+
         {/* UTR Input Section */}
         <div className="bg-card border rounded-lg p-4">
           <h4 className="text-sm font-medium mb-4">{t('payment.enterUtrNumber', 'Enter UTR Number after payment')}</h4>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="utr-number" className="text-sm text-muted-foreground">
@@ -637,16 +765,16 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
                 {t('payment.utrHelp', 'Find this in your UPI app transaction history or payment confirmation SMS')}
               </p>
             </div>
-            
+
             {paymentError && (
               <div className="bg-destructive/10 text-destructive p-3 rounded-md flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">{paymentError}</div>
               </div>
             )}
-            
-            <Button 
-              type="submit" 
+
+            <Button
+              type="submit"
               className="w-full"
               disabled={submitting || !utrNumber.trim() || !!utrError}
             >
@@ -663,13 +791,13 @@ const UpiPayment = ({ bookingId, amount, onPaymentSuccess, onUtrSubmit, customer
               )}
             </Button>
           </form>
-          
+
           <div className="mt-4 pt-4 border-t">
             <UpiGuideTooltip />
           </div>
         </div>
       </div>
-      
+
       {/* Payment Instructions */}
       <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="text-sm font-medium mb-2">{t('payment.importantInformation', 'Important Information')}</h4>

@@ -218,7 +218,7 @@ async function main() {
               label: `${sections[0]}-${rows[r]}${i}`,
               section: sections[0],
               row: rows[r],
-              seatNumber: i,
+              seatNumber: i.toString(),
               price: generalCategory.price,
               eventId: event.id
             }
@@ -236,7 +236,7 @@ async function main() {
               label: `${sections[1]}-${rows[r]}${i}`,
               section: sections[1],
               row: rows[r],
-              seatNumber: i,
+              seatNumber: i.toString(),
               price: vipCategory.price,
               eventId: event.id
             }
@@ -258,8 +258,8 @@ async function main() {
       quantity: 2,
       finalAmount: 1598, // 2 x 799
       seats: JSON.stringify([
-        { label: 'Main Floor-A1', section: 'Main Floor', row: 'A', seatNumber: 1 },
-        { label: 'Main Floor-A2', section: 'Main Floor', row: 'A', seatNumber: 2 }
+        { label: 'Main Floor-A1', section: 'Main Floor', row: 'A', seatNumber: '1' },
+        { label: 'Main Floor-A2', section: 'Main Floor', row: 'A', seatNumber: '2' }
       ])
     }
   });
@@ -303,10 +303,10 @@ async function main() {
       eventId: createdEvents[0].id,
       section: 'Main Floor',
       row: 'A',
-      seatNumber: { in: [1, 2] }
+      seatNumber: { in: ['1', '2'] }
     },
     data: {
-      status: 'booked'
+      status: 'BOOKED'
     }
   });
 

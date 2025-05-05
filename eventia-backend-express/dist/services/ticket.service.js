@@ -11,6 +11,7 @@ const pdfkit_1 = __importDefault(require("pdfkit"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const websocket_service_1 = require("./websocket.service");
+const client_1 = require("@prisma/client");
 /**
  * Ticket service for generating tickets, QR codes and PDFs
  */
@@ -513,6 +514,115 @@ class TicketService {
         catch (error) {
             console.error('Error processing ticket generation queue:', error);
             return { processed: 0, success: 0, failed: 0 };
+        }
+    }
+    /**
+     * Generates tickets for a booking
+     * @param prisma Prisma client instance
+     * @param bookingId Booking ID
+     * @param seats Array of seats
+     */
+    static async generateTicketsForBookingPrisma(prisma, bookingId, seats) {
+        try {
+            // Get booking details
+            const booking = await prisma.booking.findUnique({
+                where: { id: bookingId },
+                include: {
+                    event: true,
+                    user: true
+                }
+            });
+            if (!booking) {
+                throw new Error(`Booking ${bookingId} not found`);
+            }
+            // Create ticket records and generate QR codes
+            const ticketPromises = seats.map(async (seat) => {
+                // Generate unique ticket code
+                const ticketNumber = `TKT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+                // Create ticket in database
+                const ticket = await prisma.ticket.create({
+                    data: {
+                        ticketNumber,
+                        bookingId: booking.id,
+                        userId: booking.userId,
+                        eventId: booking.eventId,
+                        seatId: seat.id,
+                        status: 'ACTIVE'
+                    }
+                });
+                // Generate QR code for ticket
+                const qrData = JSON.stringify({
+                    ticketId: ticket.id,
+                    ticketNumber: ticket.ticketNumber,
+                    eventId: booking.eventId,
+                    seatId: seat.id,
+                    section: seat.section,
+                    row: seat.row,
+                    seatNumber: seat.seatNumber
+                });
+                // Ensure directory exists
+                const qrDir = path_1.default.join(__dirname, '../../public/tickets');
+                if (!fs_1.default.existsSync(qrDir)) {
+                    fs_1.default.mkdirSync(qrDir, { recursive: true });
+                }
+                // Generate and save QR code
+                const qrPath = path_1.default.join(qrDir, `${ticket.id}.png`);
+                await qrcode_1.default.toFile(qrPath, qrData, {
+                    errorCorrectionLevel: 'H'
+                });
+                // Update ticket with QR code path
+                return prisma.ticket.update({
+                    where: { id: ticket.id },
+                    data: {
+                        qrCodeUrl: `/tickets/${ticket.id}.png`
+                    }
+                });
+            });
+            // Wait for all tickets to be created
+            const tickets = await Promise.all(ticketPromises);
+            // Notify via WebSocket
+            websocket_service_1.WebsocketService.notifyTicketsGenerated(bookingId, booking.user.id, tickets.length);
+            return tickets.map((ticket) => ticket.id);
+        }
+        catch (error) {
+            console.error('Error generating tickets:', error);
+            throw error;
+        }
+    }
+    /**
+     * Gets a ticket by ID
+     * @param ticketId Ticket ID
+     * @returns Ticket with related data
+     */
+    static async getTicketById(ticketId) {
+        const prisma = new client_1.PrismaClient();
+        const anyPrisma = prisma;
+        try {
+            // With the current schema, we can't use the include option since
+            // we haven't defined the relationships in the Prisma schema
+            const ticket = await anyPrisma.ticket.findUnique({
+                where: { id: ticketId }
+            });
+            // If needed, fetch related data separately
+            if (ticket) {
+                const booking = ticket.bookingId ?
+                    await prisma.booking.findUnique({ where: { id: ticket.bookingId } }) : null;
+                const event = ticket.eventId ?
+                    await prisma.event.findUnique({ where: { id: ticket.eventId } }) : null;
+                return {
+                    ...ticket,
+                    booking,
+                    event
+                };
+            }
+            return ticket;
+        }
+        catch (error) {
+            console.error(`Error getting ticket ${ticketId}:`, error);
+            throw error;
+        }
+        finally {
+            await prisma.$disconnect();
         }
     }
 }

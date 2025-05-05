@@ -29,6 +29,7 @@
     "menu": "Menu",
     "close": "Close",
     "bookNow": "Book Now",
+    "booknow": "Book Now",
     "clearAll": "Clear All",
     "clearFilters": "Clear Filters",
     "confirm": "Confirm",
@@ -38,12 +39,30 @@
     "previous": "Previous",
     "save": "Save",
     "view": "View",
-    "activeFilters": "Active Filters"
+    "viewDetails": "View Details",
+    "activeFilters": "Active Filters",
+    "login": "Login",
+    "changeLanguage": "Change Language",
+    "refresh": "Refresh Data",
+    "viewAll": "View All",
+    "fullName": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "city": "City",
+    "pincode": "Pincode",
+    "errorNameLength": "Name must be at least 3 characters",
+    "errorInvalidEmail": "Please enter a valid email address",
+    "errorPhoneLength": "Phone number must be 10-15 digits",
+    "errorAddressLength": "Address must be at least 5 characters",
+    "errorCityLength": "City must be at least 2 characters",
+    "errorPincodeLength": "Pincode must be at least 6 characters"
   },
   "navbar": {
     "home": "Home",
     "events": "Events",
     "ipl": "IPL Tickets",
+    "search": "Search",
     "admin": "Admin",
     "venues": "Venues",
     "tickets": "My Tickets",
@@ -65,6 +84,16 @@
     "viewAllEvents": "View All Events",
     "comingSoon": "Coming Soon"
   },
+  "hero": {
+    "title": "Discover, Book, and Experience",
+    "subtitle": "Find the most exciting events happening near you",
+    "browse": "Browse Events",
+    "iplTickets": "IPL 2025 Tickets",
+    "search": "Search events",
+    "when": "dd/mm/yyyy",
+    "where": "Where",
+    "find": "Find Events"
+  },
   "events": {
     "title": "All Events",
     "subtitle": "Find and book tickets for upcoming events",
@@ -85,11 +114,18 @@
     "viewVenue": "View Venue in AR",
     "sortedBy": "Sorted by",
     "noEventsFound": "No events found",
-    "tryDifferentFilters": "Try different search terms or filters"
+    "tryDifferentFilters": "Try different search terms or filters",
+    "hot": "HOT",
+    "showing": "Showing",
+    "event": "event",
+    "events": "events",
+    "for": "for"
   },
   "ipl": {
     "title": "IPL 2025 Tickets",
     "subtitle": "Book official tickets for Indian Premier League matches",
+    "heroSubtitle": "Book official tickets for all IPL matches. Experience the thrill live!",
+    "vipPackages": "VIP Packages",
     "allMatches": "All Matches",
     "match": "Match",
     "ticketsAvailable": "Tickets Available",
@@ -102,7 +138,10 @@
     "tickets": "Tickets",
     "quantity": "Quantity",
     "available": "available",
-    "proceedToPayment": "Proceed to Payment"
+    "proceedToPayment": "Proceed to Payment",
+    "otherEvents": "You Might Also Like",
+    "total": "Total",
+    "similarEvents": "Similar Events"
   },
   "checkout": {
     "title": "Checkout",
@@ -116,7 +155,28 @@
     "venue": "Venue",
     "tickets": "Tickets",
     "total": "Total",
-    "proceedToPayment": "Proceed to Payment"
+    "proceedToPayment": "Proceed to Payment",
+    "noBookingData": "No booking data found. Please start your booking process from the events page.",
+    "noBookingDataDesc": "Please start your booking process from the events page.",
+    "enterFullName": "Enter your full name",
+    "enterEmail": "Enter your email address",
+    "enterPhone": "Enter your phone number",
+    "enterAddress": "Enter your address",
+    "enterCity": "Enter your city",
+    "enterPincode": "Enter your pincode",
+    "specialInstructions": "Special Instructions",
+    "enterSpecialInstructions": "Add any special instructions or notes here",
+    "sendUpdates": "Send me updates about my order via email and SMS",
+    "completeAllFields": "Please complete all required fields",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidPhone": "Please enter a valid 10-digit phone number",
+    "errorSavingDetails": "Error saving delivery details. Please try again.",
+    "quantity": "Quantity",
+    "each": "each",
+    "totalAmount": "Total Amount",
+    "payment": "Payment",
+    "confirmation": "Confirmation",
+    "paymentError": "An error occurred while processing your payment. Please try again."
   },
   "ar": {
     "stadiumPreviewTitle": "Stadium AR Preview",
@@ -183,7 +243,8 @@
     "utrPrefilled": "Your previous UTR number has been filled",
     "timeExpired": "Payment time expired",
     "refreshPage": "Please refresh the page to try again",
-    "errorRefreshingQr": "Error refreshing QR"
+    "errorRefreshingQr": "Error refreshing QR",
+    "startingFrom": "Starting from"
   },
   "confirmation": {
     "title": "Booking Confirmed!",
@@ -221,6 +282,7 @@
     "art": "Art",
     "theatre": "Theatre",
     "workshop": "Workshop",
+    "cricket": "Cricket",
     "other": "Other"
   },
   "venues": {
@@ -233,6 +295,8 @@
     "thisMonth": "This Month"
   },
   "sort": {
+    "sortBy": "Sort By",
+    "popularity": "Popularity",
     "dateAsc": "Date (Earliest)",
     "dateDesc": "Date (Latest)",
     "priceAsc": "Price (Low to High)",
@@ -259,5 +323,10 @@
     "supportSubject": "How can we help you?",
     "message": "Message",
     "describeYourIssue": "Please describe your issue or question in detail"
+  },
+  "booking": {
+    "continue_random_seats": "Continue with Random Seats",
+    "total_tickets": "Total Tickets",
+    "total_amount": "Total Amount"
   }
 }

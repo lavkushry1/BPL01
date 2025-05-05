@@ -1,3 +1,5 @@
+import { ErrorCode } from './errorCodes';
+
 /**
  * Standard API Error class for consistent error handling
  */
@@ -17,7 +19,7 @@ export class ApiError extends Error {
   constructor(
     statusCode: number,
     message: string,
-    code: string = 'UNKNOWN_ERROR',
+    code: string = ErrorCode.INTERNAL_ERROR,
     details?: any
   ) {
     super(message);
@@ -33,49 +35,49 @@ export class ApiError extends Error {
   /**
    * Create a 400 Bad Request error
    */
-  static badRequest(message: string, code: string = 'BAD_REQUEST', details?: any): ApiError {
+  static badRequest(message: string, code: string = ErrorCode.INVALID_INPUT, details?: any): ApiError {
     return new ApiError(400, message, code, details);
   }
 
   /**
    * Create a 401 Unauthorized error
    */
-  static unauthorized(message: string = 'Unauthorized', code: string = 'UNAUTHORIZED', details?: any): ApiError {
+  static unauthorized(message: string = 'Unauthorized', code: string = ErrorCode.NOT_AUTHENTICATED, details?: any): ApiError {
     return new ApiError(401, message, code, details);
   }
 
   /**
    * Create a 403 Forbidden error
    */
-  static forbidden(message: string = 'Forbidden', code: string = 'FORBIDDEN', details?: any): ApiError {
+  static forbidden(message: string = 'Forbidden', code: string = ErrorCode.FORBIDDEN, details?: any): ApiError {
     return new ApiError(403, message, code, details);
   }
 
   /**
    * Create a 404 Not Found error
    */
-  static notFound(message: string = 'Resource not found', code: string = 'NOT_FOUND', details?: any): ApiError {
+  static notFound(message: string = 'Resource not found', code: string = ErrorCode.RESOURCE_NOT_FOUND, details?: any): ApiError {
     return new ApiError(404, message, code, details);
   }
 
   /**
    * Create a 409 Conflict error
    */
-  static conflict(message: string, code: string = 'CONFLICT', details?: any): ApiError {
+  static conflict(message: string, code: string = ErrorCode.DUPLICATE_RESOURCE, details?: any): ApiError {
     return new ApiError(409, message, code, details);
   }
 
   /**
    * Create a 422 Unprocessable Entity error
    */
-  static validationError(message: string = 'Validation error', code: string = 'VALIDATION_ERROR', details?: any): ApiError {
+  static validationError(message: string = 'Validation error', code: string = ErrorCode.VALIDATION_ERROR, details?: any): ApiError {
     return new ApiError(422, message, code, details);
   }
 
   /**
    * Create a 500 Internal Server Error
    */
-  static internal(message: string = 'Internal server error', code: string = 'INTERNAL_ERROR', details?: any): ApiError {
+  static internal(message: string = 'Internal server error', code: string = ErrorCode.INTERNAL_ERROR, details?: any): ApiError {
     return new ApiError(500, message, code, details);
   }
 }

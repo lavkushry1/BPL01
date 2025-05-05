@@ -1,0 +1,79 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'eventia-backend-express/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'eventia-backend-express/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      # Use postgres container for testing
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eventia_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './eventia-backend-express/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ./eventia-backend-express
+        run: npm ci
+      
+      - name: Generate Prisma client
+        working-directory: ./eventia-backend-express
+        run: npx prisma generate
+      
+      - name: Run migrations
+        working-directory: ./eventia-backend-express
+        run: |
+          cp .env.example .env.test
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eventia_test
+          NODE_ENV: test
+      
+      - name: Run tests
+        working-directory: ./eventia-backend-express
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/eventia_test
+          NODE_ENV: test
+          JWT_SECRET: test-jwt-secret
+          JWT_EXPIRES_IN: 1h
+      
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-coverage
+          path: ./eventia-backend-express/coverage
+      
+      - name: Report coverage
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./eventia-backend-express/coverage
+          flags: backend-tests 

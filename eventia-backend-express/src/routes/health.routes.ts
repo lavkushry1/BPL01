@@ -115,7 +115,7 @@ router.get('/', async (req, res) => {
     
     if (isHealthy) {
       // Return 200 if everything is OK
-      ApiResponse.success(res, healthData, 'API is healthy');
+      ApiResponse.success(res, 200, 'API is healthy', healthData);
     } else {
       // Return 503 if any dependency is not healthy
       res.status(503).json({

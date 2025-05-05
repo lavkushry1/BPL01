@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import { Server } from 'http';
 import { SeatStatus } from '../models/seat';
 import { logger } from '../utils/logger';
+import config from '../config';
 
 /**
  * WebSocket service for real-time notifications and updates
@@ -21,7 +22,7 @@ export class WebsocketService {
     try {
       this.io = new SocketServer(server, {
         cors: {
-          origin: process.env.CORS_ORIGIN || '*',
+          origin: config.frontendUrl,
           methods: ['GET', 'POST'],
           credentials: true
         },
@@ -112,8 +113,8 @@ export class WebsocketService {
    * @param eventId Optional event ID to specify which event room to notify
    */
   static notifySeatStatusChange(
-    seatIds: string[], 
-    status: SeatStatus,
+    seatIds: string[],
+    status: string,
     eventId?: string
   ): void {
     if (!this.io || seatIds.length === 0) return;
@@ -173,9 +174,9 @@ export class WebsocketService {
    * @param lockedByUserId Optional user ID who locked the seats
    */
   static broadcastSeatUpdate(
-    eventId: string, 
-    seatIds: string[], 
-    status: SeatStatus,
+    eventId: string,
+    seatIds: string[],
+    status: string,
     lockedByUserId?: string
   ): void {
     if (!this.io || seatIds.length === 0) return;
@@ -383,4 +384,18 @@ export class WebsocketService {
       logger.error('Error shutting down WebSocket server:', error);
     }
   }
+
+  /**
+   * Emit seat status change for a single seat
+   * @param eventId Event ID
+   * @param seatId Seat ID that was updated
+   * @param status New seat status
+   */
+  static emitSeatStatusChange = (
+    eventId: string,
+    seatId: string,
+    status: string
+  ): void => {
+    WebsocketService.broadcastSeatUpdate(eventId, [seatId], status as SeatStatus);
+  };
 }

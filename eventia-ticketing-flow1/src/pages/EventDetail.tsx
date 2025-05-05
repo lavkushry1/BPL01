@@ -26,12 +26,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { iplMatches } from '@/data/iplData';
-import { events as mockEvents, Event as EventData } from '@/data/eventsData';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import SeatMap from '@/components/booking/SeatMap';
-import { Calendar, Clock, MapPin, Tag, ArrowLeft, ShoppingCart, Eye, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Tag, ArrowLeft, ShoppingCart, Eye, Users, Loader2Icon, MinusIcon, PlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +47,7 @@ import { TicketSelection } from '../components/events/TicketSelection';
 import { useCart } from '../hooks/useCart';
 import { EventImageGallery } from '@/components/events/EventImageGallery';
 import { SimilarEvents } from '@/components/events/SimilarEvents';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 // Import API services
 import eventApi from '@/services/api/eventApi';
@@ -129,247 +128,232 @@ interface CartItem {
 
 const EventDetail = () => {
   const { t } = useTranslation();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  
+
   // State
   const [event, setEvent] = useState<DisplayEvent | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<SelectedTicket[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<DisplaySeat[]>([]);
-  const [seatMap, setSeatMap] = useState<any | null>(null);
+  const [seatMap, setSeatMap] = useState<any>(null);
   const [hasSeating, setHasSeating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0); // To force refresh seat map
   const [showSeatMap, setShowSeatMap] = useState(false);
   const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('details');
 
   // Fetch event data
   useEffect(() => {
     const fetchEvent = async () => {
-      setLoading(true);
+      if (!id) {
+        setError('Event ID is missing');
+        setLoading(false);
+        return;
+      }
+
       try {
-        if (!id) {
-          setError("Event ID is missing");
+        setLoading(true);
+        console.log(`Fetching event with ID: ${id}`);
+        const eventData = await eventApi.getEvent(id);
+        console.log('Event data received:', eventData);
+
+        if (!eventData) {
+          setError('Event not found');
           setLoading(false);
           return;
         }
 
-        try {
-          // Try to fetch from API
-          const response = await eventApi.getEvent(id);
-          
-          // Map API response to display format
-          const formattedEvent: DisplayEvent = {
-            id: response.id,
-            title: response.title,
-            description: response.description,
-            date: response.start_date ? format(new Date(response.start_date), 'yyyy-MM-dd') : '',
-            time: response.start_date ? format(new Date(response.start_date), 'HH:mm') : '',
-            venue: response.location,
-            image: response.images?.find((img: any) => img.is_featured)?.url || response.images?.[0]?.url,
-            posterImage: response.poster_image,
-            images: response.images?.map((img: any) => img.url) || [],
-            category: response.category,
-            ticketTypes: response.ticket_types.map((tt: any) => ({
-              id: tt.id,
-              name: tt.name,
-              price: tt.price,
-              description: tt.description,
-              availableQuantity: tt.available,
-              maxPerOrder: Math.min(tt.available, 10)
-            })),
-            venueInfo: {
-              name: response.location,
-              address: response.location
-            },
-            schedule: response.schedule?.map((s: any) => ({
-              time: s.time,
-              title: s.title,
-              description: s.description
-            })),
-            organizer: {
-              name: response.organizer?.name || 'Eventia Events',
-              description: response.organizer?.description || 'Premier event management company for all your entertainment needs',
-              logo: response.organizer?.logo || 'https://placehold.co/100x100',
-              website: response.organizer?.website || 'https://eventia.example.com'
-            }
-          };
-          
-          setEvent(formattedEvent);
-        } catch (apiError) {
-          console.warn('API fetch failed, using fallback data');
-          fallbackToMockData();
+        // Format data for display
+        const formattedEvent: DisplayEvent = {
+          id: eventData.id,
+          title: eventData.title,
+          description: eventData.description || '',
+          date: eventData.date || format(new Date(eventData.start_date), 'EEE, MMM d, yyyy'),
+          time: eventData.time || format(new Date(eventData.start_date), 'h:mm a'),
+          venue: eventData.venue || eventData.location,
+          image: eventData.images && eventData.images.length > 0
+            ? eventData.images[0].url
+            : eventData.poster_image,
+          posterImage: eventData.poster_image || (eventData.images && eventData.images.length > 0
+            ? eventData.images[0].url
+            : undefined),
+          images: eventData.images
+            ? eventData.images.map((img: any) => img.url)
+            : undefined,
+          category: eventData.category,
+          ticketTypes: (eventData.ticket_types || eventData.ticketTypes || []).map((tt: any) => ({
+            id: tt.id || `ticket-${Math.random().toString(36).substr(2, 9)}`,
+            name: tt.name || tt.category,
+            price: tt.price,
+            description: tt.description || '',
+            availableQuantity: tt.available || tt.quantity,
+            maxPerOrder: 10
+          })),
+          venueInfo: {
+            name: eventData.venue || eventData.location,
+            address: eventData.venue || eventData.location,
+            facilities: ['Parking', 'Food & Beverages', 'Wheelchair Access'],
+            rules: ['No outside food and beverages', 'No smoking', 'Children below 5 years not allowed'],
+          },
+          schedule: eventData.schedule || [
+            { time: '19:00', title: 'Doors Open' },
+            { time: '19:30', title: 'Event Starts' },
+            { time: '22:00', title: 'Event Ends' }
+          ],
+          organizer: eventData.organizer || {
+            name: 'Eventia',
+            description: 'Premier event organizers',
+            logo: '/logo.png',
+            website: 'https://eventia.example.com'
+          }
+        };
+
+        setEvent(formattedEvent);
+
+        // Check if event has seat map data
+        if (eventData.seatMap) {
+          console.log('Event has seat map data:', eventData.seatMap);
+          setSeatMap(eventData.seatMap);
+          setHasSeating(true);
+        } else if (eventData.seat_map_id) {
+          // Fetch seat map if not included in event data but ID is available
+          fetchSeatMap(eventData.seat_map_id);
+        } else {
+          // No seat map available
+          setHasSeating(false);
         }
-      } catch (error) {
-        console.error('Error fetching event:', error);
-        toast({
-          title: "Error loading event",
-          description: "Failed to load event details. Please try again.",
-          variant: "destructive"
-        });
-        
-        // Fallback to mock data if API fails
-        fallbackToMockData();
+
+        setError(null);
+      } catch (err: any) {
+        console.error('Error fetching event:', err);
+        setError(err?.message || 'Failed to load event details');
       } finally {
         setLoading(false);
       }
     };
-    
+
     const fetchSeatMap = async (seatMapId: string) => {
       try {
         const response = await seatMapApi.getSeatMapById(seatMapId);
-        setSeatMap(response.data.data);
+        if (response.data && response.data.data) {
+          setSeatMap(response.data.data);
+          setHasSeating(true);
+        } else {
+          setHasSeating(false);
+          console.warn('Seat map data not found');
+        }
       } catch (error) {
         console.error('Error fetching seat map:', error);
         setHasSeating(false); // Disable seating if fetch fails
         toast({
           title: "Seat Map Unavailable",
-          description: "Seat selection is not available at this time. Please continue with regular tickets.",
+          description: "Unable to load seat map. Please try again later.",
           variant: "destructive"
         });
       }
     };
-    
-    // Fallback to mock data if API fails
-    const fallbackToMockData = () => {
-      if (!id) return;
-      
-      // Try to find in mock data
-      const mockEvent = mockEvents.find(e => e.id === id);
-      const foundMatch = iplMatches.find(m => m.id === id);
-      
-      if (mockEvent) {
-        const displayEvent: DisplayEvent = {
-          id: mockEvent.id,
-          title: mockEvent.title,
-          description: mockEvent.description || '',
-          date: mockEvent.date,
-          time: mockEvent.time,
-          venue: mockEvent.venue,
-          image: mockEvent.image,
-          posterImage: mockEvent.posterImage || mockEvent.image,
-          images: mockEvent.image ? [mockEvent.image] : [],
-          category: mockEvent.category,
-          ticketTypes: (mockEvent.ticketTypes || []).map((tt: any) => ({
-            id: tt.id || tt.category,
-            name: tt.name || tt.category,
-            price: tt.price,
-            description: tt.description || '',
-            availableQuantity: tt.available || 100,
-            maxPerOrder: 10
-          })),
-          venueInfo: {
-            name: mockEvent.venue,
-            address: mockEvent.venue,
-            facilities: ['Parking', 'Food Court', 'Wheelchair Access'],
-            rules: ['No outside food', 'No photography', 'No re-entry without stamp']
-          },
-          schedule: [],
-          organizer: {
-            name: 'Eventia Events',
-            description: 'Premier event management company for all your entertainment needs',
-            logo: 'https://placehold.co/100x100',
-            website: 'https://eventia.example.com'
-          }
-        };
-        
-        setEvent(displayEvent);
-      } else if (foundMatch) {
-        const displayEvent: DisplayEvent = {
-          id: foundMatch.id,
-          title: foundMatch.title,
-          description: foundMatch.description || "Exciting IPL match",
-          date: foundMatch.date,
-          time: foundMatch.time || "19:30",
-          venue: foundMatch.venue,
-          image: foundMatch.image,
-          posterImage: foundMatch.image,
-          images: foundMatch.image ? [foundMatch.image] : [],
-          category: 'IPL',
-          ticketTypes: (foundMatch.ticketTypes || []).map((type: any) => ({
-            id: type.category || 'Standard',
-            name: type.category || 'Standard',
-            price: type.price || 500,
-            availableQuantity: type.available || 100,
-            maxPerOrder: 10
-          })),
-          venueInfo: {
-            name: foundMatch.venue,
-            address: foundMatch.venue || 'Stadium',
-            facilities: ['Parking', 'Food Court', 'Fan Zone'],
-            rules: ['No outside food', 'No photography without permission', 'No re-entry']
-          },
-          organizer: {
-            name: 'BCCI',
-            description: 'Board of Control for Cricket in India',
-            logo: 'https://placehold.co/100x100',
-            website: 'https://www.iplt20.com'
-          }
-        };
-        
-        setEvent(displayEvent);
-      } else {
-        setError("Event not found");
-      }
-    };
 
+    // Initialize seat selection socket connection if available
+    if (id && websocketService.isAvailable) {
+      try {
+        console.log('Connecting to seat selection socket');
+        websocketService.connect(`seat-selection-${id}`);
+        websocketService.on('seat-status-change', handleSeatStatusChange);
+      } catch (error) {
+        console.error('Error connecting to websocket:', error);
+      }
+    }
+
+    // Fetch event data and related events
     fetchEvent();
-    
+    fetchAllEvents();
+
     // Cleanup function
     return () => {
-      if (websocketService) {
-        websocketService.off('seat-status-changed', handleSeatStatusChange);
+      if (websocketService.isAvailable) {
         websocketService.disconnect();
+        websocketService.off('seat-status-change', handleSeatStatusChange);
       }
     };
   }, [id]);
 
-  // Handle real-time seat status updates
+  // Handle seat status changes from websocket
   const handleSeatStatusChange = (data: any) => {
     if (!seatMap) return;
-    
-    // Update seat map with new statuses
-    const updatedSeatMap = { ...seatMap };
-    
-    // Update sections and seats with new status
-    updatedSeatMap.sections = updatedSeatMap.sections.map((section: any) => {
-      section.rows = section.rows.map((row: any) => {
-        row.seats = row.seats.map((seat: any) => {
-          if (data.seatIds.includes(seat.id)) {
-            return { ...seat, status: data.status };
-          }
-          return seat;
+
+    console.log('Seat status changed:', data);
+
+    // Update local seat map state
+    setSeatMap(prevSeatMap => {
+      if (!prevSeatMap) return null;
+
+      const updatedSections = prevSeatMap.sections.map((section: any) => {
+        if (section.id !== data.section_id) return section;
+
+        const updatedRows = section.rows.map((row: any) => {
+          const updatedSeats = row.seats.map((seat: any) => {
+            if (seat.id === data.seat_id) {
+              return { ...seat, status: data.status };
+            }
+            return seat;
+          });
+
+          return { ...row, seats: updatedSeats };
         });
-        return row;
+
+        return { ...section, rows: updatedRows };
       });
-      return section;
+
+      return { ...prevSeatMap, sections: updatedSections };
     });
-    
-    // Update selected seats if any of them have changed status
-    const updatedSelectedSeats = selectedSeats.filter(seat => {
-      const seatIdChanged = data.seatIds.includes(seat.id);
-      if (seatIdChanged && data.status !== 'selected') {
-        // If seat is no longer available, remove from selection
-        toast({
-          title: "Seat no longer available",
-          description: `Seat ${seat.row}${seat.number} has been ${data.status} by someone else.`,
-          variant: "destructive"
-        });
-        return false;
-      }
-      return true;
-    });
-    
-    if (updatedSelectedSeats.length !== selectedSeats.length) {
-      setSelectedSeats(updatedSelectedSeats);
+
+    // Remove selected seat if it was booked by someone else
+    if (data.status === 'booked' || data.status === 'reserved') {
+      setSelectedSeats(prevSelectedSeats =>
+        prevSelectedSeats.filter(seat => seat.id !== data.seat_id)
+      );
     }
-    
-    setSeatMap(updatedSeatMap);
-    // Force refresh the seat map component
-    setRefreshKey(prev => prev + 1);
+  };
+
+  // Handle seat selection in seat map
+  const toggleSeatSelection = (seatId: string, sectionId: string, rowId: string, seat: any) => {
+    // Don't allow selection of unavailable seats
+    if (seat.status !== 'available' && !selectedSeats.some(s => s.id === seatId)) {
+      return;
+    }
+
+    // Update selected seats
+    const isSelected = selectedSeats.some(s => s.id === seatId);
+
+    if (isSelected) {
+      // Deselect the seat
+      setSelectedSeats(prevSelectedSeats =>
+        prevSelectedSeats.filter(seat => seat.id !== seatId)
+      );
+    } else {
+      // Select the seat
+      const seatSection = seatMap.sections.find((s: any) => s.id === sectionId);
+      const seatRow = seatSection?.rows.find((r: any) => r.id === rowId);
+      const seatInfo = seatRow?.seats.find((s: any) => s.id === seatId);
+
+      if (seatInfo) {
+        const newSelectedSeat: DisplaySeat = {
+          id: seatId,
+          section_id: sectionId,
+          row: seatRow.name,
+          number: seatInfo.name,
+          status: 'selected',
+          price: seatInfo.price,
+          category: seatInfo.category
+        };
+
+        setSelectedSeats(prevSelectedSeats => [...prevSelectedSeats, newSelectedSeat]);
+      }
+    }
   };
 
   const handleSeatSelect = (seats: DisplaySeat[]) => {
@@ -377,77 +361,100 @@ const EventDetail = () => {
   };
 
   const handleTicketChange = (ticketId: string, quantity: number) => {
-    setSelectedTickets(prev => {
-      const existing = prev.findIndex(t => t.id === ticketId);
-      
-      if (existing >= 0) {
-        if (quantity === 0) {
-          return prev.filter(t => t.id !== ticketId);
-        }
-        return prev.map(t => t.id === ticketId ? { ...t, quantity } : t);
-      } else if (quantity > 0) {
-        return [...prev, { id: ticketId, quantity }];
+    setSelectedTickets(prevSelectedTickets => {
+      // Find if ticket type already exists in selection
+      const existing = prevSelectedTickets.find(ticket => ticket.id === ticketId);
+
+      if (quantity === 0) {
+        // Remove ticket if quantity is 0
+        return prevSelectedTickets.filter(ticket => ticket.id !== ticketId);
+      } else if (existing) {
+        // Update quantity if ticket exists
+        return prevSelectedTickets.map(ticket =>
+          ticket.id === ticketId ? { ...ticket, quantity } : ticket
+        );
+      } else {
+        // Add new ticket selection
+        return [...prevSelectedTickets, { id: ticketId, quantity }];
       }
-      return prev;
     });
   };
 
   const calculateTotal = () => {
     if (!event) return 0;
-    
-    return selectedTickets.reduce((sum, selectedTicket) => {
+
+    // Calculate total from regular tickets
+    const ticketsTotal = selectedTickets.reduce((sum, selectedTicket) => {
       const ticketType = event.ticketTypes.find(tt => tt.id === selectedTicket.id);
-      if (ticketType) {
-        return sum + (ticketType.price * selectedTicket.quantity);
-      }
-      return sum;
+      return sum + (ticketType?.price || 0) * selectedTicket.quantity;
     }, 0);
+
+    // Add total from selected seats
+    const seatsTotal = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+
+    return ticketsTotal + seatsTotal;
   };
 
   const handleAddToCart = async () => {
-    if (!event || selectedTickets.length === 0) {
-      toast({
-        title: "No tickets selected",
-        description: "Please select at least one ticket to continue.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+    if (!event) return;
+
     setIsProcessing(true);
-    
+
     try {
-      // Add to cart context
-      addToCart({
+      // Prepare tickets for cart
+      const cartTickets: CartTicket[] = [];
+
+      // Add regular tickets
+      selectedTickets.forEach(selectedTicket => {
+        const ticketType = event.ticketTypes.find(tt => tt.id === selectedTicket.id);
+        if (ticketType) {
+          cartTickets.push({
+            id: ticketType.id,
+            name: ticketType.name,
+            price: ticketType.price,
+            quantity: selectedTicket.quantity
+          });
+        }
+      });
+
+      // Add seat tickets
+      selectedSeats.forEach(seat => {
+        cartTickets.push({
+          id: seat.id,
+          name: `${seat.category} - ${seat.row} ${seat.number}`,
+          price: seat.price,
+          quantity: 1
+        });
+      });
+
+      // Create cart item
+      const cartItem: CartItem = {
         eventId: event.id,
         eventTitle: event.title,
         eventDate: event.date,
         eventTime: event.time,
         eventImage: event.image,
-        tickets: selectedTickets.map(st => {
-          const ticketType = event.ticketTypes.find(tt => tt.id === st.id);
-          return {
-            id: st.id,
-            name: ticketType?.name || '',
-            price: ticketType?.price || 0,
-            quantity: st.quantity
-          };
-        }),
+        tickets: cartTickets,
         totalAmount: calculateTotal()
-      });
-      
+      };
+
+      // Add to cart
+      addToCart(cartItem);
+
+      // Show success message
       toast({
-        title: "Tickets added to cart",
-        description: "Proceeding to checkout...",
+        title: "Added to Cart",
+        description: "Event tickets have been added to your cart.",
+        variant: "default"
       });
-      
-      navigate('/checkout');
-    } catch (error: any) {
-      console.error('Error creating booking:', error);
-      
+
+      // Navigate to cart or stay on page
+      // navigate('/cart'); // Uncomment to navigate directly to cart
+    } catch (error) {
+      console.error('Error adding to cart:', error);
       toast({
-        title: "Booking Error",
-        description: error?.response?.data?.message || "Failed to create booking. Please try again.",
+        title: "Cart Error",
+        description: "There was a problem adding tickets to your cart. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -456,340 +463,485 @@ const EventDetail = () => {
   };
 
   const handleContinueToSeats = () => {
-    if (!showSeatMap) {
-      // Simulate loading seat map
-      setLoading(true);
-      setTimeout(() => {
-        setSeatMap(seatMap);
-        setShowSeatMap(true);
-        setLoading(false);
-      }, 1000);
+    if (!event || !hasSeating) return;
+    setShowSeatMap(true);
+    setActiveTab('seats');
+  };
+
+  // Fetch all events to show similar events
+  const fetchAllEvents = async () => {
+    try {
+      const events = await eventApi.getEvents({ limit: 10 });
+      setAllEvents(events || []);
+    } catch (error) {
+      console.error('Error fetching all events:', error);
     }
   };
 
-  // Add this to fetch all events for similar events recommendations
-  useEffect(() => {
-    const fetchAllEvents = async () => {
-      try {
-        // Try to fetch from API
-        const response = await eventApi.getEvents({
-          limit: 20 // Limit to a reasonable number for recommendations
-        });
-        
-        if (response) {
-          setAllEvents(response.map((event: any) => ({
-            id: event.id,
-            title: event.title,
-            image: event.images?.find((img: any) => img.is_featured)?.url || event.images?.[0]?.url,
-            date: event.start_date ? format(new Date(event.start_date), 'MMM d, yyyy') : '',
-            venue: event.location || event.venue || '',
-            category: event.category || ''
-          })));
-        }
-      } catch (error) {
-        console.error('Error fetching events for recommendations:', error);
-        // Fallback to mock data if API fails
-        setAllEvents(mockEvents.map(event => ({
-          id: event.id,
-          title: event.title,
-          image: event.image,
-          date: event.date,
-          venue: event.venue,
-          category: event.category
-        })));
-      }
-    };
-    
-    fetchAllEvents();
-  }, []);
+  // Get similar events based on category
+  const similarEvents = event && allEvents.length > 0
+    ? allEvents
+      .filter(e =>
+        e.id !== event.id &&
+        (e.category === event.category ||
+          (e.location === event.venue || e.venue === event.venue))
+      )
+      .slice(0, 3)
+    : [];
 
-  // Convert selectedTickets array to Record<string, number> for TicketSelector
-  const selectedTicketsRecord = selectedTickets.reduce((acc, ticket) => {
-    acc[ticket.id] = ticket.quantity;
-    return acc;
-  }, {} as Record<string, number>);
+  // Get ticket quantity for display
+  const getTicketQuantity = (ticketId: string): number => {
+    const ticket = selectedTickets.find(t => t.id === ticketId);
+    return ticket?.quantity || 0;
+  };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Navbar />
-        <main className="flex-grow flex items-center justify-center">
-          <LoadingSpinner />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // Check if there are any selected tickets or seats
+  const hasAnySelection = selectedTickets.some(t => t.quantity > 0) || selectedSeats.length > 0;
 
-  if (error || !event) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Navbar />
-        <main className="flex-grow flex items-center justify-center p-4">
-          <Card className="max-w-md w-full">
-            <CardHeader>
-              <CardTitle className="text-center text-red-600">Event Not Found</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="mb-4">
-                {error || "We couldn't find the event you're looking for."}
-              </p>
-              <Link to="/events">
-                <Button variant="default">Browse Events</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // Total selected tickets count
+  const totalSelectedTickets = selectedTickets.reduce((sum, ticket) => sum + ticket.quantity, 0) + selectedSeats.length;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      
-      <main className="flex-grow pt-16">
-        {/* Event Header */}
-        <div 
-          className="bg-cover bg-center py-16 text-white relative"
-          style={{
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(${event.posterImage || event.image})`,
-            backgroundSize: 'cover'
-          }}
-        >
-          <div className="container mx-auto px-4 relative z-10">
-            <Link to="/events" className="inline-flex items-center text-white/80 hover:text-white mb-6">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Events
-            </Link>
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">{event.title}</h1>
-            <div className="flex flex-wrap gap-4 text-white/90 mb-6">
-              <div className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2" />
-                <span>{event.date}</span>
-              </div>
-              <div className="flex items-center">
-                <Clock className="h-5 w-5 mr-2" />
-                <span>{event.time}</span>
-              </div>
-              <div className="flex items-center">
-                <MapPin className="h-5 w-5 mr-2" />
-                <span>{event.venue}</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link to={`/venue-preview/${event.id}`}>
-                <Button variant="outline" className="bg-white/10 hover:bg-white/20 border-white/30 text-white">
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview Venue in AR
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-        
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Event Details */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Event images gallery */}
-              <EventImageGallery 
-                images={(event.images && event.images.length > 0) 
-                  ? event.images 
-                  : [event.image, event.posterImage].filter(Boolean) as string[]}
-                alt={event.title}
-                className="mb-6"
-              />
-              
-              {/* Event description */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-2xl font-bold mb-4">Description</h2>
-                <div className="prose max-w-none">
-                  {event.description.split('\n').map((paragraph, idx) => (
-                    <p key={idx} className="mb-4 text-gray-700">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </div>
 
-              <Accordion type="single" collapsible className="mb-8">
-                <AccordionItem value="venue-details">
-                  <AccordionTrigger>Venue Information</AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm text-gray-700 mb-2">
-                      The event will take place at <strong>{event.venue}</strong>.
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      Please arrive 30 minutes before the start time. Entry gates close 15 minutes after the event starts.
-                    </p>
-                    {/* Add venue map or location info here if available */}
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="faq">
-                  <AccordionTrigger>Frequently Asked Questions</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium">What is the refund policy?</h4>
-                        <p className="text-sm text-gray-700">Tickets are non-refundable once purchased, but can be transferred to another person.</p>
-                      </div>
-                      <div>
-                        <h4 className="font-medium">How will I receive my tickets?</h4>
-                        <p className="text-sm text-gray-700">You will receive an e-ticket via email after your payment is confirmed. You'll need to present this ticket (either printed or on your mobile device) at the venue.</p>
-                      </div>
-                      <div>
-                        <h4 className="font-medium">Is there parking available?</h4>
-                        <p className="text-sm text-gray-700">Limited parking is available at the venue on a first-come, first-served basis.</p>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+      <main className="container mx-auto px-4 py-8">
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : error ? (
+          <Alert variant="destructive" className="my-8">
+            <AlertTitle>Unable to load event</AlertTitle>
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+            <div className="mt-4 flex gap-4">
+              <Button variant="outline" onClick={() => navigate('/events')}>
+                Back to Events
+              </Button>
+              <Button onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
             </div>
-            
-            {/* Booking Section */}
-            <div>
-              <Card className="sticky top-24">
-                <CardHeader>
-                  <CardTitle>Book Tickets</CardTitle>
-                  <CardDescription>
-                    Select tickets or seats to continue
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {!showSeatMap ? (
-                    <>
-                      <TicketSelector
-                        ticketTypes={event.ticketTypes}
-                        selectedTickets={selectedTicketsRecord}
-                        onTicketChange={handleTicketChange}
-                      />
-                      
-                      {selectedTickets.length > 0 && (
-                        <div className="bg-gray-50 p-3 rounded text-sm">
-                          <div className="flex justify-between mb-2">
-                            <span>Selected Tickets:</span>
-                            <span>{selectedTickets.reduce((sum, ticket) => sum + ticket.quantity, 0)}</span>
-                          </div>
-                          {selectedTickets.map((ticket) => (
-                            <div key={ticket.id} className="flex justify-between items-center pb-4 border-b border-gray-100">
-                              <div>
-                                <h4 className="font-medium">{ticket.id}</h4>
-                                <p className="text-sm text-gray-600">
-                                  ₹{(event.ticketTypes.find(t => t.id === ticket.id)?.price || 0).toLocaleString('en-IN')}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {event.ticketTypes.find(t => t.id === ticket.id)?.availableQuantity} available
-                                </p>
+          </Alert>
+        ) : event ? (
+          <div className="flex flex-col">
+            {/* Back Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-start mb-4"
+              onClick={() => navigate('/events')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              {t('eventDetail.backToEvents')}
+            </Button>
+
+            {/* Event Header with Title, Date, Time, Venue */}
+            <EventHeader
+              title={event.title}
+              date={event.date}
+              time={event.time}
+              venue={event.venue}
+              category={event.category || ''}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+              {/* Main Content Area - 2/3 width on desktop */}
+              <div className="lg:col-span-2 space-y-8">
+                {/* Event Image Gallery */}
+                <EventImageGallery
+                  mainImage={event.image || event.posterImage || ''}
+                  images={event.images || []}
+                />
+
+                {/* Tabs for Details/Tickets/Seats */}
+                <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="details" className="flex-1">{t('eventDetail.details')}</TabsTrigger>
+                    <TabsTrigger value="tickets" className="flex-1">{t('eventDetail.tickets')}</TabsTrigger>
+                    {hasSeating && (
+                      <TabsTrigger value="seats" className="flex-1">{t('eventDetail.seats')}</TabsTrigger>
+                    )}
+                  </TabsList>
+
+                  {/* Details Tab */}
+                  <TabsContent value="details" className="mt-6">
+                    <div className="space-y-8">
+                      {/* Event Description */}
+                      <EventDescription description={event.description} />
+
+                      {/* Event Schedule */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-xl">{t('eventDetail.schedule')}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {event.schedule?.map((item, i) => (
+                              <div key={`schedule-${i}`} className="flex items-start">
+                                <div className="bg-primary/10 text-primary rounded p-2 font-medium">
+                                  {item.time}
+                                </div>
+                                <div className="ml-4">
+                                  <h4 className="font-medium">{item.title}</h4>
+                                  {item.description && (
+                                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const current = ticket.quantity;
-                                    if (current > 0) {
-                                      handleTicketChange(ticket.id, current - 1);
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Venue Information */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-xl">{t('eventDetail.venueInfo')}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div>
+                            <h4 className="font-medium mb-1">{event.venueInfo.name}</h4>
+                            <p className="text-muted-foreground">{event.venueInfo.address}</p>
+                          </div>
+
+                          <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem value="facilities">
+                              <AccordionTrigger>{t('eventDetail.facilities')}</AccordionTrigger>
+                              <AccordionContent>
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {event.venueInfo.facilities?.map((facility, i) => (
+                                    <li key={`facility-${i}`}>{facility}</li>
+                                  ))}
+                                </ul>
+                              </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="rules">
+                              <AccordionTrigger>{t('eventDetail.rules')}</AccordionTrigger>
+                              <AccordionContent>
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {event.venueInfo.rules?.map((rule, i) => (
+                                    <li key={`rule-${i}`}>{rule}</li>
+                                  ))}
+                                </ul>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        </CardContent>
+                      </Card>
+
+                      {/* Organizer Information */}
+                      {event.organizer && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-xl">{t('eventDetail.organizer')}</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            <h4 className="font-medium">{event.organizer.name}</h4>
+                            {event.organizer.description && (
+                              <p className="text-muted-foreground">{event.organizer.description}</p>
+                            )}
+                            {event.organizer.website && (
+                              <a
+                                href={event.organizer.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline inline-flex items-center"
+                              >
+                                {t('eventDetail.visitWebsite')}
+                              </a>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  {/* Tickets Tab */}
+                  <TabsContent value="tickets" className="mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-xl">{t('eventDetail.selectTickets')}</CardTitle>
+                        <CardDescription>
+                          {t('eventDetail.ticketsDescription')}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {event.ticketTypes.map(ticket => (
+                            <div
+                              key={ticket.id}
+                              className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-lg"
+                            >
+                              <div className="mb-2 sm:mb-0">
+                                <h4 className="font-medium">{ticket.name}</h4>
+                                {ticket.description && (
+                                  <p className="text-sm text-muted-foreground">{ticket.description}</p>
+                                )}
+                                <div className="mt-1 text-sm">
+                                  <span className="text-green-600 font-medium">
+                                    {ticket.availableQuantity} {t('eventDetail.available')}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
+                                <div className="text-right">
+                                  <span className="text-2xl font-bold">₹{ticket.price}</span>
+                                </div>
+
+                                <div className="flex items-center">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={getTicketQuantity(ticket.id) === 0}
+                                    onClick={() => handleTicketChange(
+                                      ticket.id,
+                                      Math.max(0, getTicketQuantity(ticket.id) - 1)
+                                    )}
+                                  >
+                                    <MinusIcon className="h-4 w-4" />
+                                  </Button>
+
+                                  <span className="w-10 text-center">
+                                    {getTicketQuantity(ticket.id)}
+                                  </span>
+
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    disabled={
+                                      getTicketQuantity(ticket.id) >= ticket.availableQuantity ||
+                                      getTicketQuantity(ticket.id) >= (ticket.maxPerOrder || 10)
                                     }
-                                  }}
-                                  disabled={ticket.quantity === 0}
-                                >
-                                  -
-                                </Button>
-                                <span className="w-8 text-center">
-                                  {ticket.quantity}
-                                </span>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    const current = ticket.quantity;
-                                    const maxAvailable = event.ticketTypes.find(t => t.id === ticket.id)?.availableQuantity || 0;
-                                    if (current < maxAvailable) {
-                                      handleTicketChange(ticket.id, current + 1);
-                                    }
-                                  }}
-                                  disabled={
-                                    ticket.quantity >= (event.ticketTypes.find(t => t.id === ticket.id)?.availableQuantity || 0)
-                                  }
-                                >
-                                  +
-                                </Button>
+                                    onClick={() => handleTicketChange(
+                                      ticket.id,
+                                      getTicketQuantity(ticket.id) + 1
+                                    )}
+                                  >
+                                    <PlusIcon className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="mb-6">
-                        <h3 className="text-lg font-semibold mb-2">Select Your Seats</h3>
-                        <p className="text-sm text-gray-600">
-                          Click on available seats to select them. Selected seats will be highlighted.
-                        </p>
-                      </div>
-                      
-                      <div className="seat-map-container bg-gray-100 p-4 rounded">
-                        {/* Placeholder for seat map */}
-                        <div className="flex justify-center items-center p-8">
-                          <p className="text-gray-500">Seat map loading...</p>
+                      </CardContent>
+                      <CardFooter className="flex justify-between flex-col sm:flex-row gap-4">
+                        <div>
+                          {hasAnySelection && (
+                            <div className="text-lg font-semibold">
+                              Total: ₹{calculateTotal()}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </>
+
+                        <div className="flex gap-4">
+                          {hasSeating && (
+                            <Button onClick={handleContinueToSeats} disabled={!hasAnySelection}>
+                              {t('eventDetail.selectSeats')}
+                            </Button>
+                          )}
+
+                          <Button
+                            onClick={handleAddToCart}
+                            disabled={!hasAnySelection || isProcessing}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {isProcessing ? (
+                              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                            )}
+                            {t('eventDetail.addToCart')}
+                          </Button>
+                        </div>
+                      </CardFooter>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Seats Tab */}
+                  {hasSeating && (
+                    <TabsContent value="seats" className="mt-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-xl">{t('eventDetail.selectSeats')}</CardTitle>
+                          <CardDescription>
+                            {t('eventDetail.seatsDescription')}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {seatMap ? (
+                            <div className="space-y-6">
+                              <div className="flex gap-4 flex-wrap">
+                                <div className="flex items-center">
+                                  <div className="w-4 h-4 bg-green-100 border border-green-500 rounded-sm mr-2"></div>
+                                  <span className="text-sm">Available</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="w-4 h-4 bg-primary border border-primary rounded-sm mr-2"></div>
+                                  <span className="text-sm">Selected</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <div className="w-4 h-4 bg-gray-300 border border-gray-400 rounded-sm mr-2"></div>
+                                  <span className="text-sm">Unavailable</span>
+                                </div>
+                              </div>
+
+                              <div className="max-w-full overflow-x-auto pb-4">
+                                <SeatMap
+                                  seatMap={seatMap}
+                                  selectedSeats={selectedSeats}
+                                  onSeatSelect={toggleSeatSelection}
+                                />
+                              </div>
+
+                              {selectedSeats.length > 0 && (
+                                <div className="mt-6 space-y-4">
+                                  <h3 className="font-medium">{t('eventDetail.selectedSeats')}</h3>
+                                  <div className="space-y-2">
+                                    {selectedSeats.map(seat => (
+                                      <div
+                                        key={seat.id}
+                                        className="flex justify-between items-center p-2 border rounded"
+                                      >
+                                        <span>
+                                          {seat.category} - {seat.row} {seat.number}
+                                        </span>
+                                        <div className="flex items-center gap-4">
+                                          <span className="font-medium">₹{seat.price}</span>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                              setSelectedSeats(prevSeats =>
+                                                prevSeats.filter(s => s.id !== seat.id)
+                                              );
+                                            }}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <LoadingSpinner size="md" />
+                              <p className="mt-4 text-muted-foreground">Loading seat map...</p>
+                            </div>
+                          )}
+                        </CardContent>
+                        <CardFooter className="flex justify-between flex-col sm:flex-row gap-4">
+                          <div>
+                            {hasAnySelection && (
+                              <div className="text-lg font-semibold">
+                                Total: ₹{calculateTotal()}
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            onClick={handleAddToCart}
+                            disabled={!hasAnySelection || isProcessing}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {isProcessing ? (
+                              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                            )}
+                            {t('eventDetail.addToCart')}
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </TabsContent>
                   )}
-                </CardContent>
-                <CardFooter className="flex flex-col">
-                  <div className="w-full border-t border-gray-200 pt-4 mb-4">
-                    <div className="flex justify-between mb-2">
-                      <span className="font-medium">Total Amount</span>
-                      <span className="font-bold">₹{calculateTotal().toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-                  <Button 
-                    className="w-full" 
-                    size="lg"
-                    onClick={showSeatMap ? handleAddToCart : handleContinueToSeats}
-                    disabled={
-                      isProcessing || 
-                      (selectedTickets.length === 0 && selectedSeats.length === 0)
-                    }
-                  >
-                    {isProcessing ? (
+                </Tabs>
+              </div>
+
+              {/* Sidebar - 1/3 width on desktop */}
+              <div className="space-y-6">
+                {/* Event Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-xl">{t('eventDetail.summary')}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <EventInfo
+                      icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
+                      label={t('eventDetail.dateAndTime')}
+                      value={`${event.date} at ${event.time}`}
+                    />
+
+                    <Separator />
+
+                    <EventInfo
+                      icon={<MapPin className="h-5 w-5 text-muted-foreground" />}
+                      label={t('eventDetail.venue')}
+                      value={event.venue}
+                    />
+
+                    {event.category && (
                       <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        {showSeatMap ? (
-                          <ShoppingCart className="mr-2 h-4 w-4" />
-                        ) : (
-                          <ShoppingCart className="mr-2 h-4 w-4" />
-                        )}
-                        {showSeatMap ? t('common.booknow', 'Book Now') : t('common.continue', 'Continue')}
+                        <Separator />
+                        <EventInfo
+                          icon={<Tag className="h-5 w-5 text-muted-foreground" />}
+                          label={t('eventDetail.category')}
+                          value={event.category}
+                        />
                       </>
                     )}
-                  </Button>
-                </CardFooter>
-              </Card>
+
+                    <Separator />
+
+                    <EventInfo
+                      icon={<Users className="h-5 w-5 text-muted-foreground" />}
+                      label={t('eventDetail.tickets')}
+                      value={hasAnySelection
+                        ? `${totalSelectedTickets} selected`
+                        : t('eventDetail.noTicketsSelected')
+                      }
+                    />
+                  </CardContent>
+                  <CardFooter>
+                    {activeTab !== 'tickets' && (
+                      <Button
+                        className="w-full"
+                        onClick={() => setActiveTab('tickets')}
+                      >
+                        {hasAnySelection
+                          ? t('eventDetail.modifySelection')
+                          : t('eventDetail.selectTickets')
+                        }
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+
+                {/* Similar Events */}
+                <SimilarEvents
+                  events={similarEvents}
+                  title={t('eventDetail.similarEvents')}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-20">
+            <h3 className="text-xl font-semibold mb-4">{t('eventDetail.eventNotFound')}</h3>
+            <Button onClick={() => navigate('/events')}>
+              {t('eventDetail.browseEvents')}
+            </Button>
+          </div>
+        )}
       </main>
-      
-      <div className="container mx-auto px-4 pb-16">
-        {/* Similar Events section */}
-        <SimilarEvents 
-          currentEventId={event.id}
-          category={event.category || ''}
-          events={allEvents}
-          isLoading={loading}
-        />
-      </div>
-      
+
       <Footer />
     </div>
   );

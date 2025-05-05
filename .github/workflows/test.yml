@@ -1,0 +1,136 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: eventia_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    defaults:
+      run:
+        working-directory: ./eventia-backend-express
+        
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: eventia-backend-express/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Set up test environment
+        run: |
+          cp .env.example .env.test
+          echo "DATABASE_URL=postgresql://test:testpassword@localhost:5432/eventia_test" >> .env.test
+          echo "NODE_ENV=test" >> .env.test
+          echo "JWT_SECRET=test-secret-key" >> .env.test
+      
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://test:testpassword@localhost:5432/eventia_test
+      
+      - name: Run tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://test:testpassword@localhost:5432/eventia_test
+          JWT_SECRET: test-secret-key
+  
+  frontend-tests:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./eventia-ticketing-flow1
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: eventia-ticketing-flow1/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Set up environment
+        run: |
+          cp .env.example .env.test
+          echo "VITE_API_BASE_URL=http://localhost:4000/api/v1" >> .env.test
+          echo "VITE_NODE_ENV=test" >> .env.test
+      
+      - name: Run unit tests
+        run: npm run test:unit
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+          
+  coverage:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      
+      - name: Download backend coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-coverage
+          path: coverage/backend
+      
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-coverage
+          path: coverage/frontend
+      
+      - name: Process coverage reports
+        run: |
+          npm install -g nyc
+          nyc merge coverage
+          nyc report --reporter=text --reporter=lcov
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          fail_ci_if_error: false 

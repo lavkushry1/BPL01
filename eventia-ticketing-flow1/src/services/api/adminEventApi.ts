@@ -1,5 +1,6 @@
 import { defaultApiClient } from './apiUtils';
 import { Event } from './eventApi';
+import { CreateEventInput } from './eventApi';
 
 export interface EventInput {
   title: string;
@@ -83,41 +84,102 @@ export const fetchAdminEventById = async (id: string): Promise<AdminEventRespons
 };
 
 /**
- * Create a new event (admin only)
+ * Create a new event as an admin
  */
-export const createEvent = async (data: EventInput): Promise<AdminEventResponse> => {
+export const createEvent = async (eventData: CreateEventInput): Promise<Event> => {
   try {
-    const response = await defaultApiClient.post('/admin/events', data);
-    return response.data;
+    const response = await defaultApiClient.post('/admin/events', eventData);
+    const newEvent = response.data.data?.event;
+
+    // Add to local storage for the public events page to access
+    saveEventToLocalStorage(newEvent);
+
+    return newEvent;
   } catch (error) {
-    console.error('Error creating event:', error);
-    throw error;
+    console.error('Error creating event via admin API:', error);
+    throw error; // Propagate the error to be handled by the caller
   }
 };
 
 /**
- * Update an existing event (admin only)
+ * Update an existing event as an admin
  */
-export const updateEvent = async (id: string, data: Partial<EventInput>): Promise<AdminEventResponse> => {
+export const updateEvent = async (eventId: string, eventData: Partial<CreateEventInput>): Promise<Event> => {
   try {
-    const response = await defaultApiClient.put(`/admin/events/${id}`, data);
-    return response.data;
+    const response = await defaultApiClient.put(`/admin/events/${eventId}`, eventData);
+    const updatedEvent = response.data.data?.event;
+
+    // Update in local storage
+    updateEventInLocalStorage(updatedEvent);
+
+    return updatedEvent;
   } catch (error) {
-    console.error(`Error updating event ${id}:`, error);
-    throw error;
+    console.error(`Error updating event ${eventId} via admin API:`, error);
+    throw error; // Propagate the error to be handled by the caller
   }
 };
 
 /**
- * Delete an event (admin only)
+ * Delete an event as an admin
  */
-export const deleteEvent = async (id: string): Promise<AdminEventResponse> => {
+export const deleteEvent = async (eventId: string): Promise<{ success: boolean }> => {
   try {
-    const response = await defaultApiClient.delete(`/admin/events/${id}`);
-    return response.data;
+    await defaultApiClient.delete(`/admin/events/${eventId}`);
+
+    // Remove from local storage
+    removeEventFromLocalStorage(eventId);
+
+    return { success: true };
   } catch (error) {
-    console.error(`Error deleting event ${id}:`, error);
-    throw error;
+    console.error(`Error deleting event ${eventId} via admin API:`, error);
+    throw error; // Propagate the error to be handled by the caller
+  }
+};
+
+// Local storage helper functions
+const saveEventToLocalStorage = (event: Event) => {
+  try {
+    const storageKey = 'admin_created_events';
+    const existingEvents = localStorage.getItem(storageKey);
+    let events: Event[] = [];
+
+    if (existingEvents) {
+      events = JSON.parse(existingEvents);
+    }
+
+    // Check if event already exists and replace it, or add new
+    const eventIndex = events.findIndex(e => e.id === event.id);
+    if (eventIndex >= 0) {
+      events[eventIndex] = event;
+    } else {
+      events.push(event);
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(events));
+    console.log('Saved event to local storage:', event.title);
+  } catch (e) {
+    console.error('Error saving event to localStorage:', e);
+  }
+};
+
+const updateEventInLocalStorage = (event: Event) => {
+  // We can reuse the save function since it already handles updates
+  saveEventToLocalStorage(event);
+};
+
+const removeEventFromLocalStorage = (eventId: string) => {
+  try {
+    const storageKey = 'admin_created_events';
+    const existingEvents = localStorage.getItem(storageKey);
+
+    if (existingEvents) {
+      let events: Event[] = JSON.parse(existingEvents);
+      events = events.filter(e => e.id !== eventId);
+      localStorage.setItem(storageKey, JSON.stringify(events));
+      console.log(`Removed event ${eventId} from local storage`);
+    }
+  } catch (e) {
+    console.error('Error removing event from localStorage:', e);
   }
 };
 

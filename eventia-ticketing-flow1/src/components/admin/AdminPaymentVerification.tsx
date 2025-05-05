@@ -6,77 +6,24 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AlertCircle, CheckCircle2, XCircle, Clock, Search, ExternalLink, Filter, Download } from 'lucide-react';
+import { AlertCircle, CheckCircle2, XCircle, Clock, Search, ExternalLink, Filter, Download, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-// Mock data for payments
-const MOCK_PAYMENTS = [
-  {
-    id: 'pay_123456',
-    customer: {
-      name: 'Rahul Sharma',
-      email: 'rahul.s@example.com',
-      avatar: '/avatars/1.png'
-    },
-    event: 'IPL 2025: Mumbai vs Chennai',
-    amount: 4999,
-    status: 'pending',
-    utr: 'UTR123456789',
-    timestamp: '2025-05-09T10:15:30Z'
-  },
-  {
-    id: 'pay_123457',
-    customer: {
-      name: 'Priya Patel',
-      email: 'priya.p@example.com',
-      avatar: '/avatars/2.png'
-    },
-    event: 'Sunburn Goa 2025',
-    amount: 7999,
-    status: 'pending',
-    utr: 'UTR987654321',
-    timestamp: '2025-05-09T09:45:12Z'
-  },
-  {
-    id: 'pay_123458',
-    customer: {
-      name: 'Amit Kumar',
-      email: 'amit.k@example.com',
-      avatar: '/avatars/3.png'
-    },
-    event: 'Arijit Singh Live in Concert',
-    amount: 3500,
-    status: 'pending',
-    utr: 'UTR456789123',
-    timestamp: '2025-05-09T08:30:45Z'
-  },
-  {
-    id: 'pay_123459',
-    customer: {
-      name: 'Neha Gupta',
-      email: 'neha.g@example.com',
-      avatar: '/avatars/4.png'
-    },
-    event: 'Comedy Night with Vir Das',
-    amount: 1500,
-    status: 'verified',
-    utr: 'UTR789123456',
-    timestamp: '2025-05-08T19:20:10Z'
-  },
-  {
-    id: 'pay_123460',
-    customer: {
-      name: 'Vikram Singh',
-      email: 'vikram.s@example.com',
-      avatar: '/avatars/5.png'
-    },
-    event: 'India vs Australia Cricket Match',
-    amount: 6500,
-    status: 'rejected',
-    utr: 'UTR321654987',
-    timestamp: '2025-05-08T16:45:30Z'
-  }
-];
+interface Customer {
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+interface Payment {
+  id: string;
+  customer: Customer;
+  event: string;
+  amount: number;
+  status: 'pending' | 'verified' | 'rejected';
+  utr: string;
+  timestamp: string;
+}
 
 // Status badge component
 const StatusBadge = ({ status }: { status: string }) => {
@@ -134,15 +81,45 @@ const formatDate = (dateString: string) => {
 
 // Mobile-friendly payment verification component
 const AdminPaymentVerification: React.FC = () => {
-  const [payments, setPayments] = useState(MOCK_PAYMENTS);
-  const [filteredPayments, setFilteredPayments] = useState(MOCK_PAYMENTS);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch payments from API
+  useEffect(() => {
+    const fetchPayments = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await fetch('/api/admin/payments');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch payment data');
+        }
+        
+        const data = await response.json();
+        setPayments(data);
+      } catch (err) {
+        console.error('Error fetching payment data:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPayments();
+  }, []);
   
   // Filter payments based on tab and search query
   useEffect(() => {
+    if (payments.length === 0) return;
+    
     let result = payments;
     
     // Filter by status tab
@@ -166,11 +143,21 @@ const AdminPaymentVerification: React.FC = () => {
   }, [payments, activeTab, searchQuery]);
   
   // Handle payment verification
-  const handleVerifyPayment = (paymentId: string) => {
+  const handleVerifyPayment = async (paymentId: string) => {
     setIsVerifying(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      const response = await fetch(`/api/admin/payments/${paymentId}/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to verify payment');
+      }
+      
       // Update payment status in state
       setPayments(prevPayments => 
         prevPayments.map(payment => 
@@ -180,22 +167,39 @@ const AdminPaymentVerification: React.FC = () => {
         )
       );
       
-      setIsVerifying(false);
-      
       // Show success toast
       toast({
         title: "Payment verified successfully",
         description: `Payment ID: ${paymentId} has been verified`,
       });
-    }, 800);
+    } catch (err) {
+      console.error('Error verifying payment:', err);
+      toast({
+        title: "Verification failed",
+        description: err instanceof Error ? err.message : 'An error occurred during verification',
+        variant: "destructive"
+      });
+    } finally {
+      setIsVerifying(false);
+    }
   };
   
   // Handle payment rejection
-  const handleRejectPayment = (paymentId: string) => {
+  const handleRejectPayment = async (paymentId: string) => {
     setIsRejecting(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
+    try {
+      const response = await fetch(`/api/admin/payments/${paymentId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to reject payment');
+      }
+      
       // Update payment status in state
       setPayments(prevPayments => 
         prevPayments.map(payment => 
@@ -205,16 +209,63 @@ const AdminPaymentVerification: React.FC = () => {
         )
       );
       
-      setIsRejecting(false);
-      
       // Show error toast
       toast({
         title: "Payment rejected",
         description: `Payment ID: ${paymentId} has been rejected`,
         variant: "destructive"
       });
-    }, 800);
+    } catch (err) {
+      console.error('Error rejecting payment:', err);
+      toast({
+        title: "Rejection failed",
+        description: err instanceof Error ? err.message : 'An error occurred during rejection',
+        variant: "destructive"
+      });
+    } finally {
+      setIsRejecting(false);
+    }
   };
+  
+  // Handle export of payments data
+  const handleExportPayments = () => {
+    window.location.href = `/api/admin/payments/export?status=${activeTab}&search=${encodeURIComponent(searchQuery)}`;
+  };
+  
+  if (loading) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Payment Verification</CardTitle>
+          <CardDescription>Verify UPI payments and manage transactions</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Loading payment data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Payment Verification</CardTitle>
+          <CardDescription>Verify UPI payments and manage transactions</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="flex flex-col items-center">
+            <AlertCircle className="h-8 w-8 text-red-500 mb-4" />
+            <p className="text-red-500 font-medium mb-2">Error loading payment data</p>
+            <p className="text-muted-foreground">{error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card className="w-full">
@@ -229,7 +280,12 @@ const AdminPaymentVerification: React.FC = () => {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
-            <Button variant="outline" size="sm" className="hidden sm:flex">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="hidden sm:flex"
+              onClick={handleExportPayments}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -328,7 +384,12 @@ const AdminPaymentVerification: React.FC = () => {
                           </>
                         )}
                         {(payment.status === 'verified' || payment.status === 'rejected') && (
-                          <Button variant="outline" size="sm" className="h-8 gap-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 gap-1"
+                            onClick={() => window.location.href = `/admin/payments/${payment.id}`}
+                          >
                             <ExternalLink className="h-3.5 w-3.5" />
                             <span>Details</span>
                           </Button>
@@ -413,7 +474,12 @@ const AdminPaymentVerification: React.FC = () => {
                   
                   {(payment.status === 'verified' || payment.status === 'rejected') && (
                     <div className="pt-2">
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => window.location.href = `/admin/payments/${payment.id}`}
+                      >
                         <ExternalLink className="h-4 w-4 mr-1" />
                         View Details
                       </Button>
@@ -434,7 +500,12 @@ const AdminPaymentVerification: React.FC = () => {
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-          <Button variant="outline" size="sm" className="md:hidden">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="md:hidden"
+            onClick={handleExportPayments}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -444,4 +515,4 @@ const AdminPaymentVerification: React.FC = () => {
   );
 };
 
-export default AdminPaymentVerification; 
+export default AdminPaymentVerification;

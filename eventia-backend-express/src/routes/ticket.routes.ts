@@ -1,7 +1,8 @@
 import { Router } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { TicketController } from '../controllers/ticket.controller';
 import { auth } from '../middleware/auth';
-import { databaseMiddleware } from '../middleware/database';
+import { DatabaseRequest, databaseMiddleware } from '../middleware/database';
 import { validate } from '../middleware/validate';
 import { z } from 'zod';
 
@@ -204,7 +205,9 @@ router.post(
   '/tickets/generate',
   auth(),
   validate(generateTicketsSchema),
-  TicketController.generateTickets
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.generateTickets(req as DatabaseRequest, res, next);
+  }
 );
 
 /**
@@ -240,13 +243,19 @@ router.post(
  *       404:
  *         description: Ticket not found
  */
-router.get('/tickets/:id', TicketController.getTicketById);
+router.get(
+  '/tickets/:id', 
+  auth(),
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.getTicketById(req as DatabaseRequest, res, next);
+  }
+);
 
 /**
  * @swagger
- * /api/bookings/{bookingId}/tickets:
+ * /api/tickets/booking/{bookingId}:
  *   get:
- *     summary: Get tickets for a booking
+ *     summary: Get tickets by booking ID
  *     tags: [Tickets]
  *     security:
  *       - bearerAuth: []
@@ -280,9 +289,11 @@ router.get('/tickets/:id', TicketController.getTicketById);
  *         description: Booking not found
  */
 router.get(
-  '/bookings/:bookingId/tickets',
+  '/tickets/booking/:booking_id',
   auth(),
-  TicketController.getTicketsByBookingId
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.getTicketsByBookingId(req as DatabaseRequest, res, next);
+  }
 );
 
 /**
@@ -331,11 +342,13 @@ router.get(
  *       404:
  *         description: Ticket not found
  */
-router.patch(
+router.post(
   '/tickets/:id/cancel',
   auth(),
   validate(cancelTicketSchema),
-  TicketController.cancelTicket
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.cancelTicket(req as DatabaseRequest, res, next);
+  }
 );
 
 /**
@@ -395,10 +408,12 @@ router.patch(
  *         description: Ticket not found
  */
 router.post(
-  '/tickets/check-in',
-  auth('admin', 'staff'),
+  '/tickets/:id/checkin',
+  auth(),
   validate(checkInTicketSchema),
-  TicketController.checkInTicket
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.checkInTicket(req as DatabaseRequest, res, next);
+  }
 );
 
 /**
@@ -450,10 +465,12 @@ router.post(
  *       404:
  *         description: Ticket not found
  */
-router.get(
+router.post(
   '/tickets/:id/verify',
-  auth('admin', 'staff'),
-  TicketController.verifyTicket
+  auth(),
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.verifyTicket(req as DatabaseRequest, res, next);
+  }
 );
 
 /**
@@ -511,7 +528,9 @@ router.post(
   '/tickets/:id/resend',
   auth(),
   validate(resendTicketSchema),
-  TicketController.resendTicket
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.resendTicket(req as DatabaseRequest, res, next);
+  }
 );
 
 /**
@@ -541,7 +560,13 @@ router.post(
  *       500:
  *         description: Error generating PDF
  */
-router.get('/tickets/:id/pdf', TicketController.downloadTicketPdf);
+router.get(
+  '/tickets/:id/pdf',
+  auth(),
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.downloadTicketPdf(req as DatabaseRequest, res, next);
+  }
+);
 
 /**
  * @swagger
@@ -608,9 +633,11 @@ router.get('/tickets/:id/pdf', TicketController.downloadTicketPdf);
  *         description: Unauthorized - Admin access required
  */
 router.get(
-  '/events/:eventId/tickets',
-  auth('admin', 'organizer'),
-  TicketController.getEventTickets
+  '/events/:event_id/tickets',
+  auth(),
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.getEventTickets(req as DatabaseRequest, res, next);
+  }
 );
 
 /**
@@ -677,6 +704,12 @@ router.get(
  *       403:
  *         description: Unauthorized - Can only access own tickets
  */
-router.get('/users/:userId/tickets', auth(), TicketController.getUserTickets);
+router.get(
+  '/users/:userId/tickets',
+  auth(),
+  (req: Request, res: Response, next: NextFunction) => {
+    return TicketController.getUserTickets(req as DatabaseRequest, res, next);
+  }
+);
 
 export default router;

@@ -1,76 +1,87 @@
 /**
- * @service AdminAuthService
- * @description Service for handling admin authentication with the Express backend.
- * Provides methods for admin login, logout, and session management.
+ * @service AuthService
+ * @description Service for handling user authentication with the Express backend.
+ * Provides methods for user registration, login, logout, and session management.
  * 
  * @apiEndpoints
- * - POST /auth/login - Authenticate an admin user and get access token
- * - POST /auth/logout - End the current admin session
- * - GET /auth/refresh - Refresh the admin access token
+ * - POST /api/v1/auth/register - Register a new user
+ * - POST /api/v1/auth/login - Authenticate a user and get access token
+ * - POST /api/v1/auth/logout - End the current user session
+ * - GET /api/v1/auth/me - Get current user data
+ * - POST /api/v1/auth/refresh-token - Refresh the user access token
  */
-import axios from 'axios';
-import { API_URL, defaultApiClient } from './apiUtils';
+import { defaultApiClient } from './apiUtils';
 
 // Types
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin';
+  role: string; // Changed from 'admin' to string to support 'USER', 'ADMIN', etc.
+  verified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {
   user: User;
-  accessToken: string;
+  token?: string; // Access token - only returned in development
+  refreshToken?: string; // Only returned in development
   message?: string;
 }
 
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role?: string;
+}
+
 /**
- * Login an admin user with email and password
- * @param email Admin's email address
- * @param password Admin's password
- * @returns Promise with user data and access token
+ * Register a new user
+ * @param userData User registration data
+ * @returns Promise with registered user data
  */
-export const login = async (email: string, password: string): Promise<AuthResponse> => {
+export const register = async (userData: RegisterData): Promise<any> => {
   try {
-    // Mock login for testing with dummy admin credentials
-    if (email === 'admin@example.com' && password === 'password123') {
-      console.log('Using mock admin login for testing');
-      // Simulate API response delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return {
-        user: {
-          id: 'admin-0000',
-          email: 'admin@example.com',
-          name: 'Admin User',
-          role: 'admin'
-        },
-        accessToken: 'mock_jwt_token_for_admin',
-        message: 'Admin login successful (mock)'
-      };
-    }
-    
-    // Real API call
-    const response = await defaultApiClient.post('/auth/login', {
-      email,
-      password
-    });
-    
+    const response = await defaultApiClient.post('/auth/register', userData);
     return response.data;
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error('Registration error:', error);
     throw error;
   }
 };
 
 /**
- * Logout the current admin user
+ * Login a user with email and password
+ * @param email User's email address
+ * @param password User's password
+ * @returns Promise with user data
+ */
+export const login = async (email: string, password: string): Promise<AuthResponse> => {
+  try {
+    // Use the standardized API client with credentials
+    const response = await defaultApiClient.post('/auth/login', {
+      email,
+      password
+    }, { withCredentials: true });
+    
+    // Response will now contain user data but not tokens (they're in HttpOnly cookies)
+    return response.data.data;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Logout the current user
  * @returns Promise with logout status
  */
 export const logout = async (): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await defaultApiClient.post('/auth/logout');
+    // Call logout endpoint with credentials to clear cookies
+    const response = await defaultApiClient.post('/auth/logout', {}, { withCredentials: true });
     return response.data;
   } catch (error) {
     console.error('Logout error:', error);
@@ -79,23 +90,38 @@ export const logout = async (): Promise<{ success: boolean; message: string }> =
 };
 
 /**
- * Refresh the admin access token
- * @returns Promise with access token
+ * Refresh the user access token using the HttpOnly refresh token cookie
+ * @returns Promise with success status
  */
-export const refreshToken = async (): Promise<AuthResponse> => {
+export const refreshToken = async (): Promise<{ success: boolean }> => {
   try {
-    const response = await axios.get(`${API_URL}/auth/refresh`, {
-      withCredentials: true
-    });
-    return response.data;
+    // Call refresh endpoint with cookies
+    await defaultApiClient.post('/auth/refresh-token', {}, { withCredentials: true });
+    return { success: true };
   } catch (error) {
     console.error('Token refresh error:', error);
     throw error;
   }
 };
 
+/**
+ * Get current user data
+ * @returns Promise with current user data
+ */
+export const getCurrentUser = async (): Promise<User> => {
+  try {
+    const response = await defaultApiClient.get('/auth/me', { withCredentials: true });
+    return response.data.data;
+  } catch (error) {
+    console.error('Get current user error:', error);
+    throw error;
+  }
+};
+
 export default {
+  register,
   login,
   logout,
-  refreshToken
+  refreshToken,
+  getCurrentUser
 }; 

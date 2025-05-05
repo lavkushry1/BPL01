@@ -2,6 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import http from 'http';
 import prisma from '../db/prisma';
 import { ApiError } from '../utils/apiError';
+import { db } from '../db';
 
 /**
  * State Synchronization Service
@@ -72,18 +73,15 @@ export class StateSyncService {
 
     // Also record in database for persistence across service restarts
     try {
-      await prisma.seatLock.upsert({
-        where: { seatId },
-        create: {
-          seatId,
-          userId,
-          expiresAt
-        },
-        update: {
-          userId,
-          expiresAt
-        }
-      });
+      // Update the seats table directly
+      await db('seats')
+        .where({ id: seatId })
+        .update({
+          locked_by: userId,
+          lock_expires_at: expiresAt,
+          status: 'locked',
+          updated_at: new Date()
+        });
 
       // Notify all clients about this seat's status change
       this.notifySeatStatusChange(seatId, 'locked', userId);
@@ -112,9 +110,15 @@ export class StateSyncService {
 
     // Also remove from database
     try {
-      await prisma.seatLock.delete({
-        where: { seatId }
-      });
+      // Update the seat directly to release the lock
+      await db('seats')
+        .where({ id: seatId })
+        .update({
+          locked_by: null,
+          lock_expires_at: null,
+          status: 'available',
+          updated_at: new Date()
+        });
 
       // Notify all clients about this seat's status change
       this.notifySeatStatusChange(seatId, 'available');
@@ -145,30 +149,37 @@ export class StateSyncService {
 
     // If not in memory, check database
     try {
-      const lock = await prisma.seatLock.findUnique({
-        where: { seatId }
-      });
+      // Get seat lock information directly from seats table
+      const seat = await db('seats')
+        .where({ id: seatId })
+        .first('locked_by', 'lock_expires_at');
 
-      if (!lock) return null;
+      if (!seat || !seat.locked_by || !seat.lock_expires_at) {
+        return null;
+      }
 
       // If lock has expired, clean it up
-      if (lock.expiresAt <= new Date()) {
-        await prisma.seatLock.delete({
-          where: { seatId }
-        });
+      if (new Date(seat.lock_expires_at) <= new Date()) {
+        await db('seats')
+          .where({ id: seatId })
+          .update({
+            locked_by: null,
+            lock_expires_at: null,
+            status: 'available',
+            updated_at: new Date()
+          });
         return null;
       }
 
       // Cache this lock in memory
-      this.activeLocks.set(seatId, { 
-        userId: lock.userId, 
-        expiresAt: lock.expiresAt 
-      });
-      
-      return { 
-        userId: lock.userId, 
-        expiresAt: lock.expiresAt 
+      const lockData = { 
+        userId: seat.locked_by, 
+        expiresAt: new Date(seat.lock_expires_at)
       };
+      
+      this.activeLocks.set(seatId, lockData);
+      
+      return lockData;
     } catch (error) {
       console.error('Error checking seat lock:', error);
       return null;
@@ -208,67 +219,100 @@ export class StateSyncService {
   }
 
   /**
-   * Clean up expired locks automatically
+   * Start a background job to clean up expired locks
    */
   private static startLockCleanupJob(): void {
-    // Run cleanup every minute
+    // Run every minute
     setInterval(async () => {
-      const now = new Date();
-      
-      // Clean memory locks
-      for (const [seatId, lock] of this.activeLocks.entries()) {
-        if (lock.expiresAt <= now) {
-          this.activeLocks.delete(seatId);
-        }
-      }
-      
-      // Clean database locks
       try {
-        await prisma.seatLock.deleteMany({
-          where: {
-            expiresAt: {
-              lte: now
-            }
+        const now = new Date();
+        
+        // Clean up memory locks
+        for (const [seatId, lock] of this.activeLocks.entries()) {
+          if (lock.expiresAt <= now) {
+            this.activeLocks.delete(seatId);
           }
-        });
+        }
+        
+        // Clean up database locks
+        const expiredSeats = await db('seats')
+          .where('lock_expires_at', '<=', now)
+          .whereNotNull('locked_by');
+        
+        if (expiredSeats.length > 0) {
+          const seatIds = expiredSeats.map((seat: any) => seat.id);
+          
+          await db('seats')
+            .whereIn('id', seatIds)
+            .update({
+              locked_by: null,
+              lock_expires_at: null,
+              status: 'available',
+              updated_at: new Date()
+            });
+          
+          // Notify clients about released seats
+          for (const seatId of seatIds) {
+            this.notifySeatStatusChange(seatId, 'available');
+          }
+          
+          console.log(`Cleaned up ${seatIds.length} expired seat locks`);
+        }
       } catch (error) {
-        console.error('Error cleaning up expired locks:', error);
+        console.error('Error in lock cleanup job:', error);
       }
-    }, 60000); // Every minute
+    }, 60_000); // Run every minute
   }
 
   /**
-   * Bulk check seat availability with locking
+   * Bulk check seat availability
    * @param seatIds Array of seat IDs to check
-   * @returns Object with available and unavailable seats
+   * @returns Object with available and unavailable seat information
    */
   static async bulkCheckAvailability(seatIds: string[]): Promise<{
     availableSeats: string[],
     unavailableSeats: string[],
     lockedSeats: {seatId: string, userId: string, expiresAt: Date}[]
   }> {
-    const availableSeats: string[] = [];
-    const unavailableSeats: string[] = [];
-    const lockedSeats: {seatId: string, userId: string, expiresAt: Date}[] = [];
-
-    await Promise.all(seatIds.map(async (seatId) => {
-      const lock = await this.checkSeatLock(seatId);
-      if (!lock) {
-        availableSeats.push(seatId);
-      } else {
-        unavailableSeats.push(seatId);
-        lockedSeats.push({
-          seatId,
-          userId: lock.userId,
-          expiresAt: lock.expiresAt
-        });
-      }
-    }));
-
-    return {
-      availableSeats,
-      unavailableSeats,
-      lockedSeats
+    const now = new Date();
+    const result = {
+      availableSeats: [] as string[],
+      unavailableSeats: [] as string[],
+      lockedSeats: [] as {seatId: string, userId: string, expiresAt: Date}[]
     };
+    
+    try {
+      // Get all seats data
+      const seats = await db('seats')
+        .whereIn('id', seatIds)
+        .select('id', 'status', 'locked_by', 'lock_expires_at');
+      
+      for (const seat of seats) {
+        // Seat is available if:
+        // 1. Status is 'available'
+        // 2. Not locked, OR lock has expired
+        const isLocked = seat.locked_by && seat.lock_expires_at && new Date(seat.lock_expires_at) > now;
+        
+        if (seat.status === 'available' && !isLocked) {
+          result.availableSeats.push(seat.id);
+        } else if (isLocked) {
+          // Seat is locked by someone
+          result.lockedSeats.push({
+            seatId: seat.id,
+            userId: seat.locked_by,
+            expiresAt: new Date(seat.lock_expires_at)
+          });
+          result.unavailableSeats.push(seat.id);
+        } else {
+          // Seat is unavailable (booked or otherwise unavailable)
+          result.unavailableSeats.push(seat.id);
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error checking bulk seat availability:', error);
+      throw error;
+    }
   }
 } 

@@ -6,7 +6,7 @@ import { Hero } from '@/components/home/Hero';
 import FeaturedEvents from '@/components/home/FeaturedEvents';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard, MapPin, QrCode, Truck, Camera, Timer } from 'lucide-react';
+import { CreditCard, MapPin, QrCode, Truck, Camera, Timer, Search, Calendar, Tag, TicketIcon } from 'lucide-react';
 
 const Index = () => {
   const features = [
@@ -38,6 +38,42 @@ const Index = () => {
       
       <main className="flex-grow">
         <Hero />
+        
+        {/* IPL 2025 Banner */}
+        <section className="py-12 bg-gradient-to-r from-blue-700 to-indigo-800 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/ipl-bg.jpg')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
+          <div className="container mx-auto px-4 relative">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="text-center md:text-left">
+                <div className="inline-block px-3 py-1 bg-yellow-500 text-blue-900 rounded-full text-sm font-bold mb-4">
+                  NEW FOR 2025
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">IPL 2025 Tickets Now Available!</h2>
+                <p className="text-xl text-white/90 mb-6 max-w-lg">
+                  Book official tickets for all IPL matches in Mumbai, Delhi, Chennai, Bangalore, and more. Experience the thrill live!
+                </p>
+                <Link to="/ipl-tickets">
+                  <Button size="lg" className="bg-white text-blue-800 hover:bg-white/90 font-bold px-8">
+                    View IPL Tickets
+                  </Button>
+                </Link>
+              </div>
+              <div className="hidden md:block">
+                <div className="w-64 h-64 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center">
+                  <div className="w-56 h-56 bg-white/20 rounded-full flex items-center justify-center">
+                    <div className="w-48 h-48 bg-white/20 rounded-full flex items-center justify-center text-center p-4">
+                      <div>
+                        <div className="text-6xl font-bold">IPL</div>
+                        <div className="text-2xl font-semibold">2025</div>
+                        <div className="text-sm mt-2">BOOK NOW</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
         
         <section className="py-16 bg-gray-50">
           <div className="container mx-auto px-4">
@@ -143,6 +179,49 @@ const Index = () => {
                   Admin Login
                 </Button>
               </Link>
+            </div>
+          </div>
+        </section>
+        
+        {/* Search Feature Showcase */}
+        <section className="py-12 bg-gradient-to-r from-primary/10 to-secondary/10">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+              <div className="lg:w-1/2">
+                <h2 className="text-3xl font-bold mb-4">Find Your Perfect Event</h2>
+                <p className="text-muted-foreground mb-6">
+                  Our new advanced search helps you discover events that match your interests. 
+                  Filter by category, date, location, and price to find exactly what you're looking for.
+                </p>
+                <Link to="/search">
+                  <Button size="lg" className="mt-4">
+                    <Search className="mr-2 h-5 w-5" />
+                    Search Events
+                  </Button>
+                </Link>
+              </div>
+              <div className="lg:w-1/2">
+                <div className="bg-card rounded-xl shadow-lg p-6 border border-muted/20">
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="text-primary h-5 w-5" />
+                      <span className="font-medium">Browse by date</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="text-primary h-5 w-5" />
+                      <span className="font-medium">Find events near you</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Tag className="text-primary h-5 w-5" />
+                      <span className="font-medium">Filter by category</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <TicketIcon className="text-primary h-5 w-5" />
+                      <span className="font-medium">Set your price range</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

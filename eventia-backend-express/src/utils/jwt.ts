@@ -50,6 +50,12 @@ export const verifyToken = (token: string): Record<string, any> | null => {
   }
 
   try {
+    // Validate token format before verification
+    if (!token || typeof token !== 'string' || !token.match(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]*$/)) {
+      logger.debug(`Token verification failed: invalid token format`);
+      return null;
+    }
+
     // Use any to bypass typing issues
     const jwtVerify = jwt.verify as any;
     return jwtVerify(token, config.jwt.secret, {
@@ -57,7 +63,20 @@ export const verifyToken = (token: string): Record<string, any> | null => {
       issuer: 'eventia-api',
     });
   } catch (error) {
-    logger.debug(`Token verification failed: ${(error as Error).message}`);
+    const errorMessage = (error as Error).message;
+    logger.debug(`Token verification failed: ${errorMessage}`);
+    
+    // Log additional details for debugging
+    if (errorMessage.includes('jwt malformed')) {
+      try {
+        // Log first few characters of token for debugging
+        const tokenPreview = token.substring(0, 20) + '...';
+        logger.debug(`Malformed token starts with: ${tokenPreview}`);
+      } catch (e) {
+        logger.debug('Could not log token preview');
+      }
+    }
+    
     return null;
   }
 };

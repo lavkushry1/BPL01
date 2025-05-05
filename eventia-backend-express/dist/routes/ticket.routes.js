@@ -193,7 +193,9 @@ const cancelTicketSchema = zod_1.z.object({
  *       404:
  *         description: Booking not found
  */
-router.post('/tickets/generate', (0, auth_1.auth)(), (0, validate_1.validate)(generateTicketsSchema), ticket_controller_1.TicketController.generateTickets);
+router.post('/tickets/generate', (0, auth_1.auth)(), (0, validate_1.validate)(generateTicketsSchema), (req, res, next) => {
+    return ticket_controller_1.TicketController.generateTickets(req, res, next);
+});
 /**
  * @swagger
  * /api/tickets/{id}:
@@ -227,12 +229,14 @@ router.post('/tickets/generate', (0, auth_1.auth)(), (0, validate_1.validate)(ge
  *       404:
  *         description: Ticket not found
  */
-router.get('/tickets/:id', ticket_controller_1.TicketController.getTicketById);
+router.get('/tickets/:id', (0, auth_1.auth)(), (req, res, next) => {
+    return ticket_controller_1.TicketController.getTicketById(req, res, next);
+});
 /**
  * @swagger
- * /api/bookings/{bookingId}/tickets:
+ * /api/tickets/booking/{bookingId}:
  *   get:
- *     summary: Get tickets for a booking
+ *     summary: Get tickets by booking ID
  *     tags: [Tickets]
  *     security:
  *       - bearerAuth: []
@@ -265,7 +269,9 @@ router.get('/tickets/:id', ticket_controller_1.TicketController.getTicketById);
  *       404:
  *         description: Booking not found
  */
-router.get('/bookings/:bookingId/tickets', (0, auth_1.auth)(), ticket_controller_1.TicketController.getTicketsByBookingId);
+router.get('/tickets/booking/:booking_id', (0, auth_1.auth)(), (req, res, next) => {
+    return ticket_controller_1.TicketController.getTicketsByBookingId(req, res, next);
+});
 /**
  * @swagger
  * /api/tickets/{id}/cancel:
@@ -312,7 +318,9 @@ router.get('/bookings/:bookingId/tickets', (0, auth_1.auth)(), ticket_controller
  *       404:
  *         description: Ticket not found
  */
-router.patch('/tickets/:id/cancel', (0, auth_1.auth)(), (0, validate_1.validate)(cancelTicketSchema), ticket_controller_1.TicketController.cancelTicket);
+router.post('/tickets/:id/cancel', (0, auth_1.auth)(), (0, validate_1.validate)(cancelTicketSchema), (req, res, next) => {
+    return ticket_controller_1.TicketController.cancelTicket(req, res, next);
+});
 /**
  * @swagger
  * /api/tickets/check-in:
@@ -369,7 +377,9 @@ router.patch('/tickets/:id/cancel', (0, auth_1.auth)(), (0, validate_1.validate)
  *       404:
  *         description: Ticket not found
  */
-router.post('/tickets/check-in', (0, auth_1.auth)('admin', 'staff'), (0, validate_1.validate)(checkInTicketSchema), ticket_controller_1.TicketController.checkInTicket);
+router.post('/tickets/:id/checkin', (0, auth_1.auth)(), (0, validate_1.validate)(checkInTicketSchema), (req, res, next) => {
+    return ticket_controller_1.TicketController.checkInTicket(req, res, next);
+});
 /**
  * @swagger
  * /api/tickets/{id}/verify:
@@ -419,7 +429,9 @@ router.post('/tickets/check-in', (0, auth_1.auth)('admin', 'staff'), (0, validat
  *       404:
  *         description: Ticket not found
  */
-router.get('/tickets/:id/verify', (0, auth_1.auth)('admin', 'staff'), ticket_controller_1.TicketController.verifyTicket);
+router.post('/tickets/:id/verify', (0, auth_1.auth)(), (req, res, next) => {
+    return ticket_controller_1.TicketController.verifyTicket(req, res, next);
+});
 /**
  * @swagger
  * /api/tickets/{id}/resend:
@@ -471,7 +483,9 @@ router.get('/tickets/:id/verify', (0, auth_1.auth)('admin', 'staff'), ticket_con
  *       404:
  *         description: Ticket not found
  */
-router.post('/tickets/:id/resend', (0, auth_1.auth)(), (0, validate_1.validate)(resendTicketSchema), ticket_controller_1.TicketController.resendTicket);
+router.post('/tickets/:id/resend', (0, auth_1.auth)(), (0, validate_1.validate)(resendTicketSchema), (req, res, next) => {
+    return ticket_controller_1.TicketController.resendTicket(req, res, next);
+});
 /**
  * @swagger
  * /api/tickets/{id}/pdf:
@@ -499,7 +513,9 @@ router.post('/tickets/:id/resend', (0, auth_1.auth)(), (0, validate_1.validate)(
  *       500:
  *         description: Error generating PDF
  */
-router.get('/tickets/:id/pdf', ticket_controller_1.TicketController.downloadTicketPdf);
+router.get('/tickets/:id/pdf', (0, auth_1.auth)(), (req, res, next) => {
+    return ticket_controller_1.TicketController.downloadTicketPdf(req, res, next);
+});
 /**
  * @swagger
  * /api/events/{eventId}/tickets:
@@ -564,7 +580,9 @@ router.get('/tickets/:id/pdf', ticket_controller_1.TicketController.downloadTick
  *       403:
  *         description: Unauthorized - Admin access required
  */
-router.get('/events/:eventId/tickets', (0, auth_1.auth)('admin', 'organizer'), ticket_controller_1.TicketController.getEventTickets);
+router.get('/events/:event_id/tickets', (0, auth_1.auth)(), (req, res, next) => {
+    return ticket_controller_1.TicketController.getEventTickets(req, res, next);
+});
 /**
  * @swagger
  * /api/users/{userId}/tickets:
@@ -629,5 +647,7 @@ router.get('/events/:eventId/tickets', (0, auth_1.auth)('admin', 'organizer'), t
  *       403:
  *         description: Unauthorized - Can only access own tickets
  */
-router.get('/users/:userId/tickets', (0, auth_1.auth)(), ticket_controller_1.TicketController.getUserTickets);
+router.get('/users/:userId/tickets', (0, auth_1.auth)(), (req, res, next) => {
+    return ticket_controller_1.TicketController.getUserTickets(req, res, next);
+});
 exports.default = router;

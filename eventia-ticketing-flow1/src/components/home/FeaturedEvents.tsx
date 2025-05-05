@@ -1,12 +1,11 @@
-import React, { useRef } from 'react';
-import { ArrowRight } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { events } from '@/data/eventsData';
-import { iplMatches } from '@/data/iplData';
 import EventCard from '@/components/events/EventCard';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface Event {
   id: string;
@@ -23,71 +22,32 @@ interface FeaturedEventsProps {
   isLoading?: boolean;
 }
 
-export const FeaturedEvents: React.FC<FeaturedEventsProps> = ({ 
-  events = [], 
-  isLoading = false 
-}) => {
+export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setLoading] = useState<boolean>(false);
+  const [scrollIndex, setScrollIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Get featured events
-  const featuredEvents = events.filter(event => event.featured).slice(0, 3);
-  
-  // Get first 2 IPL matches
-  const featuredMatches = iplMatches.slice(0, 2);
-
-  // Default events for demo purposes
-  const defaultEvents: Event[] = [
-    {
-      id: '1',
-      title: 'Mumbai Indians vs Chennai Super Kings',
-      imageUrl: '/assets/events/mi-csk.jpg',
-      date: '15 May 2023, 7:30 PM',
-      location: 'Wankhede Stadium, Mumbai',
-      price: '₹1,500',
-      category: 'IPL'
-    },
-    {
-      id: '2',
-      title: 'Royal Challengers Bangalore vs Kolkata Knight Riders',
-      imageUrl: '/assets/events/rcb-kkr.jpg',
-      date: '18 May 2023, 7:30 PM',
-      location: 'M. Chinnaswamy Stadium, Bangalore',
-      price: '₹1,200',
-      category: 'IPL'
-    },
-    {
-      id: '3',
-      title: 'Delhi Capitals vs Rajasthan Royals',
-      imageUrl: '/assets/events/dc-rr.jpg',
-      date: '20 May 2023, 3:30 PM',
-      location: 'Arun Jaitley Stadium, Delhi',
-      price: '₹1,000',
-      category: 'IPL'
-    },
-    {
-      id: '4',
-      title: 'Punjab Kings vs Sunrisers Hyderabad',
-      imageUrl: '/assets/events/pbks-srh.jpg',
-      date: '22 May 2023, 7:30 PM',
-      location: 'IS Bindra Stadium, Mohali',
-      price: '₹900',
-      category: 'IPL'
-    },
-    {
-      id: '5',
-      title: 'Gujarat Titans vs Lucknow Super Giants',
-      imageUrl: '/assets/events/gt-lsg.jpg',
-      date: '25 May 2023, 7:30 PM',
-      location: 'Narendra Modi Stadium, Ahmedabad',
-      price: '₹1,100',
-      category: 'IPL'
-    },
-  ];
-
-  // Use provided events or defaults
-  const displayEvents = events.length > 0 ? events : defaultEvents;
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/events/featured')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch featured events');
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setEvents(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoading(false);
+      });
+  }, []);
 
   const handleScrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -95,15 +55,34 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = ({
         left: -300,
         behavior: 'smooth'
       });
+      
+      if (scrollIndex > 0) {
+        setScrollIndex(scrollIndex - 1);
+      }
     }
   };
 
   const handleScrollRight = () => {
-    if (scrollContainerRef.current) {
+    if (scrollContainerRef.current && events.length > 0) {
       scrollContainerRef.current.scrollBy({
         left: 300,
         behavior: 'smooth'
       });
+      
+      if (scrollIndex < events.length - 1) {
+        setScrollIndex(scrollIndex + 1);
+      }
+    }
+  };
+
+  const scrollToIndex = (index: number) => {
+    if (scrollContainerRef.current && events.length > 0) {
+      const cardWidth = 280 + 16; // card width + gap
+      scrollContainerRef.current.scrollTo({
+        left: index * cardWidth,
+        behavior: 'smooth'
+      });
+      setScrollIndex(index);
     }
   };
 
@@ -135,41 +114,14 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = ({
 
   if (isLoading) {
     return (
-      <div className="featured-events-skeleton" style={{
-        padding: 'var(--spacing-8) 0',
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 'var(--spacing-6)'
-        }}>
-          <div style={{
-            width: '200px',
-            height: '32px',
-            backgroundColor: 'var(--color-neutral-200)',
-            borderRadius: 'var(--border-radius-md)'
-          }}></div>
-          <div style={{
-            width: '100px',
-            height: '24px',
-            backgroundColor: 'var(--color-neutral-200)',
-            borderRadius: 'var(--border-radius-md)'
-          }}></div>
+      <div className="py-8">
+        <div className="flex justify-between items-center mb-6">
+          <div className="w-48 h-8 bg-neutral-200 rounded-md animate-pulse"></div>
+          <div className="w-24 h-6 bg-neutral-200 rounded-md animate-pulse"></div>
         </div>
-        <div style={{
-          display: 'flex',
-          gap: 'var(--spacing-4)',
-          overflowX: 'hidden'
-        }}>
+        <div className="flex gap-4 overflow-x-hidden">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} style={{
-              minWidth: '280px',
-              height: '380px',
-              backgroundColor: 'var(--color-neutral-200)',
-              borderRadius: 'var(--border-radius-lg)',
-              flexShrink: 0
-            }}></div>
+            <div key={i} className="min-w-[280px] h-[380px] bg-neutral-200 rounded-lg flex-shrink-0 animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -177,205 +129,122 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = ({
   }
 
   return (
-    <div className="featured-events" style={{
-      padding: 'var(--spacing-8) 0',
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 'var(--spacing-6)'
-      }}>
-        <h2 style={{
-          fontSize: 'var(--font-size-2xl)',
-          fontWeight: 'var(--font-weight-bold)',
-          color: 'var(--color-neutral-800)'
-        }}>
+    <div className="py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-neutral-800">
           Featured Events
         </h2>
         <Button 
-          variant="text"
+          variant="ghost"
           onClick={navigateToAllEvents}
+          className="text-primary flex items-center gap-1 focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           See all featured
+          <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
 
-      <div style={{
-        position: 'relative'
-      }}>
+      <div className="relative">
+        {/* Left scroll button (hidden on mobile) */}
+        <button 
+          onClick={handleScrollLeft}
+          className={cn(
+            "absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 hidden md:flex items-center justify-center focus:ring-2 focus:ring-primary focus:outline-none",
+            scrollIndex === 0 && "opacity-50 cursor-not-allowed"
+          )}
+          disabled={scrollIndex === 0}
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        
+        {/* Scrollable container */}
         <div 
           ref={scrollContainerRef}
-          className="events-scroll-container"
-          style={{
-            display: 'flex',
-            gap: 'var(--spacing-4)',
-            overflowX: 'auto',
-            scrollbarWidth: 'none', // Hide scrollbar for Firefox
-            msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
-            paddingBottom: 'var(--spacing-4)'
-          }}
+          className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {/* Hide scrollbar for Chrome/Safari */}
           <style>
             {`
-              .events-scroll-container::-webkit-scrollbar {
-                display: none;
-              }
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
             `}
           </style>
 
-          {displayEvents.map((event) => (
+          {events.map((event, index) => (
             <div 
               key={event.id}
-              className="event-card"
-              style={{
-                minWidth: '280px',
-                borderRadius: 'var(--border-radius-lg)',
-                overflow: 'hidden',
-                boxShadow: 'var(--shadow-md)',
-                backgroundColor: 'var(--color-neutral-white)',
-                flexShrink: 0,
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                cursor: 'pointer'
-              }}
+              className={cn(
+                "min-w-[280px] rounded-lg overflow-hidden shadow-md hover:shadow-lg bg-white flex-shrink-0 transition-transform duration-200 cursor-pointer snap-start",
+                "transform hover:scale-[1.02]"
+              )}
               onClick={() => handleEventClick(event.id)}
             >
-              <div style={{
-                height: '180px',
-                overflow: 'hidden',
-                position: 'relative'
-              }}>
+              <div className="h-[180px] overflow-hidden relative">
                 <img 
                   src={event.imageUrl} 
                   alt={event.title}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  srcSet={`${event.imageUrl} 1x, ${event.imageUrl} 2x`}
+                  sizes="(max-width: 640px) 280px, 280px"
                 />
-                <div style={{
-                  position: 'absolute',
-                  top: 'var(--spacing-3)',
-                  right: 'var(--spacing-3)',
-                  backgroundColor: 'var(--color-primary-600)',
-                  color: 'var(--color-neutral-white)',
-                  padding: 'var(--spacing-1) var(--spacing-2)',
-                  borderRadius: 'var(--border-radius-md)',
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 'var(--font-weight-bold)'
-                }}>
+                <div className="absolute top-3 right-3 bg-primary-600 text-white px-2 py-1 rounded-md text-sm font-bold">
                   {event.price}
                 </div>
               </div>
-              <div style={{
-                padding: 'var(--spacing-4)'
-              }}>
-                <h3 style={{
-                  fontSize: 'var(--font-size-lg)',
-                  fontWeight: 'var(--font-weight-bold)',
-                  marginBottom: 'var(--spacing-2)',
-                  color: 'var(--color-neutral-800)',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  height: '3em'
-                }}>
+              <div className="p-4">
+                <h3 className="text-lg font-bold mb-2 text-neutral-800 line-clamp-2 h-14">
                   {event.title}
                 </h3>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: 'var(--font-size-sm)',
-                  color: 'var(--color-neutral-600)',
-                  marginBottom: 'var(--spacing-2)'
-                }}>
-                  <span style={{
-                    marginRight: 'var(--spacing-1)'
-                  }}>📆</span>
-                  {event.date}
+                <div className="flex items-center text-sm text-neutral-500 mb-3">
+                  <span className="mr-3">{new Date(event.date).toLocaleDateString()}</span>
+                  <span>{event.location}</span>
                 </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  fontSize: 'var(--font-size-sm)',
-                  color: 'var(--color-neutral-600)',
-                  marginBottom: 'var(--spacing-4)'
-                }}>
-                  <span style={{
-                    marginRight: 'var(--spacing-1)'
-                  }}>📍</span>
-                  {event.location}
-                </div>
-                <Button 
-                  variant="primary"
-                  style={{
-                    width: '100%'
-                  }}
+                <Button
+                  variant="outline"
+                  className="w-full mt-2 focus:ring-2 focus:ring-primary focus:ring-offset-2"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEventClick(event.id);
                   }}
                 >
-                  Book Now
+                  View Details
                 </Button>
               </div>
             </div>
           ))}
         </div>
-
-        {/* Scroll control buttons */}
-        <button
-          aria-label="Scroll left"
-          style={{
-            position: 'absolute',
-            top: '40%',
-            left: '-16px',
-            transform: 'translateY(-50%)',
-            zIndex: 2,
-            backgroundColor: 'var(--color-neutral-white)',
-            color: 'var(--color-neutral-700)',
-            width: '40px',
-            height: '40px',
-            borderRadius: 'var(--border-radius-full)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            boxShadow: 'var(--shadow-md)',
-            cursor: 'pointer'
-          }}
-          onClick={handleScrollLeft}
-        >
-          ◀
-        </button>
-        <button
-          aria-label="Scroll right"
-          style={{
-            position: 'absolute',
-            top: '40%',
-            right: '-16px',
-            transform: 'translateY(-50%)',
-            zIndex: 2,
-            backgroundColor: 'var(--color-neutral-white)',
-            color: 'var(--color-neutral-700)',
-            width: '40px',
-            height: '40px',
-            borderRadius: 'var(--border-radius-full)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            boxShadow: 'var(--shadow-md)',
-            cursor: 'pointer'
-          }}
+        
+        {/* Right scroll button (hidden on mobile) */}
+        <button 
           onClick={handleScrollRight}
+          className={cn(
+            "absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 hidden md:flex items-center justify-center focus:ring-2 focus:ring-primary focus:outline-none",
+            scrollIndex === events.length - 1 && "opacity-50 cursor-not-allowed"
+          )}
+          disabled={scrollIndex === events.length - 1}
+          aria-label="Scroll right"
         >
-          ▶
+          <ChevronRight className="h-5 w-5" />
         </button>
+        
+        {/* Scroll indicator dots for mobile */}
+        <div className="flex justify-center mt-4 gap-2 md:hidden">
+          {events.slice(0, Math.min(events.length, 5)).map((_, index) => (
+            <button
+              key={index}
+              className={cn(
+                "w-2 h-2 rounded-full focus:outline-none focus:ring-2 focus:ring-primary",
+                index === scrollIndex ? "bg-primary" : "bg-neutral-300"
+              )}
+              onClick={() => scrollToIndex(index)}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

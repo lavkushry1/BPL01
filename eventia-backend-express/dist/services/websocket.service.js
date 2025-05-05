@@ -1,9 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebsocketService = void 0;
 const socket_io_1 = require("socket.io");
 const seat_1 = require("../models/seat");
 const logger_1 = require("../utils/logger");
+const config_1 = __importDefault(require("../config"));
 /**
  * WebSocket service for real-time notifications and updates
  * Handles seat status changes, payment notifications, and other real-time events
@@ -21,7 +25,7 @@ class WebsocketService {
         try {
             this.io = new socket_io_1.Server(server, {
                 cors: {
-                    origin: process.env.CORS_ORIGIN || '*',
+                    origin: config_1.default.frontendUrl,
                     methods: ['GET', 'POST'],
                     credentials: true
                 },
@@ -349,5 +353,14 @@ class WebsocketService {
             logger_1.logger.error('Error shutting down WebSocket server:', error);
         }
     }
+    /**
+     * Emit seat status change for a single seat
+     * @param eventId Event ID
+     * @param seatId Seat ID that was updated
+     * @param status New seat status
+     */
+    static emitSeatStatusChange = (eventId, seatId, status) => {
+        WebsocketService.broadcastSeatUpdate(eventId, [seatId], status);
+    };
 }
 exports.WebsocketService = WebsocketService;

@@ -10,6 +10,7 @@ const apiError_1 = require("../utils/apiError");
 const jwt_1 = require("../utils/jwt");
 const config_1 = require("../config");
 const user_1 = __importDefault(require("../models/user"));
+const logger_1 = require("../utils/logger");
 const register = async (req, res, next) => {
     try {
         const { email, password, name, role = 'user' } = req.body;
@@ -20,12 +21,14 @@ const register = async (req, res, next) => {
         }
         // Hash password
         const hashedPassword = await bcrypt_1.default.hash(password, 12);
+        // Convert role to uppercase to match Prisma enum
+        const prismaRole = role.toUpperCase();
         // Create user in database
         const newUser = await user_1.default.create({
             email,
             name,
             password: hashedPassword,
-            role,
+            role: prismaRole,
         });
         // Remove password from response
         const { password: _, ...userWithoutPassword } = newUser;
@@ -100,35 +103,42 @@ const refreshToken = async (req, res, next) => {
         if (!refreshToken) {
             throw apiError_1.ApiError.badRequest('Refresh token is required');
         }
-        try {
-            // Verify refresh token using our utility
-            const decoded = (0, jwt_1.verifyToken)(refreshToken);
-            if (!decoded) {
-                throw apiError_1.ApiError.unauthorized('Invalid refresh token');
-            }
-            // Find user
-            const user = await user_1.default.findById(decoded.id);
-            if (!user) {
-                throw apiError_1.ApiError.unauthorized('Invalid refresh token');
-            }
-            // Generate new tokens using our utility
-            const newToken = (0, jwt_1.generateToken)({
-                id: user.id,
-                email: user.email,
-                role: user.role
-            });
-            const newRefreshToken = (0, jwt_1.generateToken)({ id: user.id }, config_1.config.jwt.refreshExpiration);
-            // Send response
-            apiResponse_1.ApiResponse.success(res, {
-                token: newToken,
-                refreshToken: newRefreshToken
-            }, 'Token refreshed successfully');
+        // Log token debug info
+        const tokenType = typeof refreshToken;
+        const tokenLength = refreshToken ? refreshToken.length : 0;
+        logger_1.logger.debug(`Refresh token type: ${tokenType}, length: ${tokenLength}`);
+        // Basic format validation
+        if (typeof refreshToken !== 'string' || !refreshToken.includes('.')) {
+            logger_1.logger.debug('Token format validation failed: not a valid JWT structure');
+            throw apiError_1.ApiError.unauthorized('Invalid refresh token format');
         }
-        catch (error) {
+        // Verify token using our utility
+        const decoded = (0, jwt_1.verifyToken)(refreshToken);
+        if (!decoded) {
+            logger_1.logger.debug('Token verification returned null');
             throw apiError_1.ApiError.unauthorized('Invalid refresh token');
         }
+        // Find user
+        const user = await user_1.default.findById(decoded.id);
+        if (!user) {
+            logger_1.logger.debug(`User not found for id: ${decoded.id}`);
+            throw apiError_1.ApiError.unauthorized('Invalid refresh token');
+        }
+        // Generate new tokens using our utility
+        const newToken = (0, jwt_1.generateToken)({
+            id: user.id,
+            email: user.email,
+            role: user.role
+        });
+        const newRefreshToken = (0, jwt_1.generateToken)({ id: user.id }, config_1.config.jwt.refreshExpiration);
+        // Send response
+        apiResponse_1.ApiResponse.success(res, {
+            token: newToken,
+            refreshToken: newRefreshToken
+        }, 'Token refreshed successfully');
     }
     catch (error) {
+        logger_1.logger.error('Refresh token error:', error);
         next(error);
     }
 };

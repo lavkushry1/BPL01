@@ -1,27 +1,58 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 import { refreshToken } from './authApi';
 
-// Get the API URL from environment variables
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// Get the API URL from environment variables - ensure correct port for backend
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 // Create a default API client instance with common configuration
 export const defaultApiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: `${API_URL}/api/v1`,
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for cookies and authentication
 });
 
-// Add logging for debugging
+// Add CSRF protection to requests
 defaultApiClient.interceptors.request.use(request => {
-  console.log('API Request:', request.method?.toUpperCase(), request.baseURL + request.url);
+  // Don't add CSRF token for GET requests or auth endpoints
+  const isAuthEndpoint = request.url && (
+    request.url.includes('/auth/login') || 
+    request.url.includes('/auth/register') ||
+    request.url.includes('/auth/refresh-token')
+  );
+  
+  const needsCsrfProtection = 
+    request.method !== 'GET' && 
+    !isAuthEndpoint;
+  
+  if (needsCsrfProtection) {
+    // Get CSRF token from session storage
+    const csrfToken = sessionStorage.getItem('csrf_token');
+    if (csrfToken && request.headers) {
+      request.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+  
   return request;
 });
 
+// Improved request logging
+defaultApiClient.interceptors.request.use(request => {
+  const method = request.method?.toUpperCase() || 'UNKNOWN';
+  const url = request.baseURL && request.url ? `${request.baseURL}${request.url}` : request.url || 'UNKNOWN';
+  console.log(`API Request: [${method}] ${url}`, request.data ? 'with payload' : '');
+  
+  return request;
+});
+
+// Update the response interceptor for cookie-based auth
 defaultApiClient.interceptors.response.use(
   response => {
-    console.log('API Response:', response.status, response.config.url);
+    const status = response.status;
+    const url = response.config.url || 'UNKNOWN';
+    console.log(`API Response: [${status}] ${url}`, response.data ? 'with data' : '');
+    
     return response;
   },
   async (error: AxiosError<ApiErrorResponse>) => {
@@ -31,10 +62,8 @@ defaultApiClient.interceptors.response.use(
       
       // Only try to refresh once to prevent infinite loops
       if (!originalRequest || (originalRequest as any)._retry) {
-        // Clear token and redirect to login if already tried refreshing
-        localStorage.removeItem(ACCESS_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        
+        // Don't need to clear tokens from localStorage since we're using cookies
+        // Redirect to login if already tried refreshing
         if (window.location.pathname !== '/login' && 
             window.location.pathname !== '/admin-login') {
           window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
@@ -46,27 +75,18 @@ defaultApiClient.interceptors.response.use(
       (originalRequest as any)._retry = true;
       
       try {
-        // Try to refresh the token
-        const response = await refreshToken();
+        // Try to refresh the token using httpOnly cookie
+        await refreshToken();
         
-        if (response && response.accessToken) {
-          // Update token in storage
-          localStorage.setItem(ACCESS_TOKEN_KEY, response.accessToken);
-          
-          // Update Auth header for current request
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${response.accessToken}`;
-          }
-          
-          // Update default headers for future requests
-          defaultApiClient.defaults.headers.common['Authorization'] = `Bearer ${response.accessToken}`;
-          
-          // Retry the original request with new token
-          return defaultApiClient(originalRequest);
-        }
+        // Retry the original request - the cookie will be sent automatically
+        return defaultApiClient(originalRequest);
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         // Proceed with normal rejection if refresh fails
+        if (window.location.pathname !== '/login' && 
+            window.location.pathname !== '/admin-login') {
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        }
       }
     }
 
@@ -83,16 +103,16 @@ defaultApiClient.interceptors.response.use(
   }
 );
 
-// Configure WebSocket URL
-export const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
+// Configure WebSocket URL to match API_URL but with ws protocol
+export const WS_URL = (import.meta.env.VITE_WS_URL || API_URL.replace(/^http/, 'ws'));
 
 // Helper function to create authenticated API request headers
 export const createAuthHeaders = (token: string) => ({
   Authorization: `Bearer ${token}`
 });
 
-// Define the API base URL using the environment variable
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// Define the API base URL using the environment variable - ensure it's the same as API_URL
+export const API_BASE_URL = API_URL;
 
 // Storage keys for auth tokens - use the same keys as in authApi.ts
 export const ACCESS_TOKEN_KEY = 'eventia_access_token';
@@ -302,7 +322,44 @@ export const getApiUrl = (endpoint: string, params?: Record<string, string>): st
       url = url.replace(`:${key}`, encodeURIComponent(value));
     });
   }
+
+  // Make sure the endpoint doesn't already include the API URL or base path
+  if (url.startsWith(API_URL) || url.startsWith('http://') || url.startsWith('https://')) {
+    return url; // Already includes full URL
+  }
+  
+  // Remove any leading slash and any duplicate /api/v1 prefixes
+  url = url.replace(/^\//, '');
+  if (url.startsWith('api/v1/')) {
+    url = url.substring(7); // Remove 'api/v1/'
+  }
+  
   return url;
+};
+
+/**
+ * Fetch a CSRF token from the server and store it for future requests
+ * @returns Promise<string> The fetched CSRF token
+ */
+export const fetchCsrfToken = async (): Promise<string> => {
+  try {
+    // Make a GET request to any endpoint that supports CSRF generation
+    const response = await defaultApiClient.get('/auth/csrf', { withCredentials: true });
+    
+    // Get token from response header
+    const csrfToken = response.headers['x-csrf-token'];
+    
+    if (csrfToken) {
+      // Store in sessionStorage for future requests
+      sessionStorage.setItem('csrf_token', csrfToken.toString());
+      return csrfToken.toString();
+    }
+    
+    throw new Error('No CSRF token received from server');
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+    return '';
+  }
 };
 
 export default {
@@ -320,4 +377,5 @@ export default {
   getApiUrl,
   WS_URL,
   createAuthHeaders,
+  fetchCsrfToken,
 };

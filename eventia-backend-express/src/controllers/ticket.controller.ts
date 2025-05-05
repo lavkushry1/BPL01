@@ -6,11 +6,7 @@ import { z } from 'zod';
 import path from 'path';
 import fs from 'fs';
 import { Knex } from 'knex';
-
-// Add type definition for the extended request with db
-interface DatabaseRequest extends Request {
-  db: Knex;
-}
+import { DatabaseRequest } from '../middleware/database';
 
 /**
  * @class TicketController
@@ -23,17 +19,10 @@ export class TicketController {
    */
   static async generateTickets(req: DatabaseRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const schema = z.object({
-        booking_id: z.string().uuid(),
-        event_id: z.string().uuid(),
-        user_id: z.string().uuid(),
-        email: z.string().email().optional(),
-        send_email: z.boolean().optional().default(true)
-      });
+      const { booking_id } = req.body;
       
-      const validatedData = schema.parse(req.body);
-      
-      const ticketIds = await TicketService.generateTickets(validatedData.booking_id);
+      // Use static method from TicketService
+      const ticketIds = await TicketService.generateTickets(booking_id);
       
       if (ticketIds.length === 0) {
         throw new ApiError(400, 'Failed to generate tickets');
@@ -46,10 +35,10 @@ export class TicketController {
         })
       );
       
-      ApiResponse.success(res, {
+      ApiResponse.success(res, 201, 'Tickets generated successfully', {
         tickets,
         count: tickets.length
-      }, 'Tickets generated successfully', 201);
+      });
     } catch (error) {
       next(error);
     }
@@ -69,7 +58,7 @@ export class TicketController {
         throw new ApiError(404, 'Ticket not found');
       }
       
-      ApiResponse.success(res, ticket, 'Ticket retrieved successfully');
+      ApiResponse.success(res, 200, 'Ticket retrieved successfully', ticket);
     } catch (error) {
       next(error);
     }
@@ -81,11 +70,14 @@ export class TicketController {
    */
   static async getTicketsByBookingId(req: DatabaseRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { bookingId } = req.params;
+      const { booking_id } = req.params;
       
-      const tickets = await req.db('tickets').where('booking_id', bookingId);
+      const tickets = await req.db('tickets').where('booking_id', booking_id);
       
-      ApiResponse.success(res, tickets, 'Tickets retrieved successfully');
+      ApiResponse.success(res, 200, 'Tickets retrieved successfully', {
+        tickets,
+        count: tickets.length
+      });
     } catch (error) {
       next(error);
     }
@@ -126,7 +118,7 @@ export class TicketController {
       // Get updated ticket
       const updatedTicket = await req.db('tickets').where('id', id).first();
       
-      ApiResponse.success(res, updatedTicket, 'Ticket cancelled successfully');
+      ApiResponse.success(res, 200, 'Ticket cancelled successfully', updatedTicket);
     } catch (error) {
       next(error);
     }
@@ -138,24 +130,16 @@ export class TicketController {
    */
   static async checkInTicket(req: DatabaseRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const schema = z.object({
-        ticket_id: z.string().uuid(),
-        event_id: z.string().uuid(),
-        check_in_location: z.string().optional(),
-        device_id: z.string().optional(),
-        notes: z.string().optional()
-      });
-      
-      const validatedData = schema.parse(req.body);
+      const { ticket_id, event_id, check_in_location } = req.body;
       
       const result = await TicketService.checkInTicket(
-        validatedData.ticket_id,
-        validatedData.event_id,
-        validatedData.check_in_location
+        ticket_id,
+        event_id,
+        check_in_location
       );
       
       if (result.success) {
-        ApiResponse.success(res, result.ticket, result.message);
+        ApiResponse.success(res, 200, result.message, result.ticket);
       } else {
         throw new ApiError(400, result.message);
       }
@@ -171,18 +155,18 @@ export class TicketController {
   static async verifyTicket(req: DatabaseRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      const { event_id } = req.query;
+      const { event_id } = req.body;
       
-      if (!event_id || typeof event_id !== 'string') {
+      if (!event_id) {
         throw new ApiError(400, 'Event ID is required');
       }
       
       const result = await TicketService.verifyTicket(id, event_id);
       
-      ApiResponse.success(res, {
+      ApiResponse.success(res, 200, result.message, {
         valid: result.valid,
         ticket: result.ticket
-      }, result.message);
+      });
     } catch (error) {
       next(error);
     }
@@ -206,10 +190,10 @@ export class TicketController {
       // In a real implementation, you would generate and send the ticket email here
       // For now, we'll just acknowledge the request
       
-      ApiResponse.success(res, {
-        ticket_id: id,
-        sent_to: email || 'registered email'
-      }, 'Ticket resent successfully');
+      ApiResponse.success(res, 200, 'Ticket resent successfully', {
+        sent: true,
+        email: email || 'default@email.com'
+      });
     } catch (error) {
       next(error);
     }
@@ -220,10 +204,14 @@ export class TicketController {
    * @param ticketId Ticket ID
    * @returns Promise with PDF path
    */
-  private static async generateTicketPDF(ticketId: any): Promise<string> {
-    // Use an object format to avoid type issues
-    // @ts-ignore
-    return TicketService.generatePDF({ id: String(ticketId) });
+  private static async generateTicketPDF(ticketId: string): Promise<string> {
+    try {
+      // Use TicketService to generate PDF
+      return await TicketService.generatePDF(ticketId);
+    } catch (error) {
+      console.error('Error generating ticket PDF:', error);
+      throw error;
+    }
   }
 
   /**
@@ -265,20 +253,20 @@ export class TicketController {
    */
   static async getEventTickets(req: DatabaseRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { eventId } = req.params;
-      const { page = '1', limit = '50', status } = req.query;
+      const { event_id } = req.params;
+      const { status, page = 1, limit = 50 } = req.query;
       
       const pageNum = parseInt(page as string, 10);
       const limitNum = parseInt(limit as string, 10);
       
-      const query = req.db('tickets').where('event_id', eventId);
+      const query = req.db('tickets').where('event_id', event_id);
       
       if (status && typeof status === 'string') {
         query.where('status', status);
       }
       
       // Get total count
-      const countQuery = req.db('tickets').where('event_id', eventId);
+      const countQuery = req.db('tickets').where('event_id', event_id);
       if (status && typeof status === 'string') {
         countQuery.where('status', status);
       }
@@ -290,12 +278,14 @@ export class TicketController {
         .offset((pageNum - 1) * limitNum)
         .limit(limitNum);
       
-      ApiResponse.success(res, {
+      ApiResponse.success(res, 200, 'Event tickets retrieved successfully', {
         tickets,
-        total: totalCount ? Number(totalCount.count) : 0,
-        page: pageNum,
-        limit: limitNum
-      }, 'Event tickets retrieved successfully');
+        pagination: {
+          total: totalCount ? Number(totalCount.count) : 0,
+          page: pageNum,
+          limit: limitNum
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -308,10 +298,15 @@ export class TicketController {
   static async getUserTickets(req: DatabaseRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = req.params;
-      const { page = '1', limit = '10', status } = req.query;
+      const { status, page = 1, limit = 10 } = req.query;
       
       const pageNum = parseInt(page as string, 10);
       const limitNum = parseInt(limit as string, 10);
+      
+      // Check if user is requesting their own tickets or is admin
+      if (req.user && req.user.id !== userId && req.user.role !== 'ADMIN') {
+        throw new ApiError(403, 'You can only access your own tickets');
+      }
       
       const query = req.db('tickets').where('user_id', userId);
       
@@ -332,12 +327,14 @@ export class TicketController {
         .offset((pageNum - 1) * limitNum)
         .limit(limitNum);
       
-      ApiResponse.success(res, {
+      ApiResponse.success(res, 200, 'User tickets retrieved successfully', {
         tickets,
-        total: totalCount ? Number(totalCount.count) : 0,
-        page: pageNum,
-        limit: limitNum
-      }, 'User tickets retrieved successfully');
+        pagination: {
+          total: totalCount ? Number(totalCount.count) : 0,
+          page: pageNum,
+          limit: limitNum
+        }
+      });
     } catch (error) {
       next(error);
     }

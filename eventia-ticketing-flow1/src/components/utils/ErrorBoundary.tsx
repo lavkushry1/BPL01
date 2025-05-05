@@ -1,8 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Home } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 interface Props {
   children: ReactNode;
@@ -13,7 +11,6 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: ErrorInfo | null;
 }
 
 /**
@@ -25,34 +22,26 @@ class ErrorBoundary extends Component<Props, State> {
     super(props);
     this.state = {
       hasError: false,
-      error: null,
-      errorInfo: null
+      error: null
     };
   }
 
   static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
-      error,
-      errorInfo: null
+      error
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     // Log the error to an error reporting service
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
-    
-    // Update state with error details
-    this.setState({
-      error,
-      errorInfo
-    });
-    
-    // Call custom error handler if provided
+
+    // Call the onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
-    
+
     // Log to analytics or error tracking service
     // if (window.gtag) {
     //   window.gtag('event', 'error', {
@@ -62,14 +51,13 @@ class ErrorBoundary extends Component<Props, State> {
     //   });
     // }
   }
-  
-  handleRetry = (): void => {
+
+  resetError = (): void => {
     this.setState({
       hasError: false,
-      error: null,
-      errorInfo: null
+      error: null
     });
-  }
+  };
 
   render(): ReactNode {
     if (this.state.hasError) {
@@ -77,44 +65,26 @@ class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) {
         return this.props.fallback;
       }
-      
+
       // Default fallback UI
       return (
-        <div className="flex flex-col items-center justify-center min-h-[300px] p-6">
-          <Alert variant="destructive" className="mb-4 max-w-md">
-            <AlertTitle>Something went wrong</AlertTitle>
-            <AlertDescription className="mt-2">
-              {this.state.error?.message || 'An unexpected error occurred'}
-            </AlertDescription>
-          </Alert>
-          
-          <div className="flex gap-4 mt-4">
-            <Button 
-              onClick={this.handleRetry}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Try Again
-            </Button>
-            
-            <Link to="/" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90">
-              <Home className="h-4 w-4" />
-              Go to Home
-            </Link>
-          </div>
-          
-          {process.env.NODE_ENV !== 'production' && this.state.errorInfo && (
-            <details className="mt-6 text-xs text-gray-500 max-w-md">
-              <summary>Error Details</summary>
-              <pre className="mt-2 whitespace-pre-wrap">
-                {this.state.error?.stack}
-              </pre>
-              <pre className="mt-2 whitespace-pre-wrap">
-                {this.state.errorInfo.componentStack}
-              </pre>
-            </details>
-          )}
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center">
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400 mx-auto mb-2" />
+          <h3 className="text-lg font-medium text-red-800 dark:text-red-200 mb-2">
+            Something went wrong
+          </h3>
+          <p className="text-sm text-red-600 dark:text-red-300 mb-4">
+            {this.state.error?.message || "An unexpected error occurred"}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={this.resetError}
+            className="mx-auto"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
         </div>
       );
     }

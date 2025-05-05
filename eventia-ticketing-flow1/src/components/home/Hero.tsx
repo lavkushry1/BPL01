@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/styles/ThemeProvider';
+import { Search, Calendar, MapPin, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { format } from 'date-fns';
 
 // Define types for the carousel events
 interface CarouselEvent {
@@ -17,6 +25,15 @@ interface HeroProps {
   isLoading?: boolean;
 }
 
+// Define search form schema
+const searchFormSchema = z.object({
+  query: z.string().optional(),
+  date: z.string().optional(),
+  location: z.string().optional(),
+});
+
+type SearchFormValues = z.infer<typeof searchFormSchema>;
+
 export const Hero: React.FC<HeroProps> = ({ 
   events = [], 
   isLoading = false
@@ -24,6 +41,23 @@ export const Hero: React.FC<HeroProps> = ({
   const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const { t } = useTranslation();
+  
+  // Initialize form with React Hook Form
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors },
+    setError,
+  } = useForm<SearchFormValues>({
+    resolver: zodResolver(searchFormSchema),
+    defaultValues: {
+      query: '',
+      date: '',
+      location: '',
+    }
+  });
   
   // Default placeholder events for demo purposes
   const defaultEvents: CarouselEvent[] = [
@@ -114,181 +148,146 @@ export const Hero: React.FC<HeroProps> = ({
   const navigateToEvents = () => {
     navigate('/events');
   };
+  
+  // Handle search form submission
+  const onSubmit = async (data: SearchFormValues) => {
+    setIsSearching(true);
+    
+    try {
+      // Construct query parameters
+      const params = new URLSearchParams();
+      if (data.query) params.append('q', data.query);
+      if (data.date) params.append('date', data.date);
+      if (data.location) params.append('location', data.location);
+      
+      // Navigate to events page with search params
+      navigate({
+        pathname: '/events',
+        search: params.toString()
+      });
+      
+    } catch (error) {
+      console.error('Search error:', error);
+      
+      if (error instanceof Error) {
+        setError('root', {
+          type: 'server',
+          message: error.message
+        });
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="hero-skeleton" style={{
-        height: '500px',
-        backgroundColor: 'var(--color-neutral-100)',
-        borderRadius: 'var(--border-radius-lg)',
-        margin: 'var(--spacing-4) 0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div className="loading-spinner">Loading...</div>
+      <div className="h-[500px] bg-neutral-100 rounded-lg my-4 flex items-center justify-center">
+        <div className="animate-pulse">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="hero-container" style={{
-      position: 'relative',
-      width: '100%',
-      height: '500px',
-      overflow: 'hidden',
-      borderRadius: 'var(--border-radius-lg)',
-      boxShadow: 'var(--shadow-lg)'
-    }}>
-      {/* Carousel */}
-      <div className="carousel" style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative'
-      }}>
-        {displayEvents.map((event, index) => (
-          <div 
-            key={event.id}
-            className="carousel-slide"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              opacity: index === activeIndex ? 1 : 0,
-              transition: 'opacity 0.5s ease-in-out',
-              backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7)), url(${event.imageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
-          >
-            <div className="carousel-content" style={{
-              position: 'absolute',
-              bottom: 'var(--spacing-8)',
-              left: 'var(--spacing-8)',
-              right: 'var(--spacing-8)',
-              color: 'var(--color-neutral-white)',
-              zIndex: 1
-            }}>
-              <h1 style={{
-                fontSize: 'var(--font-size-4xl)',
-                fontWeight: 'var(--font-weight-bold)',
-                marginBottom: 'var(--spacing-2)'
-              }}>
-                {event.title}
-              </h1>
-              <p style={{
-                fontSize: 'var(--font-size-lg)',
-                marginBottom: 'var(--spacing-4)'
-              }}>
-                {event.description}
-              </p>
-              <div className="cta-buttons" style={{
-                display: 'flex',
-                gap: 'var(--spacing-4)'
-              }}>
-                <Button 
-                  variant="primary" 
-                  size="lg"
-                  onClick={() => handleExploreEvent()}
-                >
-                  Book Now
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  onClick={() => navigateToEvents()}
-                >
-                  Browse Events
-                </Button>
-              </div>
-            </div>
+    <div className="relative bg-gradient-to-r from-primary-800 to-primary-900 text-white overflow-hidden">
+      {/* Background dots pattern */}
+      <div className="absolute inset-0 bg-[url('/dots-pattern.svg')] opacity-20"></div>
+      
+      <div className="container mx-auto px-4 py-16 md:py-24 lg:py-32 relative z-10">
+        <div className="max-w-4xl mx-auto text-center mb-8">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+            {t('hero.title', 'Discover, Book, and Experience')}
+          </h1>
+          <p className="text-xl md:text-2xl text-white/80 mb-8">
+            {t('hero.subtitle', 'Find the most exciting events happening near you')}
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Link to="/events">
+              <Button className="bg-white text-primary hover:bg-white/90 px-6 py-2.5 text-lg font-semibold focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary">
+                {t('hero.browse', 'Browse Events')}
+              </Button>
+            </Link>
+            
+            <Link to="/ipl-tickets">
+              <Button 
+                variant="outline" 
+                className="border-white text-white hover:bg-white/10 px-6 py-2.5 text-lg font-semibold relative focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary"
+              >
+                {t('hero.iplTickets', 'IPL 2025 Tickets')}
+                <Badge className="absolute -top-3 -right-3 bg-red-500 text-white">
+                  NEW
+                </Badge>
+              </Button>
+            </Link>
           </div>
-        ))}
+        </div>
+        
+        {/* Search bar */}
+        <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 md:p-6 max-w-4xl mx-auto">
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                <Input 
+                  {...register('query')}
+                  placeholder={t('hero.search', 'Search events')}
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-primary-300 focus-visible:ring-offset-0 h-12"
+                  aria-invalid={errors.query ? 'true' : 'false'}
+                />
+                {errors.query && (
+                  <div className="text-red-300 text-xs mt-1">
+                    {String(errors.query.message)}
+                  </div>
+                )}
+              </div>
+              <div className="relative flex-1">
+                <Calendar className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                <Input 
+                  {...register('date')}
+                  placeholder={t('hero.when', 'When')}
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-primary-300 focus-visible:ring-offset-0 h-12"
+                  type="date"
+                  aria-invalid={errors.date ? 'true' : 'false'}
+                />
+                {errors.date && (
+                  <div className="text-red-300 text-xs mt-1">
+                    {String(errors.date.message)}
+                  </div>
+                )}
+              </div>
+              <div className="relative flex-1">
+                <MapPin className="absolute left-3 top-3 h-5 w-5 text-white/60" />
+                <Input 
+                  {...register('location')}
+                  placeholder={t('hero.where', 'Where')}
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-primary-300 focus-visible:ring-offset-0 h-12"
+                  aria-invalid={errors.location ? 'true' : 'false'}
+                />
+                {errors.location && (
+                  <div className="text-red-300 text-xs mt-1">
+                    {String(errors.location.message)}
+                  </div>
+                )}
+              </div>
+              <Button 
+                type="submit"
+                className="h-12 px-6 focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                disabled={isSearching}
+              >
+                {isSearching ? t('hero.searching', 'Searching...') : t('hero.find', 'Find Events')}
+              </Button>
+            </div>
+            
+            {/* Form-level error */}
+            {errors.root && (
+              <div className="mt-2 text-red-300 text-sm flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                <span>{String(errors.root.message)}</span>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
-
-      {/* Navigation Controls */}
-      <div className="carousel-nav" style={{
-        position: 'absolute',
-        bottom: 'var(--spacing-4)',
-        right: 'var(--spacing-8)',
-        display: 'flex',
-        gap: 'var(--spacing-2)',
-        zIndex: 2
-      }}>
-        {displayEvents.map((_, index) => (
-          <button
-            key={index}
-            aria-label={`Go to slide ${index + 1}`}
-            className="carousel-dot"
-            style={{
-              width: 'var(--spacing-3)',
-              height: 'var(--spacing-3)',
-              borderRadius: 'var(--border-radius-full)',
-              backgroundColor: index === activeIndex 
-                ? 'var(--color-primary-600)' 
-                : 'var(--color-neutral-300)',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0
-            }}
-            onClick={() => handleDotClick(index)}
-          />
-        ))}
-      </div>
-
-      {/* Arrow Navigation */}
-      <button
-        aria-label="Previous slide"
-        className="carousel-arrow prev"
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: 'var(--spacing-4)',
-          transform: 'translateY(-50%)',
-          zIndex: 2,
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          color: 'var(--color-neutral-white)',
-          fontSize: '2rem',
-          width: '48px',
-          height: '48px',
-          borderRadius: 'var(--border-radius-full)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: 'none',
-          cursor: 'pointer'
-        }}
-        onClick={handlePrevSlide}
-      >
-        ‹
-      </button>
-      <button
-        aria-label="Next slide"
-        className="carousel-arrow next"
-        style={{
-          position: 'absolute',
-          top: '50%',
-          right: 'var(--spacing-4)',
-          transform: 'translateY(-50%)',
-          zIndex: 2,
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          color: 'var(--color-neutral-white)',
-          fontSize: '2rem',
-          width: '48px',
-          height: '48px',
-          borderRadius: 'var(--border-radius-full)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: 'none',
-          cursor: 'pointer'
-        }}
-        onClick={handleNextSlide}
-      >
-        ›
-      </button>
     </div>
   );
 };

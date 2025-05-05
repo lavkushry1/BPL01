@@ -4,7 +4,8 @@
  */
 import { defaultApiClient } from './apiUtils';
 import axios from 'axios';
-import { API_BASE_URL } from '@/config';
+import { API_BASE_URL } from './apiUtils';
+import { apiClient } from './client';
 
 export interface UpiPaymentRequest {
   bookingId: string;
@@ -58,176 +59,133 @@ export interface PaymentSettings {
   }
 }
 
+export interface PaymentSessionResponse {
+  sessionId: string;
+  referenceId: string;
+  amount: number;
+  upiId: string;
+  qrCode: string;
+  upiLink: string;
+  expiresAt: string;
+}
+
+export interface PaymentSession {
+  id: string;
+  userId: string;
+  eventId: string;
+  amount: number;
+  status: string;
+  referenceId: string;
+  upiId: string;
+  utrNumber?: string;
+  qrCodeUrl?: string;
+  upiDeeplink?: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+  seats: any[];
+}
+
 // Environment check for API calls
 const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * Get payment settings for UPI and other methods
  */
-export const getPaymentSettings = async (): Promise<{ data: { data: PaymentSettings } }> => {
+export const getPaymentSettings = async () => {
   try {
-    if (isProduction) {
-      const response = await defaultApiClient.get('/payments/settings');
-      return response;
-    }
-    
-    // For development/testing, return mock data
+    // First attempt to use the public endpoint that doesn't require authentication
+    console.log('Attempting to fetch UPI settings from public endpoint');
+    const response = await apiClient.get<any>('/payments/upi-settings');
+    console.log('UPI settings response from public endpoint:', response.data);
+
+    // Return normalized data
     return {
       data: {
-        data: {
-          upi: {
-            vpa: 'eventia@okicici',
-            merchant_name: 'Eventia Events',
-            merchant_code: 'EVENTIATICKET'
-          }
-        }
+        upivpa: response.data?.upivpa || '9122036484@hdfc', // Use the required UPI ID as fallback
+        discountamount: response.data?.discountamount || 0,
+        isactive: response.data?.isactive !== undefined ? response.data.isactive : true
       }
     };
   } catch (error) {
-    console.error('Error fetching payment settings:', error);
-    throw error;
+    console.error('Error fetching UPI settings from public endpoint:', error);
+
+    // Try protected endpoint as fallback
+    try {
+      console.log('Attempting to fetch UPI settings from fallback endpoint');
+      const fallbackResponse = await apiClient.get<any>('/admin/upi-settings/active');
+      console.log('UPI settings response from fallback endpoint:', fallbackResponse.data);
+
+      // Access data safely with optional chaining
+      const fallbackData = fallbackResponse.data;
+
+      return {
+        data: {
+          upivpa: fallbackData?.data?.upivpa || fallbackData?.upivpa ||
+            fallbackData?.data?.upi?.vpa || fallbackData?.upi?.vpa || '9122036484@hdfc', // Use the required UPI ID as fallback
+          discountamount: fallbackData?.data?.discountamount || fallbackData?.discountamount || 0,
+          isactive: (fallbackData?.data?.isactive !== undefined) ?
+            fallbackData.data.isactive :
+            (fallbackData?.isactive !== undefined ? fallbackData.isactive : true)
+        }
+      };
+    } catch (fallbackError) {
+      console.error('Error fetching UPI settings from fallback endpoint:', fallbackError);
+
+      // Return a structured fallback response that matches the expected format
+      console.log('Using default UPI settings as fallback');
+      return {
+        data: {
+          upivpa: '9122036484@hdfc', // Use the required UPI ID as fallback
+          discountamount: 0,
+          isactive: true
+        }
+      };
+    }
   }
 };
 
 /**
  * Get payment by booking ID
  */
-export const getPaymentByBookingId = async (bookingId: string): Promise<{ data: { data: any } }> => {
-  try {
-    if (isProduction) {
-      const response = await defaultApiClient.get(`/payments/booking/${bookingId}`);
-      return response;
-    }
-    
-    // For development/testing, return mock data
-    return {
-      data: {
-        data: {
-          id: `payment-${bookingId}`,
-          booking_id: bookingId,
-          amount: 1000,
-          currency: 'INR',
-          payment_status: 'pending',
-          payment_method: {
-            type: 'upi',
-            upi_details: {
-              vpa: 'eventia@okicici',
-              utr_number: ''
-            }
-          },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      }
-    };
-  } catch (error) {
-    console.error(`Error fetching payment for booking ${bookingId}:`, error);
-    throw error;
-  }
+export const getPaymentByBookingId = (bookingId: string) => {
+  return apiClient.get<any>(`/payments/booking/${bookingId}`);
 };
 
 /**
  * Submit UTR verification for a payment
  */
-export const submitUtrVerification = async (paymentId: string, utrNumber: string): Promise<{ data: { data: any } }> => {
-  try {
-    if (isProduction) {
-      const response = await defaultApiClient.post(`/payments/${paymentId}/verify-utr`, { utr_number: utrNumber });
-      return response;
-    }
-    
-    // For development/testing, return mock data
-    await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API delay
-    
-    return {
-      data: {
-        data: {
-          id: paymentId,
-          payment_status: 'pending_verification',
-          updated_at: new Date().toISOString(),
-          message: 'UTR submitted successfully and pending verification'
-        }
-      }
-    };
-  } catch (error) {
-    console.error(`Error verifying UTR for payment ${paymentId}:`, error);
-    throw error;
-  }
+export const submitUtrVerification = (paymentId: string, utrNumber: string) => {
+  return apiClient.post<any>('/payments/verify-utr', {
+    payment_id: paymentId,
+    utr_number: utrNumber
+  });
 };
 
 /**
  * Create a new payment
  */
 export const createPayment = async (paymentData: CreatePaymentInput): Promise<{ data: { data: any } }> => {
-  try {
-    if (isProduction) {
-      const response = await defaultApiClient.post('/payments', paymentData);
-      return response;
-    }
-    
-    // For development/testing, return mock data
-    await new Promise(resolve => setTimeout(resolve, 600)); // Simulate API delay
-    
-    return {
-      data: {
-        data: {
-          id: `payment-${Date.now()}`,
-          booking_id: paymentData.booking_id,
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          payment_status: 'pending',
-          payment_method: paymentData.payment_method,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      }
-    };
-  } catch (error) {
-    console.error('Error creating payment:', error);
-    throw error;
-  }
+  return apiClient.post<any>('/payments', paymentData);
 };
 
 /**
  * Get payment status
  */
-export const getPaymentStatus = async (paymentId: string): Promise<{ data: { data: any } }> => {
-  try {
-    if (isProduction) {
-      const response = await defaultApiClient.get(`/payments/${paymentId}/status`);
-      return response;
-    }
-    
-    // For development/testing, return mock data with random status
-    const statuses = ['pending', 'completed', 'pending_verification'];
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-    
-    return {
-      data: {
-        data: {
-          id: paymentId,
-          payment_status: randomStatus,
-          updated_at: new Date().toISOString()
-        }
-      }
-    };
-  } catch (error) {
-    console.error(`Error fetching payment status for ${paymentId}:`, error);
-    throw error;
-  }
+export const getPaymentStatus = (intentId: string) => {
+  return apiClient.get<any>(`/payments/status/${intentId}`);
 };
 
 /**
- * Initiate a payment for a booking
+ * Initialize payment and lock seats
+ * @param data Payment initialization data
  */
-export const initiatePayment = async (bookingId: string): Promise<{ success: boolean; message: string; redirectUrl?: string }> => {
-  try {
-    const response = await defaultApiClient.post(`/payments/${bookingId}/initiate`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error initiating payment for booking ${bookingId}:`, error);
-    throw error;
-  }
+export const initiatePayment = (data: {
+  eventId: string;
+  seatIds: string[];
+  userId: string;
+}) => {
+  return apiClient.post<any>('/payments/initiate', data);
 };
 
 /**
@@ -235,11 +193,18 @@ export const initiatePayment = async (bookingId: string): Promise<{ success: boo
  */
 export const verifyPayment = async (bookingId: string): Promise<{ success: boolean; status: string; message: string }> => {
   try {
-    const response = await defaultApiClient.get(`/payments/${bookingId}/verify`);
-    return response.data;
+    const response = await apiClient.post(`/payments/verify/${bookingId}`);
+    return {
+      success: true,
+      status: response.data.status,
+      message: response.data.message
+    };
   } catch (error) {
-    console.error(`Error verifying payment for booking ${bookingId}:`, error);
-    throw error;
+    return {
+      success: false,
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Failed to verify payment'
+    };
   }
 };
 
@@ -248,44 +213,16 @@ export const verifyPayment = async (bookingId: string): Promise<{ success: boole
  */
 export const recordUpiPayment = async (paymentData: UpiPaymentRequest): Promise<{ success: boolean; message: string }> => {
   try {
-    // Validate UTR number format
-    if (paymentData.utrNumber && !isValidUTRFormat(paymentData.utrNumber)) {
-      throw new Error('Invalid UTR number format. Please check and try again.');
-    }
-    
-    // Add request timestamp
-    const requestData = {
-      ...paymentData,
-      paymentDate: paymentData.paymentDate || new Date().toISOString(),
-      requestTimestamp: new Date().toISOString()
+    const response = await apiClient.post('/payments/upi', paymentData);
+    return {
+      success: true,
+      message: response.data.message
     };
-    
-    // Set timeout for payment requests to handle slow networks
-    const response = await defaultApiClient.post('/payments/upi', requestData, {
-      timeout: 10000 // 10 seconds timeout
-    });
-    
-    return response.data;
-  } catch (error: any) {
-    // Handle specific API errors
-    if (error.response?.data?.message) {
-      console.error(`Payment error: ${error.response.data.message}`);
-      throw new Error(error.response.data.message);
-    }
-    
-    // Handle network errors
-    if (error.code === 'ECONNABORTED') {
-      console.error('Payment request timed out');
-      throw new Error('Payment request timed out. Please try again.');
-    }
-    
-    if (!navigator.onLine) {
-      console.error('No internet connection');
-      throw new Error('No internet connection. Please check your network and try again.');
-    }
-    
-    console.error(`Error recording UPI payment for booking ${paymentData.bookingId}:`, error);
-    throw error;
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to record payment'
+    };
   }
 };
 
@@ -304,25 +241,42 @@ const isValidUTRFormat = (utr: string): boolean => {
  */
 export const getActiveUpiSettings = async (): Promise<UpiSettings> => {
   try {
-    if (isProduction) {
-      const response = await defaultApiClient.get('/payments/upi-settings/active');
-      return response.data.upiSettings;
+    // First attempt to use the dedicated public endpoint that doesn't require authentication
+    console.log('Fetching UPI settings from public endpoint');
+    const response = await apiClient.get('/payments/upi-settings');
+
+    if (response.data) {
+      console.log('Successfully fetched UPI settings from public endpoint');
+      return response.data;
     }
-    
-    // For development/testing, return mock data
-    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate API delay
-    
-    return {
-      id: '1',
-      upivpa: 'business@ybl',
-      discountamount: 50,
-      isactive: true,
-      created_at: '2023-01-10T10:00:00',
-      updated_at: '2023-01-15T14:30:00'
-    };
+    throw new Error('Invalid response format from public endpoint');
   } catch (error) {
-    console.error('Error fetching active UPI settings:', error);
-    throw error;
+    console.error('Error fetching UPI settings from public endpoint:', error);
+
+    // If authentication error (401) or other error, try the admin endpoint
+    try {
+      console.log('Attempting to fetch UPI settings from admin endpoint');
+      const fallbackResponse = await apiClient.get('/admin/upi-settings/active');
+
+      if (fallbackResponse.data) {
+        console.log('Successfully fetched UPI settings from admin endpoint');
+        return fallbackResponse.data;
+      }
+      throw new Error('Invalid response format from admin endpoint');
+    } catch (fallbackError) {
+      console.error('Error fetching UPI settings from admin endpoint:', fallbackError);
+
+      // Return a default UPI setting as last resort
+      console.log('Using default UPI setting as fallback');
+      return {
+        id: 'default',
+        upivpa: '9122036484@hdfc', // Using the required UPI ID as fallback
+        discountamount: 0,
+        isactive: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
   }
 };
 
@@ -331,62 +285,18 @@ export const getActiveUpiSettings = async (): Promise<UpiSettings> => {
  */
 export const getAllUpiSettings = async (): Promise<UpiSetting[]> => {
   try {
-    if (isProduction) {
-      const response = await axios.get(`${API_BASE_URL}/admin/payment-settings/upi`);
-      return response.data;
-    }
-    
-    // For development/testing, return mock data
-    await new Promise(resolve => setTimeout(resolve, 400)); // Simulate API delay
-    
-    return [
-      {
-        id: '1',
-        upivpa: 'business@ybl',
-        discountamount: 50,
-        isactive: true,
-        created_at: '2023-01-10T10:00:00',
-        updated_at: '2023-01-15T14:30:00'
-      },
-      {
-        id: '2',
-        upivpa: 'secondaryupi@okaxis',
-        discountamount: 0,
-        isactive: false,
-        created_at: '2023-02-20T09:15:00',
-        updated_at: '2023-02-20T09:15:00'
-      },
-      {
-        id: '3',
-        upivpa: 'promocodes@paytm',
-        discountamount: 100,
-        isactive: false,
-        created_at: '2023-03-05T15:45:00',
-        updated_at: '2023-03-10T11:20:00'
-      }
-    ];
+    const response = await apiClient.get('/admin/upi-settings');
+    return response.data.data;
   } catch (error) {
-    console.error('Error fetching UPI settings:', error);
+    console.error('Error fetching all UPI settings:', error);
     throw error;
   }
 };
 
 export const getUpiSettingById = async (id: string): Promise<UpiSetting> => {
   try {
-    if (isProduction) {
-      const response = await axios.get(`${API_BASE_URL}/admin/payment-settings/upi/${id}`);
-      return response.data;
-    }
-    
-    // For development/testing, return mock data
-    const settings = await getAllUpiSettings();
-    const setting = settings.find(s => s.id === id);
-    
-    if (!setting) {
-      throw new Error('UPI setting not found');
-    }
-    
-    return setting;
+    const response = await apiClient.get(`/admin/upi-settings/${id}`);
+    return response.data.data;
   } catch (error) {
     console.error(`Error fetching UPI setting ${id}:`, error);
     throw error;
@@ -395,20 +305,8 @@ export const getUpiSettingById = async (id: string): Promise<UpiSetting> => {
 
 export const createUpiSetting = async (data: CreateUpiSettingInput): Promise<UpiSetting> => {
   try {
-    if (isProduction) {
-      const response = await axios.post(`${API_BASE_URL}/admin/payment-settings/upi`, data);
-      return response.data;
-    }
-    
-    // For development/testing, just log the action and return mock data
-    console.log('Creating UPI setting:', data);
-    
-    return {
-      id: `new-${Date.now()}`,
-      ...data,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    const response = await apiClient.post('/admin/upi-settings', data);
+    return response.data.data;
   } catch (error) {
     console.error('Error creating UPI setting:', error);
     throw error;
@@ -417,27 +315,8 @@ export const createUpiSetting = async (data: CreateUpiSettingInput): Promise<Upi
 
 export const updateUpiSetting = async (id: string, data: UpdateUpiSettingInput): Promise<UpiSetting> => {
   try {
-    if (isProduction) {
-      const response = await axios.put(`${API_BASE_URL}/admin/payment-settings/upi/${id}`, data);
-      return response.data;
-    }
-    
-    // For development/testing, just log the action
-    console.log(`Updating UPI setting ${id}:`, data);
-    
-    // Return mock updated data
-    const settings = await getAllUpiSettings();
-    const existingSetting = settings.find(s => s.id === id);
-    
-    if (!existingSetting) {
-      throw new Error('UPI setting not found');
-    }
-    
-    return {
-      ...existingSetting,
-      ...data,
-      updated_at: new Date().toISOString()
-    };
+    const response = await apiClient.put(`/admin/upi-settings/${id}`, data);
+    return response.data.data;
   } catch (error) {
     console.error(`Error updating UPI setting ${id}:`, error);
     throw error;
@@ -446,13 +325,7 @@ export const updateUpiSetting = async (id: string, data: UpdateUpiSettingInput):
 
 export const deleteUpiSetting = async (id: string): Promise<{ success: boolean }> => {
   try {
-    if (isProduction) {
-      await axios.delete(`${API_BASE_URL}/admin/payment-settings/upi/${id}`);
-    }
-    
-    // For development/testing, just log the action
-    console.log(`Deleting UPI setting ${id}`);
-    
+    await apiClient.delete(`/admin/upi-settings/${id}`);
     return { success: true };
   } catch (error) {
     console.error(`Error deleting UPI setting ${id}:`, error);
@@ -468,30 +341,88 @@ export const deleteUpiSetting = async (id: string): Promise<{ success: boolean }
  */
 export const generateUpiQrCode = async (amount: number, reference: string): Promise<{ qrUrl: string, upiUrl: string }> => {
   try {
-    if (isProduction) {
-      const response = await axios.post(`${API_BASE_URL}/payments/generate-upi-qr`, {
-        amount,
-        reference
-      });
-      return response.data;
+    // First try to get UPI settings
+    let upiId;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    try {
+      attempts++;
+      console.log(`Attempt ${attempts}: Fetching UPI settings...`);
+      const upiSettings = await getActiveUpiSettings();
+
+      if (upiSettings && upiSettings.upivpa) {
+        upiId = upiSettings.upivpa;
+        console.log(`Successfully fetched UPI ID: ${upiId}`);
+      } else {
+        throw new Error('Invalid UPI settings format');
+      }
+    } catch (error) {
+      console.warn('Could not fetch UPI settings:', error);
+      // Use the required UPI ID as fallback
+      upiId = '9122036484@hdfc';
+      console.log(`Using fallback UPI ID: ${upiId}`);
     }
-    
-    // For development/testing, generate a UPI deep link
-    const settings = await getPaymentSettings();
-    const vpa = settings.data.data.upi.vpa || 'eventia@okicici';
-    const merchantName = settings.data.data.upi.merchant_name || 'Eventia Tickets';
-    
-    // Create proper UPI intent URL according to NPCI standards
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(merchantName)}&am=${amount}&tr=${reference}&cu=INR&tn=Booking%20${reference}`;
-    
-    // In production, this would return a real QR code image URL and UPI deep link
-    return {
-      qrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`,
-      upiUrl: upiUrl
-    };
+
+    // Format: upi://pay?pa=[UPI_ID]&pn=[NAME]&am=[AMOUNT]&cu=[CURRENCY]&tn=[NOTE]
+    const upiUrl = `upi://pay?pa=${upiId}&pn=EventiaApp&am=${amount}&cu=INR&tn=EventBooking-${reference}`;
+    console.log(`Generated UPI URL: ${upiUrl}`);
+
+    // Try multiple methods to generate QR code
+    let qrUrl = '';
+
+    // Method 1: Try backend API
+    try {
+      attempts++;
+      console.log(`Attempt ${attempts}: Using backend API for QR generation...`);
+      const response = await apiClient.post('/payments/generate-qr', {
+        data: upiUrl
+      }, {
+        timeout: 5000 // 5-second timeout to prevent long waits
+      });
+
+      // If we successfully got a QR code URL from the backend
+      if (response.data?.data?.qrCodeUrl) {
+        qrUrl = response.data.data.qrCodeUrl;
+        console.log(`Successfully generated QR from backend API: ${qrUrl.substring(0, 50)}...`);
+        return { qrUrl, upiUrl };
+      }
+    } catch (error) {
+      console.warn('Backend QR generation failed:', error);
+    }
+
+    // Method 2: Try public API
+    try {
+      attempts++;
+      console.log(`Attempt ${attempts}: Using public QR service...`);
+      // Create QR code with a public service
+      const encodedUpiUrl = encodeURIComponent(upiUrl);
+      qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedUpiUrl}`;
+
+      // Immediately return the URL without trying to validate it in offline mode
+      console.log(`Generated QR code URL: ${qrUrl}`);
+      return { qrUrl, upiUrl };
+    } catch (error) {
+      console.warn('Public QR service failed:', error);
+    }
+
+    // Final fallback
+    const encodedUpiUrl = encodeURIComponent(upiUrl);
+    qrUrl = `https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=${encodedUpiUrl}`;
+    console.log(`Using final fallback QR URL: ${qrUrl}`);
+    return { qrUrl, upiUrl };
   } catch (error) {
     console.error('Error generating UPI QR code:', error);
-    throw error;
+
+    // Final fallback - generate a basic UPI URL and QR code even if everything else fails
+    const fallbackUpiId = '9122036484@hdfc'; // Using the required UPI ID as ultimate fallback
+    const fallbackUpiUrl = `upi://pay?pa=${fallbackUpiId}&pn=EventiaApp&am=${amount}&cu=INR&tn=EventBooking-${reference}`;
+    const fallbackQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(fallbackUpiUrl)}`;
+
+    return {
+      qrUrl: fallbackQrUrl,
+      upiUrl: fallbackUpiUrl
+    };
   }
 };
 
@@ -501,92 +432,71 @@ export const generateUpiQrCode = async (amount: number, reference: string): Prom
  * @param reference - Reference ID (booking ID)
  * @param appPackage - App package name (e.g., 'com.phonepe.app')
  */
-export const getUpiAppDeepLink = async (
-  amount: number, 
-  reference: string, 
-  appPackage: string
-): Promise<string> => {
+export const getUpiAppDeepLink = async (amount: number, reference: string, appPackage: string): Promise<string> => {
   try {
-    const { upiUrl } = await generateUpiQrCode(amount, reference);
-    
-    // Create app-specific deep links
-    switch(appPackage) {
-      case 'com.google.android.apps.nbu.paisa.user': // Google Pay
-        return `gpay://upi/pay?pa=${encodeURIComponent('eventia@okicici')}&pn=EventiaTickets&am=${amount}&tr=${reference}&cu=INR`;
-      case 'com.phonepe.app': // PhonePe
-        return `phonepe://${upiUrl.substring(6)}`;
-      case 'net.one97.paytm': // Paytm
-        return `paytmmp://${upiUrl.substring(6)}`;
-      default:
-        return upiUrl;
+    const response = await getPaymentSettings();
+    let upiId = 'eventia@okicici'; // Default fallback
+
+    if (response.data && response.data.upivpa) {
+      upiId = response.data.upivpa;
     }
+
+    // Format base UPI URL
+    const baseUpiUrl = `upi://pay?pa=${upiId}&pn=EventiaApp&am=${amount}&cu=INR&tn=EventBooking-${reference}`;
+
+    // Add app package for specific app deep linking
+    if (appPackage) {
+      return `${baseUpiUrl}&ap=${appPackage}`;
+    }
+
+    return baseUpiUrl;
   } catch (error) {
-    console.error('Error generating UPI app deep link:', error);
-    throw error;
+    // Use fallback UPI ID if there's an error
+    const fallbackUrl = `upi://pay?pa=eventia@okicici&pn=EventiaApp&am=${amount}&cu=INR&tn=EventBooking-${reference}`;
+    return appPackage ? `${fallbackUrl}&ap=${appPackage}` : fallbackUrl;
   }
 };
 
 /**
- * Create a Razorpay payment order
+ * Initiates a UPI payment session
+ * @param data Payment initiation data
+ * @returns Payment session details
  */
-export const createRazorpayOrder = async (
-  bookingId: string, 
-  amount: number
-): Promise<{ orderId: string; key: string }> => {
-  try {
-    if (isProduction) {
-      const response = await defaultApiClient.post('/payments/razorpay/create-order', {
-        bookingId,
-        amount
-      });
-      return response.data;
-    }
-    
-    // For development/testing, return mock data
-    console.log(`Creating Razorpay order for booking ${bookingId} with amount ${amount}`);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    return {
-      orderId: `order_${Date.now()}`,
-      key: 'rzp_test_YOUR_KEY_ID' // This would be your actual Razorpay key in production
-    };
-  } catch (error) {
-    console.error('Error creating Razorpay order:', error);
-    throw error;
-  }
+export const initiateUpiPayment = async (data: {
+  eventId: string;
+  seatIds: string[];
+  userId: string;
+  amount?: number;
+}): Promise<PaymentSessionResponse> => {
+  const response = await apiClient.post<any>('/upi-payments/initiate', data);
+  return response.data.data;
 };
 
 /**
- * Verify Razorpay payment
+ * Gets the status of a UPI payment session
+ * @param sessionId Payment session ID
+ * @returns Payment session details
  */
-export const verifyRazorpayPayment = async (
-  paymentId: string, 
-  orderId: string, 
-  signature: string
-): Promise<{ verified: boolean }> => {
+export const getUpiPaymentStatus = async (sessionId: string): Promise<PaymentSession> => {
+  const response = await apiClient.get<any>(`/upi-payments/status/${sessionId}`);
+  return response.data.data;
+};
+
+/**
+ * Confirms a UPI payment with UTR number
+ * @param sessionId Payment session ID
+ * @param utrNumber UTR number
+ * @returns Confirmation result
+ */
+export const confirmUpiPayment = async (sessionId: string, utrNumber: string): Promise<any> => {
   try {
-    if (isProduction) {
-      const response = await defaultApiClient.post('/payments/razorpay/verify', {
-        razorpay_payment_id: paymentId,
-        razorpay_order_id: orderId,
-        razorpay_signature: signature
-      });
-      return response.data;
-    }
-    
-    // For development/testing, return mock data
-    console.log(`Verifying Razorpay payment ${paymentId} for order ${orderId}`);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return {
-      verified: true
-    };
+    const response = await apiClient.post(`/upi-payments/confirm`, {
+      sessionId,
+      utrNumber
+    });
+    return response.data;
   } catch (error) {
-    console.error('Error verifying Razorpay payment:', error);
+    console.error('Error confirming UPI payment:', error);
     throw error;
   }
 };
@@ -607,7 +517,8 @@ export default {
   submitUtrVerification,
   createPayment,
   getPaymentStatus,
-  createRazorpayOrder,
-  verifyRazorpayPayment,
+  initiateUpiPayment,
+  getUpiPaymentStatus,
+  confirmUpiPayment,
   getUpiAppDeepLink
 };

@@ -1,52 +1,101 @@
-import axios from 'axios';
+/**
+ * API Client implementation
+ */
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
+import { API_BASE_URL } from '../../config';
+import { ApiResponse, ApiError, RequestOptions } from './types';
 
-// Use VITE_API_URL for Vite-based applications
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-
-export const apiClient = axios.create({
+// Create the default axios instance
+const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-  },
+    'Accept': 'application/json',
+  }
 });
 
-// Add request interceptor
-apiClient.interceptors.request.use(
+// Request interceptor
+axiosInstance.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or cookie
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    // Get the token from localStorage
+    const token = localStorage.getItem('auth_token');
     
-    // If token exists, add to headers
+    // If token exists, add it to the request headers
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse) => response.data,
+  (error: AxiosError) => {
+    // Create standardized error object
+    const apiError: ApiError = {
+      status: error.response?.status || 500,
+      code: (error.response?.data as any)?.code || 'UNKNOWN_ERROR',
+      message: (error.response?.data as any)?.message || error.message || 'An unknown error occurred',
+      details: (error.response?.data as any)?.details || undefined
+    };
+    
+    return Promise.reject(apiError);
   }
 );
 
-// Add response interceptor
-apiClient.interceptors.response.use(
-  (response) => {
-    return response;
+// API client implementation
+export const apiClient = {
+  /**
+   * Performs a GET request
+   */
+  get: async <T>(url: string, options?: RequestOptions): Promise<T> => {
+    const config: AxiosRequestConfig = {
+      ...options,
+    };
+    return axiosInstance.get<any, T>(url, config);
   },
-  (error) => {
-    // Handle 401 Unauthorized globally
-    if (error.response && error.response.status === 401) {
-      // Clear stored tokens
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-      }
-      
-      // Redirect to home page if in browser
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-    }
-    
-    return Promise.reject(error);
+  
+  /**
+   * Performs a POST request
+   */
+  post: async <T>(url: string, data: any, options?: RequestOptions): Promise<T> => {
+    const config: AxiosRequestConfig = {
+      ...options,
+    };
+    return axiosInstance.post<any, T>(url, data, config);
+  },
+  
+  /**
+   * Performs a PUT request
+   */
+  put: async <T>(url: string, data: any, options?: RequestOptions): Promise<T> => {
+    const config: AxiosRequestConfig = {
+      ...options,
+    };
+    return axiosInstance.put<any, T>(url, data, config);
+  },
+  
+  /**
+   * Performs a PATCH request
+   */
+  patch: async <T>(url: string, data: any, options?: RequestOptions): Promise<T> => {
+    const config: AxiosRequestConfig = {
+      ...options,
+    };
+    return axiosInstance.patch<any, T>(url, data, config);
+  },
+  
+  /**
+   * Performs a DELETE request
+   */
+  delete: async <T>(url: string, options?: RequestOptions): Promise<T> => {
+    const config: AxiosRequestConfig = {
+      ...options,
+    };
+    return axiosInstance.delete<any, T>(url, config);
   }
-); 
+}; 

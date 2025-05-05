@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { defaultApiClient } from '@/services/api/apiUtils';
-import { refreshToken, login as apiLogin, AuthResponse } from '@/services/api/authApi';
-import secureStorage from '@/utils/secureStorage';
+import { getCurrentUser, logout as apiLogout, login as apiLogin, AuthResponse } from '@/services/api/authApi';
 
 type AdminUser = {
   id: string;
@@ -12,81 +11,70 @@ type AdminUser = {
 
 interface AuthContextType {
   user: AdminUser;
-  accessToken: string;
+  isLoading: boolean;
   persist: boolean;
   setUser: React.Dispatch<React.SetStateAction<AdminUser>>;
-  setAccessToken: React.Dispatch<React.SetStateAction<string>>;
   setPersist: React.Dispatch<React.SetStateAction<boolean>>;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<boolean>;
 }
 
 const defaultValue: AuthContextType = {
   user: null,
-  accessToken: '',
+  isLoading: true,
   persist: false,
   setUser: () => {},
-  setAccessToken: () => {},
   setPersist: () => {},
   isAuthenticated: false,
-  login: async () => ({ user: { id: '', email: '', name: '', role: 'admin' }, accessToken: '' }),
-  logout: async () => {}
+  login: async () => ({ user: { id: '', email: '', name: '', role: 'admin' } }),
+  logout: async () => {},
+  refreshSession: async () => false
 };
 
 const AuthContext = createContext<AuthContextType>(defaultValue);
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [user, setUser] = useState<AdminUser>(() => {
-    // Try to get user from storage
-    const sessionUser = sessionStorage.getItem('admin_user');
-    
-    if (sessionUser) {
-      try {
-        return JSON.parse(sessionUser);
-      } catch (e) {
-        console.error('Failed to parse stored user data:', e);
-      }
-    }
-    
-    return null;
-  });
+  const [user, setUser] = useState<AdminUser>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const [accessToken, setAccessToken] = useState<string>(() => {
-    // Get token from secure storage
-    const secureToken = secureStorage.getItem('admin_token');
-    
-    if (secureToken) {
-      return secureToken;
-    }
-    
-    return '';
-  });
-
-  // Add persist state to remember user on page reload
+  // Add persist state to remember user preference on page reload
   const [persist, setPersist] = useState<boolean>(() => {
     const persistValue = localStorage.getItem('persist');
     return persistValue === 'true';
   });
 
-  // Update axios authorization header when accessToken changes
+  // Validate session when the component mounts
   useEffect(() => {
-    if (accessToken) {
-      defaultApiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      
-      // Save token and user data
-      secureStorage.setItem('admin_token', accessToken);
-      if (user) {
-        sessionStorage.setItem('admin_user', JSON.stringify(user));
+    const validateSession = async () => {
+      setIsLoading(true);
+      try {
+        // Use the getCurrentUser endpoint to validate session
+        const userData = await getCurrentUser();
+        
+        // Check if the user is an admin
+        if (userData.role?.toLowerCase() === 'admin') {
+          setUser({
+            id: userData.id,
+            email: userData.email,
+            name: userData.name,
+            role: 'admin'
+          });
+        } else {
+          // If user is not an admin, set user to null
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Session validation error:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      delete defaultApiClient.defaults.headers.common['Authorization'];
-      
-      // Remove stored tokens
-      secureStorage.removeItem('admin_token');
-      sessionStorage.removeItem('admin_user');
-    }
-  }, [accessToken, user]);
+    };
+    
+    validateSession();
+  }, []);
 
   // Save persist preference
   useEffect(() => {
@@ -97,10 +85,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const login = async (email: string, password: string): Promise<AuthResponse> => {
     const response = await apiLogin(email, password);
     
-    // Only set user and token if the user is an admin
-    if (response.user.role === 'admin') {
+    // Only set user if the user is an admin
+    if (response.user.role?.toLowerCase() === 'admin') {
       setUser(response.user as AdminUser);
-      setAccessToken(response.accessToken);
     }
     
     return response;
@@ -109,33 +96,56 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Add a logout function to the context
   const logout = async () => {
     try {
-      // Call the logout endpoint to invalidate the token
-      await defaultApiClient.post('/auth/logout');
+      // Call the logout endpoint to invalidate the cookie
+      await apiLogout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       // Always clear local state regardless of API success/failure
       setUser(null);
-      setAccessToken('');
-      secureStorage.removeItem('admin_token');
-      sessionStorage.removeItem('admin_user');
-      // Don't clear persist setting on logout
     }
   };
 
-  const isAuthenticated = !!accessToken;
+  // Add a function to refresh the session
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      // Get current user data
+      const userData = await getCurrentUser();
+      
+      // Check if the user is an admin
+      if (userData.role?.toLowerCase() === 'admin') {
+        setUser({
+          id: userData.id,
+          email: userData.email,
+          name: userData.name,
+          role: 'admin'
+        });
+        return true;
+      } else {
+        // If user is not an admin, set user to null
+        setUser(null);
+        return false;
+      }
+    } catch (error) {
+      console.error('Session refresh error:', error);
+      setUser(null);
+      return false;
+    }
+  };
+
+  const isAuthenticated = !!user;
 
   return (
     <AuthContext.Provider value={{
       user,
-      accessToken,
+      isLoading,
       persist,
       setUser,
-      setAccessToken,
       setPersist,
       isAuthenticated,
       login,
-      logout
+      logout,
+      refreshSession
     }}>
       {children}
     </AuthContext.Provider>

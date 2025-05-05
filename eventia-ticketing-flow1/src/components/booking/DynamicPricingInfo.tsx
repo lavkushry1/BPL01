@@ -48,41 +48,19 @@ const DynamicPricingInfo: React.FC<DynamicPricingInfoProps> = ({
       try {
         setLoading(true);
         
-        // Mock API call to the dynamic pricing service
-        await new Promise(resolve => setTimeout(resolve, 700));
+        const response = await fetch(
+          `/api/events/${eventId}/tickets/${ticketCategoryId}/price?quantity=${quantity}`
+        );
         
-        // Mock price calculation data
-        const mockPriceData: PriceCalculation = {
-          basePrice: 2000,
-          finalPrice: 1760,
-          adjustments: [
-            {
-              ruleId: 'rule-1',
-              ruleName: t('dynamicPricing.earlyBird', 'Early Bird Discount'),
-              adjustmentType: 'PERCENTAGE' as const,
-              adjustmentValue: 10,
-              appliedAmount: 200
-            },
-            {
-              ruleId: 'rule-2',
-              ruleName: t('dynamicPricing.inventoryDiscount', 'High Inventory Discount'),
-              adjustmentType: 'PERCENTAGE' as const,
-              adjustmentValue: 5,
-              appliedAmount: 90
-            },
-            {
-              ruleId: 'rule-3',
-              ruleName: t('dynamicPricing.bulkPurchase', 'Bulk Purchase'),
-              adjustmentType: 'FIXED' as const,
-              adjustmentValue: quantity > 1 ? 50 * quantity : 0,
-              appliedAmount: quantity > 1 ? 50 * quantity : 0
-            }
-          ].filter(adj => adj.appliedAmount > 0),
-          discountPercentage: 12,
-          calculationTime: new Date()
-        };
+        if (!response.ok) {
+          throw new Error('Failed to fetch pricing data');
+        }
         
-        setPriceData(mockPriceData);
+        const data = await response.json();
+        setPriceData({
+          ...data,
+          calculationTime: new Date(data.calculationTime || new Date())
+        });
         setError(null);
       } catch (err) {
         console.error('Error fetching dynamic pricing data:', err);
@@ -170,7 +148,7 @@ const DynamicPricingInfo: React.FC<DynamicPricingInfoProps> = ({
             <div className="font-medium">{formatCurrency(basePrice, 'INR')}</div>
           </div>
           
-          {expanded && adjustments.length > 0 && (
+          {expanded && adjustments && adjustments.length > 0 && (
             <div className="space-y-2 py-2 px-3 bg-muted/30 rounded-md text-sm">
               {adjustments.map((adjustment) => (
                 <div key={adjustment.ruleId} className="flex justify-between items-center">
@@ -248,4 +226,4 @@ const DynamicPricingInfo: React.FC<DynamicPricingInfoProps> = ({
   );
 };
 
-export default DynamicPricingInfo; 
+export default DynamicPricingInfo;

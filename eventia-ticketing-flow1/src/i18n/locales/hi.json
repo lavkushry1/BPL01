@@ -21,7 +21,20 @@
     "filter": "फ़िल्टर",
     "venue": "स्थान",
     "date": "तारीख",
-    "backToEvents": "इवेंट्स पर वापस जाएं"
+    "backToEvents": "इवेंट्स पर वापस जाएं",
+    "login": "लॉगिन",
+    "fullName": "पूरा नाम",
+    "email": "ईमेल",
+    "phone": "फोन",
+    "address": "पता",
+    "city": "शहर",
+    "pincode": "पिनकोड",
+    "errorNameLength": "नाम कम से कम 3 अक्षर का होना चाहिए",
+    "errorInvalidEmail": "कृपया एक वैध ईमेल पता दर्ज करें",
+    "errorPhoneLength": "फोन नंबर 10-15 अंकों का होना चाहिए",
+    "errorAddressLength": "पता कम से कम 5 अक्षर का होना चाहिए",
+    "errorCityLength": "शहर का नाम कम से कम 2 अक्षर का होना चाहिए",
+    "errorPincodeLength": "पिनकोड कम से कम 6 अंक का होना चाहिए"
   },
   "navbar": {
     "events": "इवेंट्स",
@@ -71,7 +84,8 @@
     "tickets": "टिकट",
     "available": "उपलब्ध",
     "quantity": "मात्रा",
-    "proceedToPayment": "भुगतान के लिए आगे बढ़ें"
+    "proceedToPayment": "भुगतान के लिए आगे बढ़ें",
+    "similarEvents": "समान इवेंट्स"
   },
   "checkout": {
     "title": "चेकआउट",
@@ -85,7 +99,28 @@
     "venue": "स्थान",
     "tickets": "टिकट",
     "total": "कुल",
-    "proceedToPayment": "भुगतान के लिए आगे बढ़ें"
+    "proceedToPayment": "भुगतान के लिए आगे बढ़ें",
+    "enterFullName": "अपना पूरा नाम दर्ज करें",
+    "enterEmail": "अपना ईमेल पता दर्ज करें",
+    "enterPhone": "अपना फोन नंबर दर्ज करें",
+    "enterAddress": "अपना पता दर्ज करें",
+    "enterCity": "अपना शहर दर्ज करें",
+    "enterPincode": "अपना पिनकोड दर्ज करें",
+    "specialInstructions": "विशेष निर्देश",
+    "enterSpecialInstructions": "यहां कोई विशेष निर्देश या नोट्स जोड़ें",
+    "sendUpdates": "मुझे ईमेल और एसएमएस के माध्यम से मेरे ऑर्डर के बारे में अपडेट भेजें",
+    "completeAllFields": "कृपया सभी आवश्यक फील्ड भरें",
+    "invalidEmail": "कृपया एक वैध ईमेल पता दर्ज करें",
+    "invalidPhone": "कृपया एक वैध 10 अंकों का फोन नंबर दर्ज करें",
+    "errorSavingDetails": "डिलीवरी विवरण सहेजने में त्रुटि। कृपया पुनः प्रयास करें.",
+    "noBookingData": "कोई बुकिंग डेटा नहीं मिला। कृपया इवेंट्स पेज से अपनी बुकिंग प्रक्रिया शुरू करें।",
+    "noBookingDataDesc": "कृपया इवेंट्स पेज से अपनी बुकिंग प्रक्रिया शुरू करें।",
+    "quantity": "मात्रा",
+    "each": "प्रत्येक",
+    "totalAmount": "कुल राशि",
+    "payment": "भुगतान",
+    "confirmation": "पुष्टिकरण",
+    "paymentError": "भुगतान प्रक्रिया में त्रुटि हुई। कृपया पुनः प्रयास करें।"
   },
   "categories": {
     "cricket": "क्रिकेट",
@@ -143,5 +178,10 @@
     "previewCta": "अब जब आपने स्थल का पूर्वावलोकन कर लिया है, तो अपनी सीटें सुरक्षित करें इससे पहले कि वे बिक जाएं!",
     "selectedSection": "चयनित सेक्शन",
     "exploreOtherSections": "अन्य सेक्शन का अन्वेषण करें"
+  },
+  "booking": {
+    "continue_random_seats": "यादृच्छिक सीटों के साथ जारी रखें",
+    "total_tickets": "कुल टिकट",
+    "total_amount": "कुल राशि"
   }
 }

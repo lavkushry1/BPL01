@@ -7,7 +7,6 @@ exports.TicketController = void 0;
 const ticket_service_1 = require("../services/ticket.service");
 const apiError_1 = require("../utils/apiError");
 const apiResponse_1 = require("../utils/apiResponse");
-const zod_1 = require("zod");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 /**
@@ -21,15 +20,9 @@ class TicketController {
      */
     static async generateTickets(req, res, next) {
         try {
-            const schema = zod_1.z.object({
-                booking_id: zod_1.z.string().uuid(),
-                event_id: zod_1.z.string().uuid(),
-                user_id: zod_1.z.string().uuid(),
-                email: zod_1.z.string().email().optional(),
-                send_email: zod_1.z.boolean().optional().default(true)
-            });
-            const validatedData = schema.parse(req.body);
-            const ticketIds = await ticket_service_1.TicketService.generateTickets(validatedData.booking_id);
+            const { booking_id } = req.body;
+            // Use static method from TicketService
+            const ticketIds = await ticket_service_1.TicketService.generateTickets(booking_id);
             if (ticketIds.length === 0) {
                 throw new apiError_1.ApiError(400, 'Failed to generate tickets');
             }
@@ -37,10 +30,10 @@ class TicketController {
             const tickets = await Promise.all(ticketIds.map(async (id) => {
                 return (await req.db('tickets').where('id', id).first());
             }));
-            apiResponse_1.ApiResponse.success(res, {
+            apiResponse_1.ApiResponse.success(res, 201, 'Tickets generated successfully', {
                 tickets,
                 count: tickets.length
-            }, 'Tickets generated successfully', 201);
+            });
         }
         catch (error) {
             next(error);
@@ -57,7 +50,7 @@ class TicketController {
             if (!ticket) {
                 throw new apiError_1.ApiError(404, 'Ticket not found');
             }
-            apiResponse_1.ApiResponse.success(res, ticket, 'Ticket retrieved successfully');
+            apiResponse_1.ApiResponse.success(res, 200, 'Ticket retrieved successfully', ticket);
         }
         catch (error) {
             next(error);
@@ -69,9 +62,12 @@ class TicketController {
      */
     static async getTicketsByBookingId(req, res, next) {
         try {
-            const { bookingId } = req.params;
-            const tickets = await req.db('tickets').where('booking_id', bookingId);
-            apiResponse_1.ApiResponse.success(res, tickets, 'Tickets retrieved successfully');
+            const { booking_id } = req.params;
+            const tickets = await req.db('tickets').where('booking_id', booking_id);
+            apiResponse_1.ApiResponse.success(res, 200, 'Tickets retrieved successfully', {
+                tickets,
+                count: tickets.length
+            });
         }
         catch (error) {
             next(error);
@@ -105,7 +101,7 @@ class TicketController {
             });
             // Get updated ticket
             const updatedTicket = await req.db('tickets').where('id', id).first();
-            apiResponse_1.ApiResponse.success(res, updatedTicket, 'Ticket cancelled successfully');
+            apiResponse_1.ApiResponse.success(res, 200, 'Ticket cancelled successfully', updatedTicket);
         }
         catch (error) {
             next(error);
@@ -117,17 +113,10 @@ class TicketController {
      */
     static async checkInTicket(req, res, next) {
         try {
-            const schema = zod_1.z.object({
-                ticket_id: zod_1.z.string().uuid(),
-                event_id: zod_1.z.string().uuid(),
-                check_in_location: zod_1.z.string().optional(),
-                device_id: zod_1.z.string().optional(),
-                notes: zod_1.z.string().optional()
-            });
-            const validatedData = schema.parse(req.body);
-            const result = await ticket_service_1.TicketService.checkInTicket(validatedData.ticket_id, validatedData.event_id, validatedData.check_in_location);
+            const { ticket_id, event_id, check_in_location } = req.body;
+            const result = await ticket_service_1.TicketService.checkInTicket(ticket_id, event_id, check_in_location);
             if (result.success) {
-                apiResponse_1.ApiResponse.success(res, result.ticket, result.message);
+                apiResponse_1.ApiResponse.success(res, 200, result.message, result.ticket);
             }
             else {
                 throw new apiError_1.ApiError(400, result.message);
@@ -144,15 +133,15 @@ class TicketController {
     static async verifyTicket(req, res, next) {
         try {
             const { id } = req.params;
-            const { event_id } = req.query;
-            if (!event_id || typeof event_id !== 'string') {
+            const { event_id } = req.body;
+            if (!event_id) {
                 throw new apiError_1.ApiError(400, 'Event ID is required');
             }
             const result = await ticket_service_1.TicketService.verifyTicket(id, event_id);
-            apiResponse_1.ApiResponse.success(res, {
+            apiResponse_1.ApiResponse.success(res, 200, result.message, {
                 valid: result.valid,
                 ticket: result.ticket
-            }, result.message);
+            });
         }
         catch (error) {
             next(error);
@@ -172,10 +161,10 @@ class TicketController {
             }
             // In a real implementation, you would generate and send the ticket email here
             // For now, we'll just acknowledge the request
-            apiResponse_1.ApiResponse.success(res, {
-                ticket_id: id,
-                sent_to: email || 'registered email'
-            }, 'Ticket resent successfully');
+            apiResponse_1.ApiResponse.success(res, 200, 'Ticket resent successfully', {
+                sent: true,
+                email: email || 'default@email.com'
+            });
         }
         catch (error) {
             next(error);
@@ -187,9 +176,14 @@ class TicketController {
      * @returns Promise with PDF path
      */
     static async generateTicketPDF(ticketId) {
-        // Use an object format to avoid type issues
-        // @ts-ignore
-        return ticket_service_1.TicketService.generatePDF({ id: String(ticketId) });
+        try {
+            // Use TicketService to generate PDF
+            return await ticket_service_1.TicketService.generatePDF(ticketId);
+        }
+        catch (error) {
+            console.error('Error generating ticket PDF:', error);
+            throw error;
+        }
     }
     /**
      * Download ticket as PDF
@@ -224,16 +218,16 @@ class TicketController {
      */
     static async getEventTickets(req, res, next) {
         try {
-            const { eventId } = req.params;
-            const { page = '1', limit = '50', status } = req.query;
+            const { event_id } = req.params;
+            const { status, page = 1, limit = 50 } = req.query;
             const pageNum = parseInt(page, 10);
             const limitNum = parseInt(limit, 10);
-            const query = req.db('tickets').where('event_id', eventId);
+            const query = req.db('tickets').where('event_id', event_id);
             if (status && typeof status === 'string') {
                 query.where('status', status);
             }
             // Get total count
-            const countQuery = req.db('tickets').where('event_id', eventId);
+            const countQuery = req.db('tickets').where('event_id', event_id);
             if (status && typeof status === 'string') {
                 countQuery.where('status', status);
             }
@@ -243,12 +237,14 @@ class TicketController {
                 .orderBy('created_at', 'desc')
                 .offset((pageNum - 1) * limitNum)
                 .limit(limitNum);
-            apiResponse_1.ApiResponse.success(res, {
+            apiResponse_1.ApiResponse.success(res, 200, 'Event tickets retrieved successfully', {
                 tickets,
-                total: totalCount ? Number(totalCount.count) : 0,
-                page: pageNum,
-                limit: limitNum
-            }, 'Event tickets retrieved successfully');
+                pagination: {
+                    total: totalCount ? Number(totalCount.count) : 0,
+                    page: pageNum,
+                    limit: limitNum
+                }
+            });
         }
         catch (error) {
             next(error);
@@ -261,9 +257,13 @@ class TicketController {
     static async getUserTickets(req, res, next) {
         try {
             const { userId } = req.params;
-            const { page = '1', limit = '10', status } = req.query;
+            const { status, page = 1, limit = 10 } = req.query;
             const pageNum = parseInt(page, 10);
             const limitNum = parseInt(limit, 10);
+            // Check if user is requesting their own tickets or is admin
+            if (req.user && req.user.id !== userId && req.user.role !== 'ADMIN') {
+                throw new apiError_1.ApiError(403, 'You can only access your own tickets');
+            }
             const query = req.db('tickets').where('user_id', userId);
             if (status && typeof status === 'string') {
                 query.where('status', status);
@@ -279,12 +279,14 @@ class TicketController {
                 .orderBy('created_at', 'desc')
                 .offset((pageNum - 1) * limitNum)
                 .limit(limitNum);
-            apiResponse_1.ApiResponse.success(res, {
+            apiResponse_1.ApiResponse.success(res, 200, 'User tickets retrieved successfully', {
                 tickets,
-                total: totalCount ? Number(totalCount.count) : 0,
-                page: pageNum,
-                limit: limitNum
-            }, 'User tickets retrieved successfully');
+                pagination: {
+                    total: totalCount ? Number(totalCount.count) : 0,
+                    page: pageNum,
+                    limit: limitNum
+                }
+            });
         }
         catch (error) {
             next(error);

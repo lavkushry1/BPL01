@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createEvent, updateEvent, EventInput } from '@/services/api/adminEventApi';
-import { Event } from '@/services/api/eventApi';
+import { createEvent, updateEvent } from '@/services/api/adminEventApi';
+import { Event, CreateEventInput } from '@/services/api/eventApi';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,7 @@ const AdminEventForm: React.FC<AdminEventFormProps> = ({ event, onClose }) => {
   const queryClient = useQueryClient();
   
   // Initialize form with event data if editing
-  const { register, control, handleSubmit, setValue, watch, formState: { errors } } = useForm<EventInput>({
+  const { register, control, handleSubmit, setValue, watch, formState: { errors } } = useForm<CreateEventInput>({
     defaultValues: event ? {
       title: event.title,
       description: event.description,
@@ -118,7 +118,7 @@ const AdminEventForm: React.FC<AdminEventFormProps> = ({ event, onClose }) => {
   
   // Update event mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string, data: Partial<EventInput> }) => updateEvent(id, data),
+    mutationFn: ({ id, data }: { id: string, data: Partial<CreateEventInput> }) => updateEvent(id, data),
     onSuccess: () => {
       toast({
         title: 'Success',
@@ -157,10 +157,15 @@ const AdminEventForm: React.FC<AdminEventFormProps> = ({ event, onClose }) => {
   };
   
   // Form submission handler
-  const onSubmit = async (data: EventInput) => {
+  const onSubmit = async (data: CreateEventInput) => {
     setIsSubmitting(true);
     
     try {
+      // Mark the event as published if the publish button was clicked
+      if (data.status !== 'published') {
+        data.status = 'draft';
+      }
+      
       if (event) {
         // Update existing event
         await updateMutation.mutateAsync({ id: event.id, data });
@@ -174,8 +179,18 @@ const AdminEventForm: React.FC<AdminEventFormProps> = ({ event, onClose }) => {
     }
   };
   
+  // Handle publish button click
+  const handlePublish = () => {
+    setValue('status', 'published');
+    setTimeout(() => {
+      document.getElementById('eventForm')?.dispatchEvent(
+        new Event('submit', { cancelable: true, bubbles: true })
+      );
+    }, 100);
+  };
+  
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form id="eventForm" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
@@ -320,6 +335,9 @@ const AdminEventForm: React.FC<AdminEventFormProps> = ({ event, onClose }) => {
               <Label htmlFor="featured">Featured Event</Label>
             </div>
           </div>
+          
+          {/* Status field - hidden but used for form submission */}
+          <input type="hidden" {...register('status')} />
         </TabsContent>
         
         {/* Media Tab */}
@@ -583,20 +601,42 @@ const AdminEventForm: React.FC<AdminEventFormProps> = ({ event, onClose }) => {
         )}
       </Tabs>
       
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+      {/* Form actions */}
+      <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onClose}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <LoadingSpinner size="sm" className="mr-2" />
-              {event ? 'Updating...' : 'Creating...'}
-            </>
-          ) : (
-            event ? 'Update Event' : 'Create Event'
-          )}
-        </Button>
+        <div className="space-x-2">
+          <Button 
+            type="submit" 
+            variant="outline"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <LoadingSpinner className="w-4 h-4 mr-2" />
+                Saving...
+              </>
+            ) : event ? "Save as Draft" : "Save as Draft"}
+          </Button>
+          <Button 
+            type="button"
+            onClick={handlePublish}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <LoadingSpinner className="w-4 h-4 mr-2" />
+                Publishing...
+              </>
+            ) : event ? "Update & Publish" : "Publish Event"}
+          </Button>
+        </div>
       </div>
     </form>
   );

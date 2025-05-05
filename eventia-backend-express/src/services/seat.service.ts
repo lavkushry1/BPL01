@@ -126,7 +126,7 @@ export class SeatService {
     try {
       // Check seat availability first
       const availabilityCheck = await this.checkBulkAvailability(seatIds, eventId);
-      
+
       if (!availabilityCheck.complete) {
         return {
           success: false,
@@ -406,40 +406,40 @@ export class SeatService {
   static async releaseExpiredLocks(): Promise<number> {
     try {
       const now = new Date();
-      
+
       // Find expired locks
       const expiredLocks = await db('seats')
         .where('status', SeatStatus.LOCKED)
         .where('lock_expires_at', '<', now)
         .select('id', 'locked_by');
-      
+
       const expiredSeatIds = expiredLocks.map(lock => lock.id);
-      
+
       if (expiredSeatIds.length === 0) {
         return 0;
       }
-      
+
       // Group by user for WebSocket notifications
       const seatsByUser: { [userId: string]: string[] } = {};
       expiredLocks.forEach(lock => {
         if (!lock.locked_by) return;
-        
+
         if (!seatsByUser[lock.locked_by]) {
           seatsByUser[lock.locked_by] = [];
         }
         seatsByUser[lock.locked_by].push(lock.id);
       });
-      
+
       // Get event IDs for WebSocket notifications
       const seatLocks = await db('seat_locks')
         .whereIn('seat_id', expiredSeatIds)
         .select('seat_id', 'event_id');
-      
+
       const seatToEventMap: { [seatId: string]: string } = {};
       seatLocks.forEach(lock => {
         seatToEventMap[lock.seat_id] = lock.event_id;
       });
-      
+
       // Release the locks
       await db.transaction(async trx => {
         // Update seats
@@ -450,30 +450,30 @@ export class SeatService {
             locked_by: null,
             lock_expires_at: null
           });
-        
+
         // Delete lock records
         await trx('seat_locks')
           .whereIn('seat_id', expiredSeatIds)
           .delete();
       });
-      
+
       // Group seats by event ID for WebSocket notifications
       const seatsByEvent: { [eventId: string]: string[] } = {};
       expiredSeatIds.forEach(seatId => {
         const eventId = seatToEventMap[seatId];
         if (!eventId) return;
-        
+
         if (!seatsByEvent[eventId]) {
           seatsByEvent[eventId] = [];
         }
         seatsByEvent[eventId].push(seatId);
       });
-      
+
       // Send WebSocket notifications
       Object.entries(seatsByEvent).forEach(([eventId, seats]) => {
         WebsocketService.broadcastSeatUpdate(eventId, seats, SeatStatus.AVAILABLE);
       });
-      
+
       // Notify users that their locks have expired
       Object.entries(seatsByUser).forEach(([userId, seats]) => {
         WebsocketService.sendToUser(userId, 'seat_lock_expired', {
@@ -481,7 +481,7 @@ export class SeatService {
           message: 'Your seat locks have expired'
         });
       });
-      
+
       return expiredSeatIds.length;
     } catch (error) {
       console.error('Error releasing expired locks:', error);
@@ -505,11 +505,11 @@ export class SeatService {
         .where('id', seatId)
         .select('status', 'locked_by', 'lock_expires_at', 'booking_id')
         .first();
-      
+
       if (!seat) {
         return null;
       }
-      
+
       return {
         status: seat.status as SeatStatus,
         lockedBy: seat.locked_by,
@@ -540,7 +540,7 @@ export class SeatService {
     try {
       // Instead of using setTimeout directly, which doesn't survive server restarts,
       // we'll use a more resilient approach
-      
+
       // Create an entry in a dedicated expiration queue table
       // This table would be processed by a background job (cron)
       await db('reservation_expiry_queue').insert({
@@ -551,7 +551,7 @@ export class SeatService {
         expires_at: new Date(Date.now() + expirationSeconds * 1000),
         created_at: new Date()
       });
-      
+
       // We still set up a setTimeout as a fallback mechanism
       // for immediate processing if the server stays up
       setTimeout(async () => {
@@ -561,7 +561,7 @@ export class SeatService {
             .where('id', reservationId)
             .where('status', 'pending')
             .first();
-          
+
           if (reservation) {
             // Use a retry mechanism for better reliability
             await this.releaseReservation(reservationId, seatIds, userId);
@@ -576,7 +576,7 @@ export class SeatService {
       throw new ApiError(500, 'Failed to schedule reservation expiry');
     }
   }
-  
+
   /**
    * Release a specific reservation
    * Used by both manual release and automatic expiration
@@ -597,7 +597,7 @@ export class SeatService {
         .where('user_id', userId)
         .select('event_id')
         .first();
-      
+
       // Use transaction to ensure atomicity
       await db.transaction(async trx => {
         // Release the seats
@@ -609,41 +609,41 @@ export class SeatService {
             locked_by: null,
             lock_expires_at: null
           });
-        
+
         // Update reservation status
         await trx('seat_reservations')
           .where('id', reservationId)
           .where('status', 'pending')
-          .update({ 
+          .update({
             status: 'expired',
             updated_at: trx.fn.now()
           });
-        
+
         // Remove from expiry queue
         await trx('reservation_expiry_queue')
           .where('reservation_id', reservationId)
           .delete();
       });
-      
+
       // Notify via WebSocket
       if (seatLock?.event_id) {
         WebsocketService.broadcastSeatUpdate(seatLock.event_id, seatIds, SeatStatus.AVAILABLE);
       }
-      
+
       // Notify the user that their reservation expired
       WebsocketService.sendToUser(userId, 'reservation_expired', {
         reservation_id: reservationId,
         seat_ids: seatIds,
         message: 'Your seat reservation has expired'
       });
-      
+
       return true;
     } catch (error) {
       console.error('Error releasing reservation:', error);
       return false;
     }
   }
-  
+
   /**
    * Process expired reservations
    * This should be called by a cron job regularly
@@ -651,18 +651,18 @@ export class SeatService {
   static async processExpiredReservations(): Promise<number> {
     try {
       const now = new Date();
-      
+
       // Find expired reservations in the queue
       const expiredReservations = await db('reservation_expiry_queue')
         .where('expires_at', '<', now)
         .select('*');
-      
+
       if (expiredReservations.length === 0) {
         return 0;
       }
-      
+
       let releasedCount = 0;
-      
+
       // Process each expired reservation
       for (const reservation of expiredReservations) {
         try {
@@ -672,7 +672,7 @@ export class SeatService {
             seatIds,
             reservation.user_id
           );
-          
+
           if (success) {
             releasedCount++;
           }
@@ -680,11 +680,40 @@ export class SeatService {
           console.error(`Error processing expired reservation ${reservation.id}:`, error);
         }
       }
-      
+
       return releasedCount;
     } catch (error) {
       console.error('Error processing expired reservations:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Get unavailable seats from a list of seat IDs
+   * @param prisma Prisma client instance (can be transaction)
+   * @param seatIds Array of seat IDs to check
+   * @returns Array of unavailable seat IDs
+   */
+  static async getUnavailableSeats(prisma: any, seatIds: string[]): Promise<string[]> {
+    try {
+      const seats = await prisma.seat.findMany({
+        where: {
+          id: { in: seatIds },
+          OR: [
+            { status: { not: 'AVAILABLE' } },
+            {
+              status: 'LOCKED',
+              lockedUntil: { gt: new Date() }
+            }
+          ]
+        },
+        select: { id: true }
+      });
+
+      return seats.map((seat: { id: string }) => seat.id);
+    } catch (error) {
+      console.error('Error getting unavailable seats:', error);
+      return [];
     }
   }
 }

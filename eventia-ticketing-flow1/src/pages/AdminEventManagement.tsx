@@ -1,8 +1,7 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { iplMatches, IPLMatch } from '@/data/iplData';
+import { IPLMatch } from '@/services/api/eventApi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,12 +35,12 @@ const iplMatchSchema = z.object({
 type IPLMatchFormValues = z.infer<typeof iplMatchSchema>;
 
 const AdminEventManagement = () => {
-  const [matches, setMatches] = useState<IPLMatch[]>(iplMatches);
+  const [matches, setMatches] = useState<IPLMatch[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentMatch, setCurrentMatch] = useState<IPLMatch | null>(null);
-  
+
   const form = useForm<IPLMatchFormValues>({
     resolver: zodResolver(iplMatchSchema),
     defaultValues: {
@@ -95,10 +94,97 @@ const AdminEventManagement = () => {
     setIsDeleteDialogOpen(true);
   };
 
+  // Save events to localStorage for public display
+  const saveToLocalStorage = (eventData: IPLMatch[]) => {
+    try {
+      const storageKey = 'admin_created_events';
+
+      // Generate a more reliable UUID-like string
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+
+      // Convert IPL match format to the Event format expected by the Events page
+      const eventsForStorage = eventData.map(match => {
+        // Generate a truly unique ID using UUID approach
+        const uniqueId = generateUUID();
+
+        return {
+          id: uniqueId,
+          title: `${match.teams.team1.name} vs ${match.teams.team2.name}`,
+          description: `IPL match between ${match.teams.team1.name} and ${match.teams.team2.name}`,
+          start_date: match.date,
+          location: match.venue,
+          organizer_id: 'admin',
+          status: 'published',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          category: 'Cricket',
+          teams: match.teams,
+          venue: match.venue,
+          time: match.time,
+          ticket_types: match.ticketTypes.map(tt => ({
+            id: `${uniqueId}-${tt.category.toLowerCase().replace(/\s+/g, '-')}`,
+            name: tt.category,
+            price: tt.price,
+            quantity: tt.available + 100, // Total capacity is more than available
+            available: tt.available
+          })),
+          images: [{
+            id: `${uniqueId}-img1`,
+            url: (match.posterImage || (match.images && match.images.length > 0 ? match.images[0].url : '/placeholder.svg')),
+            alt_text: `${match.teams.team1.name} vs ${match.teams.team2.name}`,
+            is_featured: true
+          }],
+          poster_image: match.posterImage || (match.images && match.images.length > 0 ? match.images[0].url : '/placeholder.svg'),
+          source: 'admin', // Explicitly mark as admin-created
+          original_id: match.id // Store the original ID for reference
+        };
+      });
+
+      localStorage.setItem(storageKey, JSON.stringify(eventsForStorage));
+
+      // Dispatch both a storage event and a custom event for better cross-component communication
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('admin-events-updated'));
+
+      console.log('Saved admin events to localStorage:', eventsForStorage.length);
+
+      toast({
+        title: "Success",
+        description: `${eventsForStorage.length} events saved and will appear on the public page`,
+      });
+    } catch (e) {
+      console.error('Error saving admin events to localStorage:', e);
+      toast({
+        title: "Error",
+        description: "Failed to save events to localStorage. Events may not appear on the public page.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const onSubmitAdd = (data: IPLMatchFormValues) => {
+    // Generate a unique UUID for the match
+    const generateUUID = () => {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+
+    const uniqueId = generateUUID();
+
     const newMatch: IPLMatch = {
-      id: data.id,
+      id: uniqueId,
       title: data.title,
+      description: `IPL match between ${data.team1Name} and ${data.team2Name}`,
+      category: "IPL",
       teams: {
         team1: {
           name: data.team1Name,
@@ -118,34 +204,68 @@ const AdminEventManagement = () => {
         {
           category: "General Stand",
           price: data.generalPrice,
-          available: data.generalAvailable
+          available: data.generalAvailable,
+          capacity: data.generalAvailable * 2
         },
         {
           category: "Premium Stand",
           price: data.premiumPrice,
-          available: data.premiumAvailable
+          available: data.premiumAvailable,
+          capacity: data.premiumAvailable * 2
         },
         {
           category: "VIP Box",
           price: data.vipPrice,
-          available: data.vipAvailable
+          available: data.vipAvailable,
+          capacity: data.vipAvailable * 2
         }
       ],
-      image: "/placeholder.svg"
+      images: [{
+        id: `${uniqueId}-img1`,
+        url: "/placeholder.svg",
+        alt_text: `${data.team1Name} vs ${data.team2Name}`,
+        is_featured: true
+      }],
+      status: 'draft',
+      start_date: data.date,
+      organizer_id: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    setMatches([...matches, newMatch]);
+    const updatedMatches = [...matches, newMatch];
+    setMatches(updatedMatches);
+
+    // Save to localStorage for public display
+    saveToLocalStorage(updatedMatches);
+
     setIsAddDialogOpen(false);
     toast({
       title: "Success",
-      description: "New IPL match has been added.",
+      description: "New IPL match has been added. It is now visible on the public events page.",
     });
   };
 
   const onSubmitEdit = (data: IPLMatchFormValues) => {
+    if (!currentMatch) return;
+
+    // Generate a unique UUID for the match
+    const generateUUID = () => {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+
+    // Generate a new unique ID
+    const uniqueId = generateUUID();
+
     const updatedMatch: IPLMatch = {
-      id: data.id,
+      id: uniqueId,
       title: data.title,
+      description: `IPL match between ${data.team1Name} and ${data.team2Name}`,
+      category: "IPL",
       teams: {
         team1: {
           name: data.team1Name,
@@ -165,40 +285,150 @@ const AdminEventManagement = () => {
         {
           category: "General Stand",
           price: data.generalPrice,
-          available: data.generalAvailable
+          available: data.generalAvailable,
+          capacity: data.generalAvailable * 2
         },
         {
           category: "Premium Stand",
           price: data.premiumPrice,
-          available: data.premiumAvailable
+          available: data.premiumAvailable,
+          capacity: data.premiumAvailable * 2
         },
         {
           category: "VIP Box",
           price: data.vipPrice,
-          available: data.vipAvailable
+          available: data.vipAvailable,
+          capacity: data.vipAvailable * 2
         }
       ],
-      image: "/placeholder.svg"
+      images: [{
+        id: `${uniqueId}-img1`,
+        url: "/placeholder.svg",
+        alt_text: `${data.team1Name} vs ${data.team2Name}`,
+        is_featured: true
+      }],
+      status: 'draft',
+      start_date: data.date,
+      organizer_id: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    setMatches(matches.map(match => match.id === data.id ? updatedMatch : match));
+    // Replace the edited match in the array
+    const updatedMatches = matches.map(match =>
+      match.id === currentMatch.id ? updatedMatch : match
+    );
+
+    setMatches(updatedMatches);
+
+    // Save to localStorage for public display
+    saveToLocalStorage(updatedMatches);
+
     setIsEditDialogOpen(false);
     toast({
       title: "Success",
-      description: "IPL match has been updated.",
+      description: "IPL match has been updated. Changes are visible on the public events page.",
     });
   };
 
   const confirmDelete = () => {
     if (currentMatch) {
-      setMatches(matches.filter(match => match.id !== currentMatch.id));
+      const updatedMatches = matches.filter(match => match.id !== currentMatch.id);
+      setMatches(updatedMatches);
+
+      // Save the updated list (without the deleted match) to localStorage
+      saveToLocalStorage(updatedMatches);
+
       setIsDeleteDialogOpen(false);
       toast({
         title: "Success",
-        description: "IPL match has been deleted.",
+        description: "IPL match has been deleted. It has been removed from the public events page.",
       });
     }
   };
+
+  // Load existing admin events from localStorage on component mount
+  useEffect(() => {
+    try {
+      // First, load the default IPL matches if no localStorage data is available
+      const initialMatches = [];
+      setMatches(initialMatches);
+
+      // Then try to load from localStorage
+      const storageKey = 'admin_created_events';
+      const savedEventsJson = localStorage.getItem(storageKey);
+
+      if (savedEventsJson) {
+        try {
+          const savedEvents = JSON.parse(savedEventsJson);
+
+          if (Array.isArray(savedEvents) && savedEvents.length > 0) {
+            // Convert stored events back to IPLMatch format
+            const convertedMatches: IPLMatch[] = savedEvents.map((event: any) => {
+              // Verify that this is an event with the expected properties
+              if (!event.id || !event.title) {
+                console.warn('Found invalid event in localStorage:', event);
+                return null;
+              }
+
+              // Create a proper IPLMatch object
+              const match: IPLMatch = {
+                id: event.id,
+                title: event.title,
+                description: event.description || '',
+                category: event.category || 'Cricket',
+                venue: event.venue || event.location || '',
+                date: event.start_date || event.date || new Date().toISOString().split('T')[0],
+                time: event.time || '19:00',
+                teams: event.teams || {
+                  team1: { name: 'Team 1', shortName: 'T1', logo: '/placeholder.svg' },
+                  team2: { name: 'Team 2', shortName: 'T2', logo: '/placeholder.svg' }
+                },
+                ticketTypes: (event.ticket_types || []).map((tt: any) => ({
+                  category: tt.name || 'General',
+                  price: tt.price || 1000,
+                  available: tt.available || 100,
+                  capacity: tt.quantity || tt.available * 2 || 200
+                })),
+                images: event.images || [{
+                  id: `${event.id}-img1`,
+                  url: event.poster_image || (event.images && event.images.length > 0 ? event.images[0].url : '/placeholder.svg'),
+                  alt_text: `${event.teams?.team1?.name || 'Team 1'} vs ${event.teams?.team2?.name || 'Team 2'}`,
+                  is_featured: true
+                }],
+                start_date: event.start_date || event.date || new Date().toISOString().split('T')[0],
+                organizer_id: event.organizer_id || '',
+                status: event.status || 'draft',
+                created_at: event.created_at || new Date().toISOString(),
+                updated_at: event.updated_at || new Date().toISOString(),
+              };
+
+              return match;
+            }).filter(Boolean) as IPLMatch[]; // Remove any null entries
+
+            if (convertedMatches.length > 0) {
+              console.log('Loaded admin events from localStorage:', convertedMatches.length);
+              setMatches(convertedMatches);
+
+              // Save back to localStorage to ensure proper format for next load
+              saveToLocalStorage(convertedMatches);
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing saved events from localStorage:', e);
+
+          // If we fail to load from localStorage, ensure we save the default matches
+          saveToLocalStorage(initialMatches);
+        }
+      } else {
+        // If no events in localStorage, initialize with default matches
+        console.log('No saved events found, initializing with default matches');
+        saveToLocalStorage(initialMatches);
+      }
+    } catch (e) {
+      console.error('Error in useEffect:', e);
+    }
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -347,7 +577,7 @@ const AdminEventManagement = () => {
                   )}
                 />
               </div>
-              
+
               <div className="border-t pt-4">
                 <h3 className="text-md font-medium mb-3">Team Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -405,7 +635,7 @@ const AdminEventManagement = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="border-t pt-4">
                 <h3 className="text-md font-medium mb-3">Ticket Information</h3>
                 <div className="space-y-3">
@@ -495,7 +725,7 @@ const AdminEventManagement = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
@@ -587,7 +817,7 @@ const AdminEventManagement = () => {
                   )}
                 />
               </div>
-              
+
               <div className="border-t pt-4">
                 <h3 className="text-md font-medium mb-3">Team Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -645,7 +875,7 @@ const AdminEventManagement = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="border-t pt-4">
                 <h3 className="text-md font-medium mb-3">Ticket Information</h3>
                 <div className="space-y-3">
@@ -735,7 +965,7 @@ const AdminEventManagement = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                   Cancel

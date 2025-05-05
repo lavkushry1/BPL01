@@ -1,24 +1,12 @@
 import express from 'express';
-import { register, login, refreshToken } from '../controllers/authController';
+import { register, login, refreshToken, logout, me } from '../controllers/authController';
 import { validate } from '../middleware/validate';
 import { userSchema, loginSchema } from '../models/user';
 import { z } from 'zod';
-import rateLimit from 'express-rate-limit';
+import { authLimiter } from '../middleware/rateLimit';
+import { authenticate } from '../middleware/auth';
 
 const router = express.Router();
-
-// Create a rate limiter for login attempts
-// 5 login attempts per 15 minutes window per IP
-const loginRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  message: { 
-    status: 'error',
-    message: 'Too many login attempts, please try again later' 
-  }
-});
 
 /**
  * @swagger
@@ -91,8 +79,10 @@ router.post('/register', validate(z.object({ body: userSchema })), register);
  *         description: Login successful
  *       401:
  *         description: Invalid credentials
+ *       429:
+ *         description: Too many login attempts
  */
-router.post('/login', loginRateLimiter, validate(z.object({ body: loginSchema })), login);
+router.post('/login', authLimiter, validate(z.object({ body: loginSchema })), login);
 
 /**
  * @swagger
@@ -101,13 +91,11 @@ router.post('/login', loginRateLimiter, validate(z.object({ body: loginSchema })
  *     summary: Refresh authentication token
  *     tags: [Auth]
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - refreshToken
  *             properties:
  *               refreshToken:
  *                 type: string
@@ -117,12 +105,34 @@ router.post('/login', loginRateLimiter, validate(z.object({ body: loginSchema })
  *       401:
  *         description: Invalid or expired refresh token
  */
-router.post(
-  '/refresh-token',
-  validate(z.object({ 
-    body: z.object({ refreshToken: z.string() }) 
-  })),
-  refreshToken
-);
+router.post('/refresh-token', refreshToken);
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user and invalidate tokens
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ */
+router.post('/logout', logout);
+
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user information
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user information
+ *       401:
+ *         description: Not authenticated
+ */
+router.get('/me', authenticate, me);
 
 export default router;

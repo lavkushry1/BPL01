@@ -20,7 +20,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { QrCode, Copy, Check, ArrowLeft, ChevronRight, MapPin, Calendar, Clock, User, Phone, Ticket } from 'lucide-react';
+import { QrCode, Copy, Check, ArrowLeft, ChevronRight, MapPin, Calendar, Clock, User, Phone, Ticket, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,6 +38,8 @@ import DiscountForm from '@/components/payment/DiscountForm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { defaultApiClient } from '@/services/api/apiUtils';
+import { API_BASE_URL } from '@/config';
 
 // Import API services
 import { verifyUtrPayment, createBooking } from '@/services/api/payment.service';
@@ -67,7 +69,7 @@ const Checkout = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { isRTL } = useLanguage();
-  
+
   // Checkout state
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [bookingData, setBookingData] = useState<BookingData | null>(null);
@@ -84,18 +86,46 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountCode, setDiscountCode] = useState('');
-  
-  // Mock data
-  const upiVpa = 'eventia@okicici'; // In production, fetch from API
-  const upiQrCode = 'https://placehold.co/300x300'; // In production, generate dynamically
-  const orderId = 'EVT' + Math.random().toString(36).substring(2, 10).toUpperCase();
-  
+  const [paymentConfig, setPaymentConfig] = useState<{ upiVpa: string; upiQrCodeUrl: string } | null>(null);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
+
+  // Fetch payment configuration on mount
+  useEffect(() => {
+    const fetchPaymentConfig = async () => {
+      setIsLoadingConfig(true);
+      try {
+        const response = await defaultApiClient.get(`${API_BASE_URL}/payments/config`);
+        if (response.data && response.data.data) {
+          setPaymentConfig(response.data.data);
+        } else {
+          throw new Error('Invalid payment configuration data');
+        }
+      } catch (error) {
+        console.error('Error fetching payment config:', error);
+        toast({
+          title: t('common.error'),
+          description: t('payment.fetchConfigError'),
+          variant: 'destructive',
+        });
+        // Optionally navigate back or show critical error state
+      } finally {
+        setIsLoadingConfig(false);
+      }
+    };
+    fetchPaymentConfig();
+  }, [toast, t]);
+
   useEffect(() => {
     // Retrieve booking data from sessionStorage
     const savedBookingData = sessionStorage.getItem('bookingData');
-    
+    const savedDeliveryDetails = sessionStorage.getItem('deliveryDetails');
+
     if (savedBookingData) {
-      setBookingData(JSON.parse(savedBookingData));
+      const parsedBookingData = JSON.parse(savedBookingData);
+      setBookingData(parsedBookingData);
+      // Set initial bookingId if available (might need adjustment based on actual flow)
+      // setCurrentBookingId(parsedBookingData.bookingId || null);
     } else {
       // Redirect back to events if no booking data is found
       navigate('/events');
@@ -105,18 +135,38 @@ const Checkout = () => {
         variant: "destructive"
       });
     }
+
+    if (savedDeliveryDetails) {
+      const deliveryData = JSON.parse(savedDeliveryDetails);
+      setCustomerName(deliveryData.customerName || '');
+      setEmail(deliveryData.email || '');
+      setPhone(deliveryData.phone || '');
+      setAddress(deliveryData.address || '');
+      setCity(deliveryData.city || '');
+      setPincode(deliveryData.pincode || '');
+      setSpecialInstructions(deliveryData.specialInstructions || '');
+      setSendUpdates(deliveryData.sendUpdates !== undefined ? deliveryData.sendUpdates : true);
+
+      // Skip to payment step since we already have delivery details
+      setCurrentStep(2);
+    } else {
+      // If no delivery details, redirect to delivery address page
+      navigate('/booking/delivery');
+    }
   }, [navigate, toast, t]);
-  
+
   const handleCopyUpi = () => {
-    navigator.clipboard.writeText(upiVpa);
-    setCopied(true);
-    toast({
-      title: t('payment.upiIdCopied'),
-      description: t('payment.idCopiedClipboard')
-    });
-    setTimeout(() => setCopied(false), 2000);
+    if (paymentConfig?.upiVpa) {
+      navigator.clipboard.writeText(paymentConfig.upiVpa);
+      setCopied(true);
+      toast({
+        title: t('payment.upiIdCopied'),
+        description: t('payment.idCopiedClipboard')
+      });
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
-  
+
   const handleNextStep = () => {
     if (currentStep === 1) {
       // Validate delivery details before proceeding
@@ -147,18 +197,18 @@ const Checkout = () => {
         return;
       }
     }
-    
+
     setCurrentStep(prev => prev + 1);
   };
-  
+
   const handlePrevStep = () => {
     setCurrentStep(prev => prev - 1);
   };
-  
+
   const handleApplyDiscount = (amount: number, code: string) => {
     setDiscountAmount(amount);
     setDiscountCode(code);
-    
+
     if (bookingData && amount > 0) {
       setBookingData({
         ...bookingData,
@@ -166,16 +216,14 @@ const Checkout = () => {
       });
     }
   };
-  
+
   const calculateOriginalTotal = () => {
     if (!bookingData) return 0;
     return bookingData.tickets.reduce((sum, ticket) => sum + ticket.subtotal, 0);
   };
-  
+
   const handleSubmitOrder = async () => {
-    if (isSubmitting) return;
-    
-    if (!utrNumber.trim()) {
+    if (!utrNumber) {
       toast({
         title: t('common.error'),
         description: t('payment.utrRequired'),
@@ -183,36 +231,38 @@ const Checkout = () => {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+    setCurrentBookingId(null);
+
     try {
-      // In production, this would be an API call
-      // const response = await createBooking({
-      //   eventId: bookingData?.eventId,
-      //   tickets: bookingData?.tickets,
-      //   deliveryDetails: {
-      //     name: customerName,
-      //     email,
-      //     phone,
-      //     address,
-      //     city,
-      //     pincode,
-      //     specialInstructions
-      //   },
-      //   paymentDetails: {
-      //     amount: bookingData?.totalAmount,
-      //     utrNumber,
-      //     discountCode
-      //   }
-      // });
-      
-      // Generate mock booking ID
-      const mockBookingId = Math.random().toString(36).substring(2, 15);
-      
+      // Make a real API call to create the booking
+      const response = await createBooking({
+        eventId: bookingData?.eventId,
+        eventTitle: bookingData?.eventTitle,
+        tickets: bookingData?.tickets,
+        totalAmount: bookingData?.totalAmount,
+        customerInfo: {
+          name: customerName,
+          email,
+          phone,
+          address: `${address}, ${city}, ${pincode}`
+        },
+        paymentInfo: {
+          utrNumber,
+          verificationStatus: 'pending'
+        }
+      });
+
+      if (!response.success || !response.bookingId) {
+        throw new Error(response.message || 'Failed to create booking.');
+      }
+
+      setCurrentBookingId(response.bookingId);
+
       // Store order data for confirmation page
       const orderData = {
-        bookingId: mockBookingId,
+        bookingId: response.bookingId,
         eventTitle: bookingData?.eventTitle,
         eventDate: bookingData?.eventDate,
         eventTime: bookingData?.eventTime,
@@ -230,32 +280,33 @@ const Checkout = () => {
         discountCode,
         discountAmount
       };
-      
+
       // Clear booking data from sessionStorage
       sessionStorage.removeItem('bookingData');
-      
+
       // Success message
       toast({
         title: t('checkout.orderConfirmed'),
         description: t('checkout.redirectingToConfirmation')
       });
-      
+
       // Redirect to confirmation page
       setTimeout(() => {
         setIsSubmitting(false);
-        navigate(`/confirmation/${mockBookingId}`, { state: { bookingDetails: orderData } });
+        navigate(`/confirmation/${response.bookingId}`, { state: { bookingDetails: orderData } });
       }, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting order:', error);
+      setCurrentBookingId(null);
       setIsSubmitting(false);
       toast({
         title: t('common.error'),
-        description: t('checkout.paymentError'),
+        description: error.message || t('checkout.paymentError'),
         variant: "destructive"
       });
     }
   };
-  
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -263,45 +314,45 @@ const Checkout = () => {
       maximumFractionDigits: 0
     }).format(amount);
   };
-  
-  if (!bookingData) {
+
+  if (!bookingData || isLoadingConfig) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
         <main className="flex-grow flex items-center justify-center">
           <div className="text-center p-8">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p>{t('common.loading')}</p>
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+            <p>{t('common.loading')}...</p>
           </div>
         </main>
         <Footer />
       </div>
     );
   }
-  
+
   const originalTotal = calculateOriginalTotal();
   const hasDiscount = discountAmount > 0;
-  
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      
+
       <main className="flex-grow bg-gray-50 pt-16">
         <div className="container mx-auto px-4 py-8">
-          <Button 
-            variant="ghost" 
-            className="mb-6" 
+          <Button
+            variant="ghost"
+            className="mb-6"
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t('common.back')}
           </Button>
-          
+
           <div className="mb-8">
             <h1 className="text-2xl font-bold mb-2">{t('checkout.title')}</h1>
             <p className="text-gray-600">{bookingData.eventTitle}</p>
           </div>
-          
+
           <Steps currentStep={currentStep} className="mb-8 max-w-3xl mx-auto">
             <Step>
               <StepIndicator>
@@ -328,7 +379,7 @@ const Checkout = () => {
               </div>
             </Step>
           </Steps>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-6">
               <AnimatePresence mode="wait">
@@ -351,78 +402,78 @@ const Checkout = () => {
                         <div className="grid md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="name">{t('common.fullName')}</Label>
-                            <Input 
-                              id="name" 
-                              value={customerName} 
-                              onChange={(e) => setCustomerName(e.target.value)} 
+                            <Input
+                              id="name"
+                              value={customerName}
+                              onChange={(e) => setCustomerName(e.target.value)}
                               placeholder={t('checkout.enterFullName')}
                             />
                           </div>
-                          
+
                           <div className="space-y-2">
                             <Label htmlFor="email">{t('common.email')}</Label>
-                            <Input 
-                              id="email" 
-                              type="email" 
-                              value={email} 
-                              onChange={(e) => setEmail(e.target.value)} 
+                            <Input
+                              id="email"
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
                               placeholder={t('checkout.enterEmail')}
                             />
                           </div>
-                          
+
                           <div className="space-y-2">
                             <Label htmlFor="phone">{t('common.phone')}</Label>
-                            <Input 
-                              id="phone" 
-                              value={phone} 
-                              onChange={(e) => setPhone(e.target.value)} 
+                            <Input
+                              id="phone"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value)}
                               placeholder={t('checkout.enterPhone')}
                             />
                           </div>
-                          
+
                           <div className="space-y-2">
                             <Label htmlFor="address">{t('common.address')}</Label>
-                            <Input 
-                              id="address" 
-                              value={address} 
-                              onChange={(e) => setAddress(e.target.value)} 
+                            <Input
+                              id="address"
+                              value={address}
+                              onChange={(e) => setAddress(e.target.value)}
                               placeholder={t('checkout.enterAddress')}
                             />
                           </div>
-                          
+
                           <div className="space-y-2">
                             <Label htmlFor="city">{t('common.city')}</Label>
-                            <Input 
-                              id="city" 
-                              value={city} 
-                              onChange={(e) => setCity(e.target.value)} 
+                            <Input
+                              id="city"
+                              value={city}
+                              onChange={(e) => setCity(e.target.value)}
                               placeholder={t('checkout.enterCity')}
                             />
                           </div>
-                          
+
                           <div className="space-y-2">
                             <Label htmlFor="pincode">{t('common.pincode')}</Label>
-                            <Input 
-                              id="pincode" 
-                              value={pincode} 
-                              onChange={(e) => setPincode(e.target.value)} 
+                            <Input
+                              id="pincode"
+                              value={pincode}
+                              onChange={(e) => setPincode(e.target.value)}
                               placeholder={t('checkout.enterPincode')}
                             />
                           </div>
                         </div>
-                        
+
                         <div className="mt-4 space-y-2">
                           <Label htmlFor="instructions">{t('checkout.specialInstructions')}</Label>
-                          <Textarea 
-                            id="instructions" 
-                            value={specialInstructions} 
-                            onChange={(e) => setSpecialInstructions(e.target.value)} 
+                          <Textarea
+                            id="instructions"
+                            value={specialInstructions}
+                            onChange={(e) => setSpecialInstructions(e.target.value)}
                             placeholder={t('checkout.enterSpecialInstructions')}
                             className="resize-none"
                             rows={3}
                           />
                         </div>
-                        
+
                         <div className="flex items-center space-x-2 mt-4">
                           <Switch
                             id="updates"
@@ -435,13 +486,13 @@ const Checkout = () => {
                         </div>
                       </CardContent>
                       <CardFooter className="flex justify-between">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={() => navigate('/events')}
                         >
                           {t('common.cancel')}
                         </Button>
-                        <Button 
+                        <Button
                           onClick={handleNextStep}
                           className="gap-1"
                         >
@@ -452,7 +503,7 @@ const Checkout = () => {
                     </Card>
                   </motion.div>
                 )}
-                
+
                 {currentStep === 2 && (
                   <motion.div
                     key="payment-step"
@@ -471,50 +522,54 @@ const Checkout = () => {
                       <CardContent>
                         <div className="flex flex-col md:flex-row gap-6">
                           <div className="flex-1 flex justify-center items-start">
-                            <div className="bg-white p-4 rounded-md border max-w-[220px] mx-auto">
-                              <img 
-                                src={upiQrCode} 
-                                alt="UPI QR Code" 
-                                className="w-full h-auto" 
-                              />
-                              <div className="mt-2 text-center text-sm text-gray-500">
-                                {t('payment.scanToPayUpi')}
+                            {paymentConfig?.upiQrCodeUrl ? (
+                              <div className="bg-white p-4 rounded-md border max-w-[220px] mx-auto">
+                                <img
+                                  src={paymentConfig.upiQrCodeUrl}
+                                  alt="UPI QR Code"
+                                  className="w-full h-auto"
+                                />
+                                <div className="mt-2 text-center text-sm text-gray-500">
+                                  {t('payment.scanToPayUpi')}
+                                </div>
                               </div>
-                            </div>
+                            ) : (
+                              <div className="bg-gray-100 p-4 rounded-md border max-w-[220px] mx-auto flex items-center justify-center h-[220px]">
+                                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                              </div>
+                            )}
                           </div>
-                          
+
                           <div className="flex-1 space-y-4">
                             <div className="rounded-md border p-3">
                               <div className="text-sm font-medium mb-2">{t('payment.payeeDetails')}</div>
-                              
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-500">{t('payment.merchantName')}</span>
-                                  <span>Eventia Events</span>
-                                </div>
-                                
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="text-gray-500">{t('payment.merchantVPA')}</span>
-                                  <div className="flex items-center gap-1">
-                                    <code className="bg-gray-100 px-2 rounded text-xs">{upiVpa}</code>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-6 w-6" 
-                                      onClick={handleCopyUpi}
-                                    >
-                                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                                    </Button>
+                              {paymentConfig ? (
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-500">{t('payment.merchantVPA')}</span>
+                                    <div className="flex items-center gap-1">
+                                      <code className="bg-gray-100 px-2 rounded text-xs">{paymentConfig.upiVpa}</code>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={handleCopyUpi}
+                                        disabled={!paymentConfig?.upiVpa}
+                                      >
+                                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">{t('payment.transactionNote')}</span>
+                                    <span className="font-mono text-xs">{currentBookingId || 'Generating...'}</span>
                                   </div>
                                 </div>
-                                
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-500">{t('payment.transactionNote')}</span>
-                                  <span className="font-mono text-xs">{orderId}</span>
-                                </div>
-                              </div>
+                              ) : (
+                                <div className="text-sm text-gray-500">Loading payment details...</div>
+                              )}
                             </div>
-                            
+
                             <div className="space-y-3 pt-3">
                               <div>
                                 <Label htmlFor="utr" className="text-base font-medium">
@@ -523,11 +578,12 @@ const Checkout = () => {
                                 <p className="text-sm text-gray-500 mb-2">
                                   {t('payment.utrDescription')}
                                 </p>
-                                <Input 
-                                  id="utr" 
-                                  value={utrNumber} 
-                                  onChange={(e) => setUtrNumber(e.target.value)} 
+                                <Input
+                                  id="utr"
+                                  value={utrNumber}
+                                  onChange={(e) => setUtrNumber(e.target.value)}
                                   placeholder={t('payment.utrPlaceholder')}
+                                  disabled={!paymentConfig}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                   {t('payment.utrHelp')}
@@ -536,29 +592,30 @@ const Checkout = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="mt-6">
-                          <DiscountForm 
+                          <DiscountForm
                             eventId={bookingData.eventId}
                             onApplyDiscount={handleApplyDiscount}
+                            disabled={!paymentConfig}
                           />
                         </div>
                       </CardContent>
                       <CardFooter className="flex justify-between">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           onClick={handlePrevStep}
                         >
                           {t('common.back')}
                         </Button>
-                        <Button 
+                        <Button
                           onClick={handleSubmitOrder}
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || !utrNumber || !paymentConfig}
                         >
                           {isSubmitting ? (
                             <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                              {t('common.processing')}
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              {t('common.processing')}...
                             </>
                           ) : (
                             t('payment.confirmPayment')
@@ -570,7 +627,7 @@ const Checkout = () => {
                 )}
               </AnimatePresence>
             </div>
-            
+
             <div className="md:col-span-1">
               <Card className="sticky top-24">
                 <CardHeader>
@@ -579,9 +636,9 @@ const Checkout = () => {
                 <CardContent className="space-y-4">
                   <div className={cn("flex gap-3", isRTL ? "flex-row-reverse" : "")}>
                     <div className="rounded-md overflow-hidden w-20 h-20 bg-gray-100 flex-shrink-0">
-                      <img 
-                        src="https://placehold.co/100x100" 
-                        alt={bookingData.eventTitle} 
+                      <img
+                        src="https://placehold.co/100x100"
+                        alt={bookingData.eventTitle}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -601,9 +658,9 @@ const Checkout = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="space-y-2">
                     {bookingData.tickets.map((ticket, index) => (
                       <div key={index} className="flex justify-between text-sm">
@@ -614,9 +671,9 @@ const Checkout = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   <Separator />
-                  
+
                   {hasDiscount && (
                     <div className="flex justify-between text-sm">
                       <div className="flex items-center">
@@ -630,7 +687,7 @@ const Checkout = () => {
                       <span className="text-green-600">-{formatCurrency(discountAmount)}</span>
                     </div>
                   )}
-                  
+
                   <div className="flex justify-between font-bold">
                     <span>{t('checkout.total')}</span>
                     <div className="flex items-center gap-2">
@@ -648,7 +705,7 @@ const Checkout = () => {
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

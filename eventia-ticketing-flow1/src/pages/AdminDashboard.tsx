@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -10,36 +10,36 @@ import { CircleDollarSign, TrendingUp, Calendar, Users, AlertCircle, Check, Cred
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { toast } from '@/hooks/use-toast';
 
-const revenueData = [
-  { name: 'Jan', revenue: 52000 },
-  { name: 'Feb', revenue: 45000 },
-  { name: 'Mar', revenue: 58000 },
-  { name: 'Apr', revenue: 75000 },
-  { name: 'May', revenue: 92000 },
-  { name: 'Jun', revenue: 84000 },
-  { name: 'Jul', revenue: 79000 },
-];
-
-const eventPerformanceData = [
-  { name: 'IPL: MI vs CSK', ticketsSold: 850 },
-  { name: 'IPL: RCB vs KKR', ticketsSold: 620 },
-  { name: 'Music Festival', ticketsSold: 450 },
-  { name: 'Comedy Night', ticketsSold: 320 },
-  { name: 'Tech Conference', ticketsSold: 280 },
-];
-
-const paymentMethodsData = [
-  { name: 'UPI', value: 65 },
-  { name: 'Credit Card', value: 20 },
-  { name: 'Debit Card', value: 12 },
-  { name: 'Net Banking', value: 3 },
-];
-
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const AdminDashboard = () => {
   const [dateRange, setDateRange] = useState('week');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [revenueData, setRevenueData] = useState([]);
+  const [eventPerformanceData, setEventPerformanceData] = useState([]);
+  const [paymentMethodsData, setPaymentMethodsData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/dashboard-data')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setRevenueData(data.revenue);
+        setEventPerformanceData(data.eventPerformance);
+        setPaymentMethodsData(data.paymentMethods);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error(error);
+        setLoading(false);
+      });
+  }, []);
 
   const refreshData = () => {
     setIsRefreshing(true);

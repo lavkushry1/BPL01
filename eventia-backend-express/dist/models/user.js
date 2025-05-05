@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.userModel = exports.loginSchema = exports.userSchema = void 0;
 const zod_1 = require("zod");
 const db_1 = require("../db");
+const uuid_1 = require("uuid");
 // Schema for validation
 exports.userSchema = zod_1.z.object({
     name: zod_1.z.string().min(2).max(100),
@@ -24,13 +25,20 @@ class UserModel {
         return await (0, db_1.db)(this.tableName).where({ email }).first();
     }
     async create(user) {
-        const [newUser] = await (0, db_1.db)(this.tableName).insert(user).returning('*');
+        // Generate a UUID for the user
+        const userWithId = {
+            ...user,
+            id: (0, uuid_1.v4)(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        const [newUser] = await (0, db_1.db)(this.tableName).insert(userWithId).returning('*');
         return newUser;
     }
     async update(id, userData) {
         const [updatedUser] = await (0, db_1.db)(this.tableName)
             .where({ id })
-            .update({ ...userData, updated_at: new Date() })
+            .update({ ...userData, updatedAt: new Date() })
             .returning('*');
         return updatedUser || null;
     }

@@ -12,9 +12,13 @@ class WebSocketService {
   private isConnected = false;
   private eventHandlers: Map<string, Set<EventHandler>> = new Map();
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+  private maxReconnectAttempts = 10; // Increased from 5
   private reconnectInterval = 3000; // 3 seconds
+  private heartbeatInterval: any = null;
+  private lastHeartbeat: number = Date.now();
   private eventCallbacks: Record<string, Array<(data: any) => void>> = {};
+  private pingTimeout: number = 30000; // 30 seconds
+  private pingTimer: any = null;
 
   /**
    * Initialize WebSocket connection
@@ -26,15 +30,56 @@ class WebSocketService {
 
     // Use the WEBSOCKET_URL from environment variables directly
     const wsUrl = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:4000';
-    
+
     this.socket = io(wsUrl, {
       reconnection: true,
       reconnectionDelay: this.reconnectInterval,
       reconnectionAttempts: this.maxReconnectAttempts,
+      timeout: 10000, // 10 seconds connection timeout
       transports: ['websocket', 'polling'] // Add polling as fallback
     });
 
     this.attachListeners();
+    this.startHeartbeat();
+  }
+
+  /**
+   * Start heartbeat to detect disconnections
+   */
+  private startHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+
+    // Send a ping every 25 seconds and expect a pong response
+    this.heartbeatInterval = setInterval(() => {
+      if (!this.isConnected) {
+        console.log('Heartbeat detected disconnection, attempting reconnect...');
+        this.reconnect();
+        return;
+      }
+
+      if (this.socket) {
+        this.lastHeartbeat = Date.now();
+
+        // Set a timeout to check for pong response
+        if (this.pingTimer) {
+          clearTimeout(this.pingTimer);
+        }
+
+        this.socket.emit('ping');
+
+        this.pingTimer = setTimeout(() => {
+          // If no pong received in pingTimeout ms, consider connection lost
+          const elapsed = Date.now() - this.lastHeartbeat;
+          if (elapsed >= this.pingTimeout) {
+            console.log('Ping timeout, connection may be lost. Attempting reconnect...');
+            this.isConnected = false;
+            this.reconnect();
+          }
+        }, this.pingTimeout);
+      }
+    }, 25000); // 25 seconds
   }
 
   /**
@@ -47,30 +92,60 @@ class WebSocketService {
       console.log('WebSocket connected');
       this.isConnected = true;
       this.reconnectAttempts = 0;
+
+      // When reconnected, rejoin rooms and re-authenticate if needed
+      this.restoreState();
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log(`WebSocket disconnected: ${reason}`);
       this.isConnected = false;
-      
-      if (reason === 'io server disconnect') {
-        // Server disconnected us, try to reconnect
-        this.reconnect();
+
+      // Always try to reconnect regardless of reason
+      if (reason !== 'io client disconnect') {
+        // Don't reconnect if the client intentionally disconnected
+        setTimeout(() => this.reconnect(), this.reconnectInterval);
       }
     });
 
     this.socket.on('connect_error', (error) => {
       console.error('WebSocket connection error:', error);
+      this.isConnected = false;
       this.reconnectAttempts++;
-      
+
       if (this.reconnectAttempts > this.maxReconnectAttempts) {
         console.error('Maximum reconnection attempts reached');
-        this.socket?.disconnect();
+        // Instead of disconnecting, keep trying with exponential backoff
+        setTimeout(() => this.reconnect(), Math.min(30000, this.reconnectInterval * Math.pow(1.5, this.reconnectAttempts)));
+      } else {
+        setTimeout(() => this.reconnect(), this.reconnectInterval);
       }
+    });
+
+    // Handle pong response to update heartbeat
+    this.socket.on('pong', () => {
+      this.lastHeartbeat = Date.now();
     });
 
     // Setup handlers for specific events
     this.setupEventHandlers();
+  }
+
+  /**
+   * Restore previous state after reconnection
+   */
+  private restoreState(): void {
+    // Re-join event rooms and re-authenticate
+    const userId = localStorage.getItem('user_id');
+    const lastEventId = localStorage.getItem('last_event_id');
+
+    if (userId) {
+      this.authenticateUser(userId);
+    }
+
+    if (lastEventId) {
+      this.joinEvent(lastEventId);
+    }
   }
 
   /**
@@ -103,6 +178,12 @@ class WebSocketService {
     this.socket.on('tickets_generated', (data) => {
       this.triggerEventHandlers('tickets_generated', data);
     });
+
+    // Error handling
+    this.socket.on('error', (error) => {
+      console.error('Socket error:', error);
+      this.triggerEventHandlers('socket_error', error);
+    });
   }
 
   /**
@@ -110,10 +191,16 @@ class WebSocketService {
    * @param eventId Event ID
    */
   public joinEvent(eventId: string): void {
-    if (this.isConnected && this.socket) {
+    if (this.socket) {
       this.socket.emit('join_event', eventId); // Match backend event name
+      localStorage.setItem('last_event_id', eventId);
+
+      if (!this.isConnected) {
+        console.warn('Socket not connected, event will be joined upon reconnection');
+      }
     } else {
-      console.warn('Socket not connected, cannot join event room');
+      console.warn('Socket not initialized, cannot join event room');
+      this.init(); // Auto-initialize if needed
     }
   }
 
@@ -122,10 +209,16 @@ class WebSocketService {
    * @param userId User ID
    */
   public authenticateUser(userId: string): void {
-    if (this.isConnected && this.socket) {
+    if (this.socket) {
       this.socket.emit('authenticate', userId); // Match backend event name
+      localStorage.setItem('user_id', userId);
+
+      if (!this.isConnected) {
+        console.warn('Socket not connected, user will be authenticated upon reconnection');
+      }
     } else {
-      console.warn('Socket not connected, cannot authenticate user');
+      console.warn('Socket not initialized, cannot authenticate user');
+      this.init(); // Auto-initialize if needed
     }
   }
 
@@ -138,7 +231,7 @@ class WebSocketService {
     if (!this.eventCallbacks[event]) {
       this.eventCallbacks[event] = [];
     }
-    
+
     this.eventCallbacks[event].push(handler);
   }
 
@@ -177,6 +270,7 @@ class WebSocketService {
    */
   public reconnect(): void {
     if (this.socket) {
+      console.log(`Attempting to reconnect (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
       this.socket.connect();
     } else {
       this.init();
@@ -187,6 +281,16 @@ class WebSocketService {
    * Disconnect from the WebSocket server
    */
   public disconnect(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+
+    if (this.pingTimer) {
+      clearTimeout(this.pingTimer);
+      this.pingTimer = null;
+    }
+
     if (this.socket) {
       this.socket.disconnect();
       this.isConnected = false;

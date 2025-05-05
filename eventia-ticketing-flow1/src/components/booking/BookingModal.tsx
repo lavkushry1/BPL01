@@ -4,7 +4,7 @@
  * Allows users to select from different ticket categories with pricing and availability info.
  * 
  * @apiDependencies
- * - None (uses sessionStorage for data persistence)
+ * - POST /api/reservations - Creates a new ticket reservation
  * 
  * @requiredProps
  * - isOpen (boolean) - Controls modal visibility
@@ -13,19 +13,15 @@
  * - ticketTypes (TicketType[]) - Array of available ticket types with category, price, and availability
  * 
  * @stateManagement
+ * - Uses React Hook Form for form state management
+ * - Zod for form validation
  * - Tracks ticket selection quantities
  * - Calculates total tickets and amount
  * - Stores booking data in sessionStorage for use in checkout
  * 
  * @navigationFlow
- * - On "Proceed to Checkout", navigates to /checkout page
- * - Passes data via sessionStorage instead of state or API
- * 
- * @dataModel
- * Stores:
- * - eventTitle: string
- * - tickets: {category, quantity, price, subtotal}[]
- * - totalAmount: number
+ * - On "Proceed to Checkout", navigates to /booking/delivery page
+ * - Passes data via sessionStorage and URL parameter (reservationId)
  */
 
 import React, { useState } from 'react';
@@ -37,9 +33,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 interface TicketType {
   category: string;
@@ -54,147 +53,328 @@ interface BookingModalProps {
   ticketTypes: TicketType[];
 }
 
+// API response types
+interface ReservationResponse {
+  reservationId: string;
+  paymentDeadline: string;
+  status: 'pending' | 'confirmed' | 'failed';
+}
+
+// API error types
+interface ApiError {
+  message: string;
+  code?: string;
+  details?: Record<string, string[]>;
+}
+
+// Define validation schema
+const createBookingSchema = (ticketTypes: TicketType[]) => {
+  return z.object({
+    tickets: z.record(z.string(), z.number().min(0).max(10, "Maximum 10 tickets per category"))
+  })
+  .refine(
+    data => {
+      const totalTickets = Object.values(data.tickets).reduce((sum, qty) => sum + qty, 0);
+      return totalTickets > 0;
+    }, 
+    {
+      message: "Please select at least one ticket",
+      path: ["tickets"]
+    }
+  )
+  .refine(
+    data => {
+      const totalTickets = Object.values(data.tickets).reduce((sum, qty) => sum + qty, 0);
+      return totalTickets <= 20;
+    },
+    {
+      message: "Maximum 20 tickets per booking",
+      path: ["tickets"]
+    }
+  )
+  .refine(
+    data => {
+      // Validate that requested tickets do not exceed availability
+      let isValid = true;
+      
+      for (const ticket of ticketTypes) {
+        const requestedQty = data.tickets[ticket.category] || 0;
+        if (requestedQty > ticket.available) {
+          isValid = false;
+          break;
+        }
+      }
+      
+      return isValid;
+    },
+    {
+      message: "One or more ticket types exceed available quantity",
+      path: ["tickets"]
+    }
+  );
+};
+
+type BookingFormValues = z.infer<ReturnType<typeof createBookingSchema>>;
+
 const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModalProps) => {
   const navigate = useNavigate();
-  const [ticketSelections, setTicketSelections] = useState<Record<string, number>>(
-    Object.fromEntries(ticketTypes.map(ticket => [ticket.category, 0]))
-  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Initialize form with React Hook Form
+  const bookingSchema = createBookingSchema(ticketTypes);
+  
+  const { 
+    handleSubmit, 
+    setValue, 
+    watch, 
+    formState: { errors },
+    setError,
+    clearErrors,
+  } = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      tickets: Object.fromEntries(ticketTypes.map(ticket => [ticket.category, 0]))
+    }
+  });
+  
+  const ticketValues = watch('tickets');
   
   const handleIncrement = (category: string) => {
     const ticket = ticketTypes.find(t => t.category === category);
     if (!ticket) return;
     
-    if (ticketSelections[category] < ticket.available) {
-      setTicketSelections({
-        ...ticketSelections,
-        [category]: ticketSelections[category] + 1
-      });
+    const currentValue = ticketValues[category] || 0;
+    if (currentValue < ticket.available) {
+      setValue(`tickets.${category}`, currentValue + 1, { shouldValidate: true });
     }
   };
   
   const handleDecrement = (category: string) => {
-    if (ticketSelections[category] > 0) {
-      setTicketSelections({
-        ...ticketSelections,
-        [category]: ticketSelections[category] - 1
-      });
+    const currentValue = ticketValues[category] || 0;
+    if (currentValue > 0) {
+      setValue(`tickets.${category}`, currentValue - 1, { shouldValidate: true });
     }
   };
   
-  const calculateTotal = () => {
-    return ticketTypes.reduce((total, ticket) => {
-      return total + (ticketSelections[ticket.category] * ticket.price);
-    }, 0);
-  };
-
-  const totalTickets = Object.values(ticketSelections).reduce((sum, count) => sum + count, 0);
-  const totalAmount = calculateTotal();
+  // Calculate totals for display
+  const totalTickets = Object.values(ticketValues).reduce((sum, count) => sum + (count || 0), 0);
+  const totalAmount = ticketTypes.reduce((total, ticket) => {
+    return total + ((ticketValues[ticket.category] || 0) * ticket.price);
+  }, 0);
   
-  const handleProceedToCheckout = async () => {
-    if (totalTickets === 0) {
-      toast({
-        title: 'No tickets selected',
-        description: 'Please select at least one ticket to proceed.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const onSubmit = async (data: BookingFormValues) => {
+    // Clear any previous form errors
+    clearErrors();
+    setIsSubmitting(true);
+    
     try {
       const response = await fetch('http://localhost:5000/api/reservations', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           eventId: 'EVENT_123', // TODO: Replace with actual event ID
-          tickets: ticketSelections
+          tickets: data.tickets
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create reservation');
+        const errorData: ApiError = await response.json();
+        
+        // Handle validation errors from API
+        if (errorData.details) {
+          Object.entries(errorData.details).forEach(([field, messages]) => {
+            if (field.startsWith('tickets.')) {
+              const category = field.replace('tickets.', '');
+              setError(`tickets.${category}` as any, { 
+                type: 'server', 
+                message: messages[0] 
+              });
+            } else {
+              setError('root', { 
+                type: 'server', 
+                message: messages[0] 
+              });
+            }
+          });
+        } else {
+          throw new Error(errorData.message || 'Failed to create reservation');
+        }
+        return;
       }
 
-      const { reservationId, paymentDeadline } = await response.json();
-      navigate(`/checkout?reservationId=${reservationId}`);
+      const { reservationId, paymentDeadline } = await response.json() as ReservationResponse;
+      
+      // Store booking data in sessionStorage
+      const bookingData = {
+        eventId: 'EVENT_123',
+        eventTitle: eventTitle,
+        eventDate: '2025-06-15', // Replace with actual event date
+        eventTime: '19:00', // Replace with actual event time
+        venue: 'Venue Name', // Replace with actual venue
+        tickets: Object.entries(data.tickets).map(([category, quantity]) => {
+          const ticketType = ticketTypes.find(t => t.category === category);
+          return {
+            category,
+            quantity,
+            price: ticketType?.price || 0,
+            subtotal: (ticketType?.price || 0) * quantity
+          };
+        }).filter(t => t.quantity > 0),
+        totalAmount: totalAmount,
+        paymentDeadline
+      };
+      
+      sessionStorage.setItem('bookingData', JSON.stringify(bookingData));
+      
+      // Show success toast
+      toast({
+        title: 'Reservation created',
+        description: 'Your ticket reservation was successful!',
+        variant: 'default',
+      });
+      
+      // Navigate to delivery address page
+      navigate(`/booking/delivery?reservationId=${reservationId}`);
       onClose();
 
     } catch (error) {
       console.error('Checkout error:', error);
-      toast({
-        title: 'Checkout failed',
-        description: error.message,
-        variant: 'destructive'
-      });
+      
+      if (error instanceof Error) {
+        // Set form-level error
+        setError('root', {
+          type: 'server',
+          message: error.message
+        });
+        
+        // Also show toast for visibility
+        toast({
+          title: 'Checkout failed',
+          description: error.message,
+          variant: 'destructive'
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
+  // If there's a form-level (root) error, display it
+  const formError = errors.root?.message;
+  
+  // Check if any ticket category has an error
+  const hasTicketErrors = Object.keys(errors).some(key => key.startsWith('tickets.'));
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Book Tickets for {eventTitle}</DialogTitle>
+          <DialogTitle className="text-lg md:text-xl">{eventTitle}</DialogTitle>
         </DialogHeader>
         
-        <div className="py-4">
-          <div className="space-y-4">
-            {ticketTypes.map((ticket) => (
-              <div key={ticket.category} className="flex items-center justify-between p-3 border rounded-md">
-                <div>
-                  <div className="font-medium">{ticket.category}</div>
-                  <div className="text-sm text-gray-500">₹{ticket.price}</div>
-                  <div className="text-xs text-gray-400">Available: {ticket.available}</div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => handleDecrement(ticket.category)}
-                    disabled={ticketSelections[ticket.category] === 0}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  
-                  <span className="w-6 text-center">{ticketSelections[ticket.category]}</span>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-full"
-                    onClick={() => handleIncrement(ticket.category)}
-                    disabled={ticketSelections[ticket.category] >= ticket.available}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {totalTickets > 0 && (
-            <div className="mt-6 p-4 border rounded-md bg-gray-50">
-              <div className="flex justify-between font-medium">
-                <span>Total Tickets:</span>
-                <span>{totalTickets}</span>
-              </div>
-              <div className="flex justify-between text-lg font-bold mt-2">
-                <span>Total Amount:</span>
-                <span>₹{totalAmount}</span>
-              </div>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Form-level error message */}
+          {formError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm flex items-start">
+              <AlertCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+              <span>{formError}</span>
             </div>
           )}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button 
-            onClick={handleProceedToCheckout}
-            disabled={totalTickets === 0}
-          >
-            Proceed to Checkout
-          </Button>
-        </DialogFooter>
+          
+          <div className="py-4">
+            <div className="space-y-4 md:space-y-3">
+              {ticketTypes.map((ticket) => {
+                const fieldError = errors.tickets?.[ticket.category]?.message;
+                
+                return (
+                  <div 
+                    key={ticket.category} 
+                    className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border rounded-md gap-2 ${
+                      fieldError ? 'border-red-300 bg-red-50' : ''
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="font-medium">{ticket.category}</div>
+                      <div className="text-sm text-gray-500">₹{ticket.price}</div>
+                      <div className="text-xs text-gray-400">Available: {ticket.available}</div>
+                      
+                      {fieldError && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {String(fieldError)}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 justify-end">
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        onClick={() => handleDecrement(ticket.category)}
+                        disabled={!ticketValues[ticket.category]}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      
+                      <span className="w-6 text-center">{ticketValues[ticket.category] || 0}</span>
+                      
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                        onClick={() => handleIncrement(ticket.category)}
+                        disabled={ticketValues[ticket.category] >= ticket.available}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* Ticket selection error that's not tied to a specific category */}
+              {errors.tickets && !hasTicketErrors && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.tickets.message}
+                </p>
+              )}
+            </div>
+            
+            {totalTickets > 0 && (
+              <div className="mt-6 p-4 border rounded-md bg-gray-50">
+                <div className="flex justify-between font-medium">
+                  <span>Total Tickets:</span>
+                  <span>{totalTickets}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold mt-2">
+                  <span>Total Amount:</span>
+                  <span>₹{totalAmount}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={onClose}
+              className="w-full sm:w-auto focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              disabled={totalTickets === 0 || isSubmitting}
+              className="w-full sm:w-auto focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              {isSubmitting ? 'Processing...' : 'Proceed to Checkout'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

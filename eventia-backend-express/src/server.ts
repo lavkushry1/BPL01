@@ -3,13 +3,14 @@ import { Server as SocketIOServer } from 'socket.io';
 import { createApp } from './app';
 import { config } from './config';
 import { logger } from './utils/logger';
-import { testConnection } from './db';
+import { initializeDatabase, closeDatabase, checkDatabaseHealth } from './db';
 import { WebsocketService } from './services/websocket.service';
 import { JobService } from './services/job.service';
+import { connectPrisma, disconnectPrisma } from './db/prisma';
 
 async function startServer() {
   try {
-    // Test database connection before starting server
+    // Initialize database connections
     let dbConnected = false;
     
     try {
@@ -18,7 +19,14 @@ async function startServer() {
         logger.warn('Skipping database connection check due to SKIP_DB_CHECK=true');
         dbConnected = true;
       } else {
-        dbConnected = await testConnection();
+        // Initialize Knex database connection with retries
+        await initializeDatabase();
+        
+        // Connect Prisma client
+        await connectPrisma();
+        
+        // Verify database health
+        dbConnected = await checkDatabaseHealth();
       }
     } catch (error) {
       logger.error('Database connection error:', error);
@@ -54,12 +62,31 @@ async function startServer() {
       logger.info('WebSocket server initialized');
     });
     
+    // Setup periodic health check for database
+    const healthCheckInterval = setInterval(async () => {
+      const isHealthy = await checkDatabaseHealth();
+      if (!isHealthy) {
+        logger.error('Database health check failed in periodic check');
+      }
+    }, 60000); // Check every minute
+    
     // Graceful shutdown
     const shutdown = async () => {
       logger.info('Shutting down server...');
       
+      // Clear health check interval
+      clearInterval(healthCheckInterval);
+      
       // Stop all background jobs
       JobService.stopAllJobs();
+      
+      // Close database connections
+      try {
+        await closeDatabase();
+        await disconnectPrisma();
+      } catch (error) {
+        logger.error('Error closing database connections:', error);
+      }
       
       // Close server connections
       server.close(() => {

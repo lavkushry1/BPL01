@@ -25,7 +25,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -37,9 +37,8 @@ import { Copy, Check, CopyCheck, AlertCircle, CalendarClock, IndianRupee } from 
 import { usePaymentSettings } from '@/hooks/use-payment-settings';
 import { getBookingById } from '@/services/api/bookingApi';
 import { recordUpiPayment } from '@/services/api/paymentApi';
-import RazorpayPayment from '@/components/payment/RazorpayPayment';
 import UpiPayment from '@/components/payment/UpiPayment';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { isAuthenticated } from '@/services/api/apiUtils';
 
 // Get current date and time in local format
 const getCurrentDateTime = () => {
@@ -59,8 +58,9 @@ export default function Payment() {
   const { t } = useTranslation();
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { activeUpiId, isLoading: isUpiLoading } = usePaymentSettings();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [booking, setBooking] = useState<any>(null);
   const [event, setEvent] = useState<any>(null);
@@ -70,18 +70,107 @@ export default function Payment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Check if we have location state or valid booking ID
+  useEffect(() => {
+    // If no location state and this is not a direct payment with bookingId, redirect to address page
+    const hasValidRoute = location.state || bookingId || sessionStorage.getItem('bookingData');
+
+    if (!hasValidRoute) {
+      console.log('Payment page accessed without state or bookingId, redirecting to address page');
+      navigate('/booking/delivery');
+      return;
+    }
+
+    console.log('Payment page loaded with valid state or bookingId');
+  }, [location.state, bookingId, navigate]);
+
+  // Debugging - log component mount and location state
+  useEffect(() => {
+    console.log('Payment component mounted');
+    console.log('Location state:', location.state);
+    console.log('Booking ID from params:', bookingId);
+    console.log('Session storage bookingData exists:', !!sessionStorage.getItem('bookingData'));
+    console.log('Session storage deliveryData exists:', !!sessionStorage.getItem('deliveryData'));
+
+    // Return cleanup function
+    return () => {
+      console.log('Payment component unmounting');
+    };
+  }, [location, bookingId]);
+
   // Load booking information
   useEffect(() => {
     const loadBookingData = async () => {
       if (!bookingId) return;
-      
+
       setIsLoading(true);
       try {
-        // Get booking details using the API
-        const bookingData = await getBookingById(bookingId);
-        setBooking(bookingData);
-        setEvent(bookingData.event);
-        setDeliveryInfo(bookingData.deliveryDetails);
+        // Check if this is a temporary booking ID
+        if (bookingId.startsWith('TEMP-')) {
+          // Load data from session storage instead of API
+          const bookingDataStr = sessionStorage.getItem('bookingData');
+          const deliveryDataStr = sessionStorage.getItem('deliveryData');
+
+          if (!bookingDataStr) {
+            throw new Error('No booking data found in session storage');
+          }
+
+          const storedBookingData = JSON.parse(bookingDataStr);
+          const deliveryData = deliveryDataStr ? JSON.parse(deliveryDataStr) : null;
+
+          // Calculate final amount from tickets
+          let totalAmount = 0;
+          if (storedBookingData.tickets && storedBookingData.tickets.length > 0) {
+            totalAmount = storedBookingData.tickets.reduce((sum, ticket) => sum + ticket.subtotal, 0);
+          } else {
+            totalAmount = storedBookingData.totalAmount || 1000; // Fallback amount
+          }
+
+          // Get total quantity
+          let totalQuantity = 0;
+          if (storedBookingData.tickets && storedBookingData.tickets.length > 0) {
+            totalQuantity = storedBookingData.tickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
+          }
+
+          // Construct proper event object
+          const eventObject = {
+            id: storedBookingData.eventId,
+            title: storedBookingData.eventTitle,
+            startDate: storedBookingData.eventDate,
+            location: storedBookingData.venue,
+            date: storedBookingData.eventDate,
+            time: storedBookingData.eventTime
+          };
+
+          // Construct a complete booking object from session storage data
+          const tempBooking = {
+            id: bookingId,
+            booking_id: bookingId, // Some components might use this field
+            event: eventObject,
+            deliveryDetails: deliveryData,
+            tickets: storedBookingData.tickets || [],
+            totalAmount: totalAmount,
+            finalAmount: totalAmount,
+            quantity: totalQuantity || 1,
+            status: 'PENDING',
+            currency: 'INR',
+            userId: 'temp-user',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          console.log('Using session storage data for payment page:', tempBooking);
+
+          setBooking(tempBooking);
+          setEvent(eventObject);
+          setDeliveryInfo(deliveryData);
+        } else {
+          // Get booking details using the API for real booking IDs
+          const bookingData = await getBookingById(bookingId);
+          setBooking(bookingData);
+          setEvent(bookingData.event);
+          setDeliveryInfo(bookingData.deliveryDetails);
+        }
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading booking data:', error);
@@ -91,16 +180,22 @@ export default function Payment() {
           variant: 'destructive'
         });
         setIsLoading(false);
+        // Navigate back to events page when booking info can't be loaded
+        navigate('/events');
       }
     };
 
-    loadBookingData();
-  }, [bookingId]);
+    // Only attempt to load data if we have a valid route
+    const hasValidRoute = location.state || bookingId || sessionStorage.getItem('bookingData');
+    if (hasValidRoute) {
+      loadBookingData();
+    }
+  }, [bookingId, navigate, location.state]);
 
   // Copy UPI ID to clipboard
   const copyToClipboard = () => {
     if (!activeUpiId) return;
-    
+
     navigator.clipboard.writeText(activeUpiId)
       .then(() => {
         setIsCopied(true);
@@ -108,7 +203,7 @@ export default function Payment() {
           title: 'UPI ID copied!',
           description: 'The UPI ID has been copied to your clipboard.',
         });
-        
+
         // Reset copy status after 3 seconds
         setTimeout(() => setIsCopied(false), 3000);
       })
@@ -125,17 +220,17 @@ export default function Payment() {
   // Submit payment details
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!utrNumber.trim()) {
       setErrorMessage('Please enter the UTR number from your payment');
       return;
     }
-    
+
     if (!bookingId) return;
-    
+
     setIsSubmitting(true);
     setErrorMessage('');
-    
+
     try {
       // Call the API to record UPI payment
       const response = await recordUpiPayment({
@@ -143,13 +238,13 @@ export default function Payment() {
         utrNumber: utrNumber.trim(),
         paymentDate: new Date().toISOString(),
       });
-      
+
       // Handle successful submission
       toast({
         title: 'Payment details submitted',
         description: 'We have received your payment details and will verify them shortly.',
       });
-      
+
       // Redirect to confirmation page
       navigate(`/confirmation/${bookingId}`);
     } catch (error: any) {
@@ -171,50 +266,38 @@ export default function Payment() {
       title: t('payment.paymentDetailsSubmitted', 'Payment details submitted'),
       description: t('payment.paymentVerificationPending', 'We will verify your payment shortly.'),
     });
-    
+
     // Redirect to confirmation page
     navigate(`/confirmation/${bookingId}`);
   };
 
-  // Handle card payment success
-  const handleCardPaymentSuccess = (paymentId: string, orderId: string) => {
-    toast({
-      title: t('payment.paymentSuccessful', 'Payment Successful'),
-      description: t('payment.processingOrder', 'Processing your order...'),
-    });
-    
-    // Navigate to confirmation page
-    navigate(`/confirmation/${bookingId}`);
-  };
-
-  // Show loading state
-  if (isLoading || isUpiLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
-        <main className="flex-grow flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <LoadingSpinner size="lg" />
-        </main>
+        <div className="flex-1 flex items-center justify-center">
+          <LoadingSpinner />
+        </div>
         <Footer />
       </div>
     );
   }
 
-  // Show error if booking not found
+  // If no booking data was loaded, show a friendly message with redirect option
   if (!booking || !event) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
-        <main className="flex-grow flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <div className="text-center p-8">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Booking Not Found</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">We couldn't find the booking you're looking for.</p>
-            <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">
-              Return to Home
-            </Link>
+        <div className="flex-1 container max-w-4xl mx-auto px-4 py-8">
+          <div className="bg-muted rounded-xl p-6 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-orange-500" />
+            <h2 className="text-xl font-semibold mb-2">{t('payment.noBookingData', 'Missing Booking Information')}</h2>
+            <p className="mb-6">{t('payment.redirectToAddress', 'Please complete your delivery details first.')}</p>
+            <Button onClick={() => navigate('/booking/delivery')}>
+              {t('payment.goToDeliveryDetails', 'Go to Delivery Details')}
+            </Button>
           </div>
-        </main>
+        </div>
         <Footer />
       </div>
     );
@@ -223,114 +306,91 @@ export default function Payment() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      
-      <main className="flex-grow pt-8 pb-16 bg-gray-50 dark:bg-gray-900">
-        <div className="container max-w-3xl">
-          {/* Header */}
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t('payment.completePayment', 'Complete Your Payment')}</h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {t('payment.chooseMethod', 'Choose your preferred payment method to confirm your booking')}
-            </p>
-          </div>
-          
-          {/* Booking summary */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-8">
-            <h2 className="text-lg font-semibold mb-4 pb-2 border-b dark:border-gray-700">
-              {t('payment.bookingSummary', 'Booking Summary')}
-            </h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment.eventDetails', 'Event Details')}</h3>
-                <p className="font-semibold mb-1">{event.title}</p>
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-1">
-                  <CalendarClock className="h-4 w-4 mr-1" />
-                  <span>
-                    {new Date(event.startDate).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{event.location}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment.bookingDetails', 'Booking Details')}</h3>
-                <p className="text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">{t('payment.bookingId', 'Booking ID')}:</span>{" "}
-                  <span className="font-mono">{booking.id.slice(-8).toUpperCase()}</span>
-                </p>
-                <p className="text-sm mb-1">
-                  <span className="text-gray-600 dark:text-gray-400">{t('payment.quantity', 'Quantity')}:</span>{" "}
-                  <span>{booking.quantity} {t('payment.tickets', 'ticket(s)')}</span>
-                </p>
-                <p className="flex items-center font-semibold text-lg">
-                  <IndianRupee className="h-4 w-4 mr-1" />
-                  {formatAmountWithCommas(booking.finalAmount)}
-                </p>
-              </div>
+      <main className="flex-1 container max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">{t('payment.payment')}</h1>
+          <p className="text-muted-foreground">{t('payment.completePayment')}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          {/* Payment Section */}
+          <div className="md:col-span-7 space-y-6">
+            <div className="bg-muted rounded-xl p-6">
+              <h2 className="text-xl font-semibold mb-4">{t('payment.paymentMethod')}</h2>
+
+              {/* UPI Payment Component */}
+              <UpiPayment
+                bookingId={bookingId || ''}
+                amount={booking.finalAmount || booking.totalAmount}
+                onPaymentSuccess={handleUpiPaymentSuccess}
+                customerInfo={{
+                  name: deliveryInfo?.name || '',
+                  email: deliveryInfo?.email || '',
+                  phone: deliveryInfo?.phone || ''
+                }}
+              />
             </div>
           </div>
-          
-          {/* Payment methods */}
-          <Tabs defaultValue="upi" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="upi">{t('payment.upiPayment', 'UPI Payment')}</TabsTrigger>
-              <TabsTrigger value="card">{t('payment.cardPayment', 'Card Payment')}</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="upi">
-              {/* UPI Payment section */}
-              <UpiPayment 
-                bookingId={bookingId || ''}
-                amount={booking?.finalAmount || 0}
-                customerInfo={{
-                  name: deliveryInfo?.name || '',
-                  email: deliveryInfo?.email || '',
-                  phone: deliveryInfo?.phone || ''
-                }}
-                onPaymentSuccess={handleUpiPaymentSuccess}
-              />
-            </TabsContent>
-            
-            <TabsContent value="card">
-              {/* Razorpay Card Payment section */}
-              <RazorpayPayment 
-                bookingId={bookingId || ''}
-                amount={booking?.finalAmount || 0}
-                customerInfo={{
-                  name: deliveryInfo?.name || '',
-                  email: deliveryInfo?.email || '',
-                  phone: deliveryInfo?.phone || ''
-                }}
-                onPaymentSuccess={handleCardPaymentSuccess}
-                onPaymentFailure={(error) => {
-                  // Handle payment failure
-                  setErrorMessage(error.description || 'Payment failed. Please try again.');
-                  
-                  toast({
-                    title: t('payment.paymentFailed', 'Payment Failed'),
-                    description: error.description || t('payment.tryAgain', 'Please try again or use a different payment method.'),
-                    variant: "destructive"
-                  });
-                }}
-              />
-            </TabsContent>
-          </Tabs>
-          
-          {/* Payment safety notice */}
-          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
-            <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-2">{t('payment.securityInfo', 'Payment Security')}</h3>
-            <p className="text-blue-700 dark:text-blue-400">
-              {t('payment.securityDetails', 'All payments are secure and encrypted. We never store your payment details. For assistance, contact our support team.')}
-            </p>
+
+          {/* Order Summary */}
+          <div className="md:col-span-5 space-y-6">
+            <div className="bg-muted rounded-xl p-6">
+              <h2 className="text-xl font-semibold mb-4">{t('payment.orderSummary')}</h2>
+
+              {/* Event Details */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <h3 className="font-medium">{event?.title}</h3>
+                  <div className="flex items-center text-sm text-muted-foreground mt-1">
+                    <CalendarClock className="h-4 w-4 mr-1" />
+                    <span>{event?.date} {event?.time && `• ${event.time}`}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {event?.location}
+                  </div>
+                </div>
+              </div>
+
+              {/* Ticket Summary */}
+              <div className="space-y-3 border-t border-border pt-4 mb-4">
+                <h3 className="font-medium">{t('payment.tickets')}</h3>
+                {booking.tickets && booking.tickets.map((ticket: any, index: number) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span>{ticket.name || 'Standard Ticket'} x {ticket.quantity}</span>
+                    <span>₹{formatAmountWithCommas(ticket.subtotal || (ticket.price * ticket.quantity))}</span>
+                  </div>
+                ))}
+                {(!booking.tickets || booking.tickets.length === 0) && (
+                  <div className="flex justify-between text-sm">
+                    <span>Tickets x {booking.quantity || 1}</span>
+                    <span>₹{formatAmountWithCommas(booking.finalAmount || booking.totalAmount)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Total */}
+              <div className="border-t border-border pt-4">
+                <div className="flex justify-between font-medium">
+                  <span>{t('payment.total')}</span>
+                  <div className="flex items-center">
+                    <IndianRupee className="h-4 w-4 mr-1" />
+                    <span>{formatAmountWithCommas(booking.finalAmount || booking.totalAmount)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-muted/50 rounded-xl p-6">
+              <h3 className="font-medium mb-2">{t('payment.notes')}</h3>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li>• {t('payment.securePayment')}</li>
+                <li>• {t('payment.utrVerification')}</li>
+                <li>• {t('payment.ticketsAfterVerification')}</li>
+              </ul>
+            </div>
           </div>
         </div>
       </main>
-      
       <Footer />
     </div>
   );

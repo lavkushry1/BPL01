@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { EventController } from '../controllers/event.controller';
+import { EventController, listCategories } from '../controllers/event.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { upload, uploadSingle } from '../middleware/upload';
@@ -465,5 +465,8 @@ router.get('/:id/seats', EventController.getEventSeats);
 
 // File upload route for event images
 router.post('/upload-image', authenticate, uploadSingle, EventController.uploadEventImage);
+
+// Add this route to expose /api/v1/events/categories
+router.get('/categories', listCategories);
 
 export default router; 
