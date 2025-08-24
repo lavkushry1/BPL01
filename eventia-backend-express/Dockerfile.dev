@@ -15,6 +15,9 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Rebuild bcrypt for the current architecture
+RUN npm rebuild bcrypt --build-from-source
+
 # Create directories for tickets and QR codes
 RUN mkdir -p public/tickets public/qrcodes
 

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:14-alpine
     container_name: eventia_db
     environment:
       POSTGRES_USER: eventia
@@ -10,6 +10,7 @@ services:
       POSTGRES_DB: eventia
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     networks:
@@ -86,17 +87,18 @@ services:
       - backend_data:/app/public
       - backend_logs:/app/logs
       - ./eventia-backend-express:/app
+      - ./eventia-backend-express/.env.docker:/app/.env.development
     ports:
       - "4000:4000"
     networks:
       - eventia-net
-    command: ${NODE_ENV:-development} != "production" && "npm run dev" || "node dist/server.js"
+    command: npm run dev
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/v1/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
 
   frontend:
@@ -116,7 +118,7 @@ services:
       - "5173:5173"
     networks:
       - eventia-net
-    command: ${NODE_ENV:-development} != "production" && "npm run dev -- --host 0.0.0.0" || ""
+    command: npm run dev -- --host 0.0.0.0
     restart: unless-stopped
 
 volumes:

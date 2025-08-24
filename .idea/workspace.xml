@@ -56,70 +56,11 @@
       <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82695507_7808532613.pdf" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82719047_7857937216.pdf" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../BP/pdf/admitcard_82738470_9060767703.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/Dockerfile" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/docker-compose.yml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/package.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/config/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/config/knexfile.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/config/swagger.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/controllers/authController.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/controllers/booking.controller.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/controllers/payment.controller.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/db/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/db/migrations/20230501000001_initial_schema.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/db/migrations/20240426000004_payment_tables.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/docs/components/payment.components.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/docs/swagger.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/auth.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/errorHandler.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/middleware/validate.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/models/booking.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/models/payment.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/models/user.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/auth.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/booking.routes.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/payment.routes.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/routes/v1/index.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/server.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/services/payment.service.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/utils/apiError.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/utils/apiResponse.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/utils/logger.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/src/validations/payment.validation.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/backend/tsconfig.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/BookingModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/BookingModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/ConfirmationPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/ConfirmationPage.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/SeatMap.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/booking/SeatMap.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/events/EventCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/events/EventCard.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/home/FeaturedEvents.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/home/FeaturedEvents.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DeliveryDetailsForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DeliveryDetailsForm.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DiscountForm.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/DiscountForm.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/UpiPayment.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/components/payment/UpiPayment.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/data/eventsData.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/data/eventsData.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/booking.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/booking.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/discount.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/eventia-backend/services/discount.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/en.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/en.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/hi.json" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/i18n/locales/hi.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/lib/utils.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/lib/utils.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/main.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/main.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/ARVenuePreview.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/ARVenuePreview.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/AdminDiscountManagement.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/AdminDiscountManagement.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Checkout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Checkout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Confirmation.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Confirmation.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/DeliveryDetails.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/DeliveryDetails.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/EventDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/EventDetail.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Events.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Events.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/IPLTickets.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/IPLTickets.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Payment.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/pages/Payment.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/eventia-ticketing-flow1/src/services/api/paymentApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-ticketing-flow1/src/services/api/paymentApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-backend-express/.env" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-backend-express/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-backend-express/Dockerfile.dev" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-backend-express/Dockerfile.dev" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-backend-express/development.Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-backend-express/development.Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eventia-backend-express/prisma/schema.prisma" beforeDir="false" afterPath="$PROJECT_DIR$/eventia-backend-express/prisma/schema.prisma" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/ios/Podfile" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/all_garage_model.dart" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../Back to Work/googlemaprealroadies/lib/Models/all_restaurants_model.dart" beforeDir="false" />
@@ -539,7 +480,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
@@ -576,7 +517,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-WS-251.23774.424" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-WS-251.25410.117" />
       </set>
     </attachedChunks>
   </component>
@@ -593,6 +534,7 @@
       <workItem from="1745299777857" duration="39000" />
       <workItem from="1745673955956" duration="3009000" />
       <workItem from="1745765925235" duration="4111000" />
+      <workItem from="1747193097884" duration="24000" />
     </task>
     <servers />
   </component>
@@ -605,7 +547,6 @@
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/eventia-backend-express/src/services/seatLocking.service.ts</url>
           <line>24</line>
-          <properties lambdaOrdinal="-1" />
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>
