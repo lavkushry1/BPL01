@@ -104,7 +104,7 @@ export class SeatModel {
     seatIds: string[],
     userId: string,
     expirationSeconds: number
-  ): Promise<{ success: boolean; lockedSeats: string[]; unavailableSeats?: string[]; message?: string }> {
+  ): Promise<{ success: boolean; lockedSeats: string[]; unavailableSeats?: string[]; message?: string; reservationId?: string }> {
     const expiresAt = new Date(Date.now() + expirationSeconds * 1000);
     
     try {

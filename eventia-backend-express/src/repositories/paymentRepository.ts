@@ -1,5 +1,6 @@
 import prisma from '../db/prisma';
 import { ApiError } from '../utils/apiError';
+import { Prisma } from '@prisma/client';
 
 /**
  * BookingPayment interface representing a payment in the database
@@ -7,7 +8,7 @@ import { ApiError } from '../utils/apiError';
 export interface BookingPayment {
   id: string;
   bookingId: string;
-  amount: number;
+  amount: Prisma.Decimal;
   utrNumber?: string;
   status: 'pending' | 'verified' | 'rejected' | 'refunded';
   paymentDate?: Date;

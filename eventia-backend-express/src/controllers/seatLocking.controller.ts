@@ -110,7 +110,7 @@ function setupSeatLockExpiration(
 ): void {
   setTimeout(() => {
     // Use retry mechanism for reliable seat release
-    withRetry(() => releaseExpiredReservation(seatIds, userId, reservationId), 3, 5000)
+    withRetry(() => releaseExpiredReservation(seatIds, userId, reservationId), { maxAttempts: 3, delay: 5000 })
       .catch(error => {
         logger.error('Failed to release seats after multiple attempts:', error);
         // Additional recovery mechanism could be implemented here

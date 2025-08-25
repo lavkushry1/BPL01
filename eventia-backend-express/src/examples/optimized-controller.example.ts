@@ -55,7 +55,7 @@ export class OptimizedControllerExample {
     const item = await req.loaders.eventLoader.load(id);
     
     if (!item) {
-      return ApiResponse.notFound(res, 'Item not found');
+      return ApiResponse.error(res, 404, 'Item not found', 'NOT_FOUND');
     }
     
     // 2. Return the response
@@ -70,7 +70,7 @@ export class OptimizedControllerExample {
     const { ids } = req.query;
     
     if (!ids) {
-      return ApiResponse.badRequest(res, 'IDs are required');
+      return ApiResponse.error(res, 400, 'IDs are required', 'BAD_REQUEST');
     }
     
     const idArray = (ids as string).split(',');
@@ -99,7 +99,7 @@ export class OptimizedControllerExample {
     });
     
     if (!item) {
-      return ApiResponse.notFound(res, 'Item not found');
+      return ApiResponse.error(res, 404, 'Item not found', 'NOT_FOUND');
     }
     
     // Return the response
@@ -140,7 +140,7 @@ export class OptimizedControllerExample {
     const mainItem = await req.loaders.eventLoader.load(id);
     
     if (!mainItem) {
-      return ApiResponse.notFound(res, 'Item not found');
+      return ApiResponse.error(res, 404, 'Item not found', 'NOT_FOUND');
     }
     
     // 2. Get all related ids that we need to fetch
@@ -159,4 +159,4 @@ export class OptimizedControllerExample {
     // 5. Return the response
     return ApiResponse.success(res, 200, 'Item with relations fetched', response);
   });
-} 
+}

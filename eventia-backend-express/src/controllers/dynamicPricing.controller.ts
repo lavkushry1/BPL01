@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import catchAsync from '../utils/catchAsync';
+import { catchAsync } from '../utils/catchAsync';
 import { ApiError } from '../utils/apiError';
 import { DynamicPricingService } from '../services/dynamicPricing.service';
 

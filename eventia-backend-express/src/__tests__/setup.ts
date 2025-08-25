@@ -1,7 +1,7 @@
 import { config } from '../config';
 import { Application } from 'express';
 import supertest from 'supertest';
-import { createApp } from '../server';
+import { createApp } from '../app';
 import db from '../db';
 
 let app: Application;
@@ -14,7 +14,8 @@ beforeAll(async () => {
   process.env.NODE_ENV = 'test';
   
   // Initialize the app
-  app = await createApp();
+  const { app: createdApp } = await createApp();
+  app = createdApp;
   request = supertest(app);
   
   // Run migrations to setup test database

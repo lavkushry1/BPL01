@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 
 // Importing services needed for UTR verification
-import { PaymentService } from '../services/payment.service';
+import { paymentService } from '../services/payment.service';
 import PDFDocument from 'pdfkit';
 import qrCode from 'qrcode';
 
@@ -89,7 +89,7 @@ export const verifyUTR = async (req: Request, res: Response) => {
 
     // Assume we're getting some payment or null response 
     // Safely convert to our expected type using unknown as an intermediate step
-    const rawPayment = await PaymentService.getPaymentById(utrNumber);
+    const rawPayment = await paymentService.getPaymentByBookingId(reservationId);
     // Convert to unknown first, then to our Payment interface
     const existingPayment = rawPayment ? { 
       id: typeof rawPayment.id === 'string' ? rawPayment.id : '',
@@ -110,10 +110,11 @@ export const verifyUTR = async (req: Request, res: Response) => {
     }
 
     // Update reservation status
-    await PaymentService.createPayment({
+    await paymentService.createPayment({
       booking_id: reservationId,
       amount: 0, // Default amount if no existing payment
-      utr_number: utrNumber
+      utr_number: utrNumber,
+      status: 'pending'
     });
 
     await ReservationService.updateReservationStatus(reservationId, 'paid');

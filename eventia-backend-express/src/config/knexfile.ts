@@ -1,5 +1,5 @@
 
-import { config } from './index';
+import { config } from './index.js';
 import path from 'path';
 
 const knexConfig = {
