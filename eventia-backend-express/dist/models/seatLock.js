@@ -63,3 +63,4 @@ exports.bulkCheckSeatLocksSchema = zod_1.z.object({
     params: zod_1.z.object({}),
     query: zod_1.z.object({}),
 });
+//# sourceMappingURL=seatLock.js.map

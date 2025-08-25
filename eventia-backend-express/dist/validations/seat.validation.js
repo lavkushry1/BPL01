@@ -56,3 +56,4 @@ exports.unlockSeatsSchema = zod_1.z.object({
     params: zod_1.z.object({}),
     query: zod_1.z.object({})
 });
+//# sourceMappingURL=seat.validation.js.map

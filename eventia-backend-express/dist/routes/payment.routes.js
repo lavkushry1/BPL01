@@ -277,3 +277,4 @@ router.get('/', (0, auth_1.auth)('admin'), (0, validate_1.validate)(paymentValid
  */
 router.post('/webhook', (0, validate_1.validate)(paymentValidation.webhookSchema), payment_controller_1.PaymentController.handlePaymentWebhook);
 exports.default = router;
+//# sourceMappingURL=payment.routes.js.map

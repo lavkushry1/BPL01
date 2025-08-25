@@ -17,3 +17,4 @@ async function up(knex) {
 async function down(knex) {
     await knex.schema.dropTableIfExists('booking_payments');
 }
+//# sourceMappingURL=20240615000001_create_booking_payments.js.map

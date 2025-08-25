@@ -2,83 +2,84 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiResponse = void 0;
 /**
- * Utility for sending standardized API responses
+ * Utility class for standardized API responses
  */
 class ApiResponse {
     /**
-     * Send a successful response
-     *
+     * Send a success response
      * @param res Express response object
-     * @param data Response data or status code
-     * @param message Success message
-     * @param meta Response metadata (optional)
-     */
-    static success(res, data = null, message = 'Success', meta = {}) {
-        const statusCode = typeof data === 'number' ? data : 200;
-        const responseData = typeof data === 'number' ? null : data;
-        return res.status(statusCode).json({
-            status: 'success',
-            message,
-            data: responseData,
-            meta,
-            timestamp: new Date().toISOString()
-        });
-    }
-    /**
-     * Send a created response (201)
-     *
-     * @param res Express response object
-     * @param data Response data
-     * @param message Success message
-     */
-    static created(res, data = null, message = 'Created successfully') {
-        return res.status(201).json({
-            status: 'success',
-            message,
-            data,
-            timestamp: new Date().toISOString()
-        });
-    }
-    /**
-     * Send a paginated response
-     *
-     * @param res Express response object
-     * @param statusCode HTTP status code (defaults to 200)
+     * @param statusCode HTTP status code
      * @param message Success message
      * @param data Response data
-     * @param pagination Pagination details
+     * @param options Additional response options
      */
-    static paginated(res, statusCode = 200, message = 'Success', data, pagination) {
+    static success(res, statusCode = 200, message = 'Success', data = null, options = {}) {
+        // Set headers if provided
+        if (options.headers) {
+            Object.entries(options.headers).forEach(([key, value]) => {
+                res.setHeader(key, value);
+            });
+        }
         return res.status(statusCode).json({
-            status: 'success',
+            success: true,
             message,
             data,
-            meta: {
-                pagination
-            },
-            timestamp: new Date().toISOString()
+            metadata: options.metadata || {},
+            ...(options.pagination && { pagination: options.pagination }),
         });
     }
     /**
      * Send an error response
-     *
      * @param res Express response object
      * @param statusCode HTTP status code
      * @param message Error message
-     * @param errorCode Error code (optional)
-     * @param errors Validation errors (optional)
+     * @param errorCode Error code for client reference
+     * @param errors Additional error details
      */
-    static error(res, statusCode = 500, message = 'An error occurred', errorCode = 'INTERNAL_ERROR', errors = null) {
-        const response = {
-            status: 'error',
+    static error(res, statusCode = 500, message = 'Internal Server Error', errorCode = 'INTERNAL_SERVER_ERROR', errors = null) {
+        return res.status(statusCode).json({
+            success: false,
             message,
-            error_code: errorCode,
-            timestamp: new Date().toISOString()
-        };
-        if (errors) {
-            response.errors = errors;
-        }
-        return res.status(statusCode).json(response);
+            errorCode,
+            errors,
+        });
+    }
+    /**
+     * Send a paginated list response
+     * @param res Express response object
+     * @param data List data
+     * @param page Current page
+     * @param limit Items per page
+     * @param total Total number of items
+     * @param message Success message
+     */
+    static paginated(res, data, page, limit, total, message = 'Data retrieved successfully') {
+        const totalPages = Math.ceil(total / limit);
+        return this.success(res, 200, message, data, {
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages
+            }
+        });
+    }
+    /**
+     * Send a created resource response
+     * @param res Express response object
+     * @param data Created resource data
+     * @param message Success message
+     */
+    static created(res, data, message = 'Resource created successfully') {
+        return this.success(res, 201, message, data);
+    }
+    /**
+     * Send a no content response
+     * @param res Express response object
+     */
+    static noContent(res) {
+        return res.status(204).end();
     }
 }
 exports.ApiResponse = ApiResponse;
+//# sourceMappingURL=apiResponse.js.map

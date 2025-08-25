@@ -431,4 +431,7 @@ router.delete('/admin/events/:id', auth_1.authenticate, checkAdmin, event_contro
 router.get('/:id/seats', event_controller_1.EventController.getEventSeats);
 // File upload route for event images
 router.post('/upload-image', auth_1.authenticate, upload_1.uploadSingle, event_controller_1.EventController.uploadEventImage);
+// Add this route to expose /api/v1/events/categories
+router.get('/categories', event_controller_1.listCategories);
 exports.default = router;
+//# sourceMappingURL=event.routes.js.map

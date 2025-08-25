@@ -3,104 +3,105 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkAdmin = exports.adminMiddleware = exports.authMiddleware = exports.auth = exports.authorize = exports.authenticate = void 0;
+exports.checkAdmin = exports.adminMiddleware = exports.authMiddleware = exports.auth = exports.requireAuth = exports.authorize = exports.authenticate = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = require("../config");
 const apiError_1 = require("../utils/apiError");
 const logger_1 = require("../utils/logger");
+// List of public endpoints that don't require authentication
+const PUBLIC_ENDPOINTS = [
+    '/api/v1/payments/upi-settings',
+    '/api/v1/payments/generate-qr',
+    '/api/v1/admin/upi-settings/active',
+    '/api/v1/admin/upi',
+    '/api/v1/events', // Base events endpoints
+    '/api/v1/events/*', // Event details with IDs
+    '/api/v1/auth/login',
+    '/api/v1/auth/register',
+    '/api/v1/auth/refresh-token'
+];
+/**
+ * Middleware to authenticate requests using JWT
+ */
 const authenticate = (req, res, next) => {
     try {
-        // Get token from headers
+        // Check if the endpoint is public
+        const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint => {
+            // Allow exact matches
+            if (req.path === endpoint) {
+                return true;
+            }
+            // Check if the current path starts with any public endpoint pattern
+            // This handles cases like '/api/v1/events/123' matching '/api/v1/events'
+            if (endpoint.endsWith('*')) {
+                const baseEndpoint = endpoint.slice(0, -1); // Remove the '*'
+                return req.path.startsWith(baseEndpoint);
+            }
+            // Also check if it's a subpath of a public endpoint
+            // e.g. if '/api/v1/events' is public, then '/api/v1/events/123' is also public
+            return req.path.startsWith(endpoint + '/');
+        });
+        if (isPublicEndpoint) {
+            logger_1.logger.debug(`Bypassing authentication for public endpoint: ${req.path}`);
+            return next();
+        }
+        // Get token from cookie first, then fall back to Authorization header
+        const tokenFromCookie = req.cookies.access_token;
         const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            logger_1.logger.debug('Authentication failed: No Bearer token provided');
-            throw apiError_1.ApiError.unauthorized('Authentication required');
-        }
-        const token = authHeader.split(' ')[1];
-        // Validate token format before verification
-        if (!token || typeof token !== 'string' || token.split('.').length !== 3) {
-            logger_1.logger.debug(`Invalid token format: ${token ? token.substring(0, 20) + '...' : 'empty token'}`);
-            throw apiError_1.ApiError.unauthorized('Invalid token format');
-        }
-        // Special handling for development environment test tokens
-        if (isDevelopment) {
-            try {
-                const tokenParts = token.split('.');
-                const decodedPayload = Buffer.from(tokenParts[1], 'base64url').toString('utf-8');
-                const payload = JSON.parse(decodedPayload);
-                // If this is our test admin token, bypass verification
-                if (payload.role === 'admin' &&
-                    (payload.email === 'admin@example.com' || payload.id === 'admin-mock-id')) {
-                    logger_1.logger.info('Development test token accepted, bypassing verification');
-                    req.user = payload;
-                    return next();
-                }
-            }
-            catch (error) {
-                // Continue with normal verification if test token detection fails
-                logger_1.logger.debug('Error checking for development test token:', error);
-            }
-        }
-        // Check if JWT secret is configured
-        if (!config_1.config.jwt.secret) {
-            logger_1.logger.error('JWT secret is not configured in environment');
-            throw apiError_1.ApiError.internal('JWT secret is not configured');
+        const tokenFromHeader = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+        const token = tokenFromCookie || tokenFromHeader;
+        if (!token) {
+            logger_1.logger.debug('Authentication failed: No token provided');
+            return next(apiError_1.ApiError.unauthorized('Authentication required'));
         }
         try {
-            // Use proper verification with audience and issuer
-            const decoded = jsonwebtoken_1.default.verify(token, config_1.config.jwt.secret, {
-                audience: 'eventia-app',
-                issuer: 'eventia-api',
-            });
-            // Ensure decoded payload has required fields
-            if (!decoded || typeof decoded !== 'object' || !decoded.id) {
-                logger_1.logger.debug('Token payload missing required fields');
-                throw new Error('Invalid token payload');
+            // Make sure config.jwt.secret is not undefined before using it
+            if (!config_1.config.jwt.secret) {
+                logger_1.logger.error('JWT secret is not configured');
+                return next(apiError_1.ApiError.internal('JWT secret not configured'));
             }
+            const decoded = jsonwebtoken_1.default.verify(token, config_1.config.jwt.secret);
             req.user = decoded;
-            next();
+            return next();
         }
         catch (error) {
-            logger_1.logger.debug(`Token verification error: ${error.name} - ${error.message}`);
-            if (error.name === 'TokenExpiredError') {
-                throw apiError_1.ApiError.unauthorized('Token expired');
+            const jwtError = error;
+            // Handle token expiration specifically
+            if (jwtError.name === 'TokenExpiredError') {
+                logger_1.logger.debug('Authentication failed: Token expired');
+                return next(apiError_1.ApiError.unauthorized('Token expired', 'TOKEN_EXPIRED'));
             }
-            else if (error.name === 'JsonWebTokenError') {
-                throw apiError_1.ApiError.unauthorized(`Invalid token: ${error.message}`);
-            }
-            else if (error.name === 'NotBeforeError') {
-                throw apiError_1.ApiError.unauthorized('Token not yet valid');
-            }
-            throw apiError_1.ApiError.unauthorized('Invalid token');
+            logger_1.logger.debug('Authentication failed: Invalid token', error);
+            return next(apiError_1.ApiError.unauthorized('Invalid token'));
         }
     }
     catch (error) {
-        next(error);
+        logger_1.logger.error('Error in auth middleware:', error);
+        return next(apiError_1.ApiError.internal('Authentication error'));
     }
 };
 exports.authenticate = authenticate;
-const authorize = (roles) => {
+/**
+ * Middleware to authorize based on user roles
+ */
+const authorize = (roleArray) => {
     return (req, res, next) => {
-        try {
-            if (!req.user) {
-                throw apiError_1.ApiError.unauthorized('Authentication required');
-            }
-            if (!roles.includes(req.user.role)) {
-                throw apiError_1.ApiError.forbidden('Insufficient permissions');
-            }
-            next();
+        if (!req.user || !req.user.role) {
+            return next(apiError_1.ApiError.forbidden('Access denied. Role required.'));
         }
-        catch (error) {
-            next(error);
+        // Normalize roles for comparison (uppercase)
+        const userRole = req.user.role.toUpperCase();
+        const requiredRoles = roleArray.map(role => role.toUpperCase());
+        if (requiredRoles.includes(userRole)) {
+            return next();
         }
+        logger_1.logger.warn(`Access denied for user ${req.user.id} with role ${userRole}. Required roles: ${requiredRoles.join(', ')}`);
+        return next(apiError_1.ApiError.forbidden('Access denied. Insufficient role.'));
     };
 };
 exports.authorize = authorize;
-/**
- * Combined authentication and authorization middleware
- * @param roles A single role or array of roles to check after authentication
- */
-const auth = (roles) => {
+// Combined authentication and authorization middleware
+const requireAuth = (roles) => {
     if (!roles) {
         return exports.authenticate;
     }
@@ -108,51 +109,46 @@ const auth = (roles) => {
     const roleArray = Array.isArray(roles) ? roles : [roles];
     return [exports.authenticate, (0, exports.authorize)(roleArray)];
 };
+exports.requireAuth = requireAuth;
+// Basic auth middleware - modified to return a middleware function
+const auth = (role) => {
+    if (!role) {
+        // If no role is provided, just return the authentication middleware
+        return exports.authenticate;
+    }
+    // If a role is provided, return both authentication and authorization middlewares
+    const roleArray = Array.isArray(role) ? role : [role];
+    return (req, res, next) => {
+        (0, exports.authenticate)(req, res, (err) => {
+            if (err) {
+                return next(err);
+            }
+            if (!req.user || !req.user.role) {
+                return next(apiError_1.ApiError.forbidden('Access denied. Role required.'));
+            }
+            // Normalize roles for comparison
+            const userRole = req.user.role.toUpperCase();
+            const requiredRoles = roleArray.map(role => role.toUpperCase());
+            if (requiredRoles.includes(userRole)) {
+                return next();
+            }
+            return next(apiError_1.ApiError.forbidden('Access denied. Insufficient role.'));
+        });
+    };
+};
 exports.auth = auth;
-// Export additional middleware for backwards compatibility
+// Middleware wrapper that includes the auth middleware
 exports.authMiddleware = exports.authenticate;
-exports.adminMiddleware = (0, exports.authorize)(['admin']);
-// Check if this is a development environment
-const isDevelopment = process.env.NODE_ENV === 'development';
+// Export additional middleware for backwards compatibility
+exports.adminMiddleware = (0, exports.authorize)(['ADMIN']);
 /**
  * Middleware to check if the user is an admin
  */
 const checkAdmin = (req, res, next) => {
     try {
-        // In development environment, check for special test tokens
-        if (isDevelopment) {
-            const authHeader = req.headers.authorization;
-            if (authHeader && authHeader.startsWith('Bearer ')) {
-                const token = authHeader.split(' ')[1];
-                // Check if this is a special development token with admin role
-                try {
-                    const tokenParts = token.split('.');
-                    if (tokenParts.length === 3) {
-                        // For development tokens, we need to decode the base64url format properly
-                        const decodedPayload = Buffer.from(tokenParts[1], 'base64url').toString('utf-8');
-                        const payload = JSON.parse(decodedPayload);
-                        // If the token has admin role and is a mock token, allow access
-                        if (payload.role === 'admin' &&
-                            (payload.email === 'admin@example.com' || payload.id === 'admin-mock-id')) {
-                            logger_1.logger.info('Development admin token accepted for testing');
-                            req.user = {
-                                id: payload.id || 'admin-test-id',
-                                email: payload.email,
-                                role: 'admin'
-                            };
-                            return next();
-                        }
-                    }
-                }
-                catch (error) {
-                    // If token parsing fails, continue with normal verification
-                    logger_1.logger.error('Error parsing development token:', error);
-                }
-            }
-        }
         // For regular admin verification
-        if (req.user?.role !== 'admin') {
-            logger_1.logger.error(`Admin access denied for user ${req.user?.id}`);
+        if (!req.user?.role || req.user.role.toUpperCase() !== 'ADMIN') {
+            logger_1.logger.warn(`Admin access denied for user ${req.user?.id}`);
             return next(apiError_1.ApiError.forbidden('Admin access required'));
         }
         next();
@@ -163,3 +159,4 @@ const checkAdmin = (req, res, next) => {
     }
 };
 exports.checkAdmin = checkAdmin;
+//# sourceMappingURL=auth.js.map

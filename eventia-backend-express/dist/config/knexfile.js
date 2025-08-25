@@ -3,17 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const index_1 = require("./index");
+const index_js_1 = require("./index.js");
 const path_1 = __importDefault(require("path"));
 const knexConfig = {
     development: {
         client: 'pg',
         connection: {
-            host: index_1.config.db.host,
-            port: index_1.config.db.port,
-            user: index_1.config.db.user,
-            password: index_1.config.db.password,
-            database: index_1.config.db.database,
+            host: index_js_1.config.db.host,
+            port: index_js_1.config.db.port,
+            user: index_js_1.config.db.user,
+            password: index_js_1.config.db.password,
+            database: index_js_1.config.db.database,
         },
         migrations: {
             directory: path_1.default.join(__dirname, '../db/migrations'),
@@ -27,11 +27,11 @@ const knexConfig = {
     test: {
         client: 'pg',
         connection: {
-            host: index_1.config.db.host,
-            port: index_1.config.db.port,
-            user: index_1.config.db.user,
-            password: index_1.config.db.password,
-            database: `${index_1.config.db.database}_test`,
+            host: index_js_1.config.db.host,
+            port: index_js_1.config.db.port,
+            user: index_js_1.config.db.user,
+            password: index_js_1.config.db.password,
+            database: `${index_js_1.config.db.database}_test`,
         },
         migrations: {
             directory: path_1.default.join(__dirname, '../db/migrations'),
@@ -44,16 +44,16 @@ const knexConfig = {
     production: {
         client: 'pg',
         connection: {
-            host: index_1.config.db.host,
-            port: index_1.config.db.port,
-            user: index_1.config.db.user,
-            password: index_1.config.db.password,
-            database: index_1.config.db.database,
+            host: index_js_1.config.db.host,
+            port: index_js_1.config.db.port,
+            user: index_js_1.config.db.user,
+            password: index_js_1.config.db.password,
+            database: index_js_1.config.db.database,
             ssl: { rejectUnauthorized: false },
         },
         pool: {
             min: 2,
-            max: index_1.config.db.max,
+            max: index_js_1.config.db.max,
         },
         migrations: {
             directory: path_1.default.join(__dirname, '../db/migrations'),
@@ -66,4 +66,5 @@ const knexConfig = {
 };
 exports.default = knexConfig;
 // Select the appropriate config based on environment
-module.exports = knexConfig[index_1.config.nodeEnv] || knexConfig.development;
+module.exports = knexConfig[index_js_1.config.nodeEnv] || knexConfig.development;
+//# sourceMappingURL=knexfile.js.map

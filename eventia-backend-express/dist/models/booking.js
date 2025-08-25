@@ -144,3 +144,4 @@ class BookingModel {
     }
 }
 exports.BookingModel = BookingModel;
+//# sourceMappingURL=booking.js.map

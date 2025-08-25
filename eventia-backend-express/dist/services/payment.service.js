@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.paymentService = void 0;
-const apiUtils_1 = require("@/services/api/apiUtils");
-const paymentApi_1 = require("@/services/api/paymentApi");
+const apiUtils_1 = require("../services/api/apiUtils");
+const paymentApi_1 = require("../services/api/paymentApi");
 exports.paymentService = {
     /**
      * Create a new payment record
@@ -11,7 +11,7 @@ exports.paymentService = {
         try {
             const response = await (0, paymentApi_1.recordUpiPayment)({
                 bookingId: payment.booking_id,
-                utrNumber: payment.utr_number,
+                utrNumber: payment.utr_number || '',
                 paymentDate: payment.payment_date
             });
             return payment; // Type conversion needed
@@ -98,3 +98,4 @@ exports.paymentService = {
         }
     }
 };
+//# sourceMappingURL=payment.service.js.map

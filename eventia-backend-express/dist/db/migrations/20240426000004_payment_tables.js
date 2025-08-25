@@ -33,3 +33,4 @@ async function down(knex) {
     await knex.schema.dropTableIfExists('booking_payments');
     await knex.schema.dropTableIfExists('upi_settings');
 }
+//# sourceMappingURL=20240426000004_payment_tables.js.map

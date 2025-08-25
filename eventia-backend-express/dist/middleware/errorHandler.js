@@ -3,89 +3,110 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = void 0;
 const apiError_1 = require("../utils/apiError");
 const logger_1 = require("../utils/logger");
-const config_1 = require("../config");
+const errorCodes_1 = require("../utils/errorCodes");
+const client_1 = require("@prisma/client");
 /**
  * Global error handler middleware
- * Handles different types of errors and sends appropriate responses
+ * Processes all errors and returns standardized error responses
  */
 const errorHandler = (err, req, res, next) => {
-    // Log error
-    logger_1.logger.error(`${err.name}: ${err.message}`);
-    if (err.stack) {
-        logger_1.logger.error(err.stack);
-    }
-    // Default to 500 server error
-    let statusCode = 500;
-    let errorMessage = 'Internal Server Error';
-    let errorCode = 'INTERNAL_SERVER_ERROR';
-    let errors = null;
-    let details = null;
+    // Log the error
+    logger_1.logger.error({
+        message: `[${req.method}] ${req.path} - ${err.message}`,
+        error: err.stack,
+        requestId: req.id || 'unknown',
+        userId: req.user?.id || 'anonymous'
+    });
     // Handle ApiError instances
     if (err instanceof apiError_1.ApiError) {
-        statusCode = err.statusCode;
-        errorMessage = err.message;
-        errorCode = err.code || 'ERROR';
-        errors = err.details;
+        return res.status(err.statusCode).json({
+            success: false,
+            error: {
+                code: err.code,
+                message: err.message
+            },
+            data: null
+        });
     }
     // Handle Prisma errors
-    else if (err.name === 'PrismaClientKnownRequestError') {
-        errorCode = 'DATABASE_ERROR';
-        // Handle unique constraint violations (code P2002)
-        if (err.code === 'P2002') {
-            statusCode = 409;
-            errorMessage = 'A record with the provided values already exists';
-            errorCode = 'UNIQUE_CONSTRAINT_VIOLATION';
-            details = {
-                fields: err.meta?.target || []
-            };
-        }
-        // Handle foreign key constraint violations (code P2003)
-        else if (err.code === 'P2003') {
-            statusCode = 400;
-            errorMessage = 'Related record not found';
-            errorCode = 'FOREIGN_KEY_CONSTRAINT_VIOLATION';
+    if (err instanceof client_1.Prisma.PrismaClientKnownRequestError) {
+        switch (err.code) {
+            case 'P2002': // Unique constraint violation
+                return res.status(409).json({
+                    success: false,
+                    error: {
+                        code: errorCodes_1.ErrorCode.DUPLICATE_RESOURCE,
+                        message: 'A resource with this identifier already exists'
+                    },
+                    data: null
+                });
+            case 'P2025': // Record not found
+                return res.status(404).json({
+                    success: false,
+                    error: {
+                        code: errorCodes_1.ErrorCode.RESOURCE_NOT_FOUND,
+                        message: 'The requested resource was not found'
+                    },
+                    data: null
+                });
+            case 'P2003': // Foreign key constraint failed
+                return res.status(400).json({
+                    success: false,
+                    error: {
+                        code: errorCodes_1.ErrorCode.INVALID_INPUT,
+                        message: 'Invalid reference to a related resource'
+                    },
+                    data: null
+                });
+            default:
+                // Log the unknown Prisma error code for future handling
+                logger_1.logger.warn(`Unhandled Prisma error code: ${err.code}`);
         }
     }
-    // Handle validation errors
-    else if (err.name === 'ValidationError') {
-        statusCode = 422;
-        errorMessage = 'Validation Error';
-        errorCode = 'VALIDATION_ERROR';
-        errors = err.errors;
+    // Handle validation errors (like Zod errors)
+    if (err.name === 'ZodError') {
+        return res.status(400).json({
+            success: false,
+            error: {
+                code: errorCodes_1.ErrorCode.VALIDATION_ERROR,
+                message: 'Validation error',
+                details: err.message
+            },
+            data: null
+        });
     }
     // Handle JWT errors
-    else if (err.name === 'JsonWebTokenError') {
-        statusCode = 401;
-        errorMessage = 'Invalid token';
-        errorCode = 'INVALID_TOKEN';
+    if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+            success: false,
+            error: {
+                code: errorCodes_1.ErrorCode.INVALID_TOKEN,
+                message: 'Invalid token'
+            },
+            data: null
+        });
     }
-    else if (err.name === 'TokenExpiredError') {
-        statusCode = 401;
-        errorMessage = 'Token expired';
-        errorCode = 'TOKEN_EXPIRED';
+    if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+            success: false,
+            error: {
+                code: errorCodes_1.ErrorCode.TOKEN_EXPIRED,
+                message: 'Token has expired'
+            },
+            data: null
+        });
     }
-    // Handle Knex.js errors
-    else if (err.name === 'KnexTimeoutError') {
-        errorCode = 'DATABASE_TIMEOUT';
-    }
-    // Prepare response object
-    const responseObj = {
-        status: 'error',
-        code: errorCode,
-        message: errorMessage
-    };
-    // Add stack trace in development mode
-    if (config_1.config.isDevelopment) {
-        responseObj.stack = err.stack;
-    }
-    // Add validation errors if present
-    if (errors) {
-        responseObj.errors = errors;
-    }
-    // Add additional details if present
-    if (details && config_1.config.isDevelopment) {
-        responseObj.details = details;
-    }
-    res.status(statusCode).json(responseObj);
+    // Default error response for unexpected errors
+    return res.status(500).json({
+        success: false,
+        error: {
+            code: errorCodes_1.ErrorCode.INTERNAL_ERROR,
+            message: process.env.NODE_ENV === 'production'
+                ? 'An unexpected error occurred'
+                : err.message || 'Unknown error'
+        },
+        data: null
+    });
 };
 exports.errorHandler = errorHandler;
+//# sourceMappingURL=errorHandler.js.map

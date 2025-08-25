@@ -190,3 +190,4 @@ class SeatModel {
     }
 }
 exports.SeatModel = SeatModel;
+//# sourceMappingURL=seat.js.map

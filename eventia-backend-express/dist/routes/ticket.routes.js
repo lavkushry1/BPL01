@@ -651,3 +651,4 @@ router.get('/users/:userId/tickets', (0, auth_1.auth)(), (req, res, next) => {
     return ticket_controller_1.TicketController.getUserTickets(req, res, next);
 });
 exports.default = router;
+//# sourceMappingURL=ticket.routes.js.map

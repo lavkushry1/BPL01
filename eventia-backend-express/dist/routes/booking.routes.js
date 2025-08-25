@@ -173,5 +173,6 @@ router.put('/:id/status', booking_controller_1.updateBookingStatus);
  *       404:
  *         description: Booking not found
  */
-router.post('/:id/cancel', (0, auth_1.auth)(), (0, validate_1.validate)(bookingValidation.cancelBookingSchema), booking_controller_1.cancelBooking);
+router.post('/:id/cancel', auth_1.authenticate, (0, validate_1.validate)(bookingValidation.cancelBookingSchema), booking_controller_1.cancelBooking);
 exports.default = router;
+//# sourceMappingURL=booking.routes.js.map

@@ -9,3 +9,4 @@ exports.validateDiscountSchema = zod_1.z.object({
         total_amount: zod_1.z.number().positive('Total amount must be positive')
     })
 });
+//# sourceMappingURL=discount.validation.js.map

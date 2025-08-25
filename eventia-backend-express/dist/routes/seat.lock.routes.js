@@ -118,3 +118,4 @@ router.post('/seats/lock', (0, auth_1.auth)(), (0, validate_1.validate)(seatVali
  */
 router.delete('/seats/unlock', (0, auth_1.auth)(), (0, validate_1.validate)(seatValidation.unlockSeatsSchema), seat_controller_1.SeatController.unlockSeats);
 exports.default = router;
+//# sourceMappingURL=seat.lock.routes.js.map

@@ -154,3 +154,4 @@ async function down(knex) {
     await knex.schema.dropTableIfExists('events');
     await knex.schema.dropTableIfExists('users');
 }
+//# sourceMappingURL=20230501000001_initial_schema.js.map

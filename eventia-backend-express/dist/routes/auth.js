@@ -8,20 +8,9 @@ const authController_1 = require("../controllers/authController");
 const validate_1 = require("../middleware/validate");
 const user_1 = require("../models/user");
 const zod_1 = require("zod");
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const rateLimit_1 = require("../middleware/rateLimit");
+const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
-// Create a rate limiter for login attempts
-// 5 login attempts per 15 minutes window per IP
-const loginRateLimiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    message: {
-        status: 'error',
-        message: 'Too many login attempts, please try again later'
-    }
-});
 /**
  * @swagger
  * /auth/register:
@@ -92,8 +81,10 @@ router.post('/register', (0, validate_1.validate)(zod_1.z.object({ body: user_1.
  *         description: Login successful
  *       401:
  *         description: Invalid credentials
+ *       429:
+ *         description: Too many login attempts
  */
-router.post('/login', loginRateLimiter, (0, validate_1.validate)(zod_1.z.object({ body: user_1.loginSchema })), authController_1.login);
+router.post('/login', rateLimit_1.authLimiter, (0, validate_1.validate)(zod_1.z.object({ body: user_1.loginSchema })), authController_1.login);
 /**
  * @swagger
  * /auth/refresh-token:
@@ -101,13 +92,11 @@ router.post('/login', loginRateLimiter, (0, validate_1.validate)(zod_1.z.object(
  *     summary: Refresh authentication token
  *     tags: [Auth]
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - refreshToken
  *             properties:
  *               refreshToken:
  *                 type: string
@@ -117,7 +106,32 @@ router.post('/login', loginRateLimiter, (0, validate_1.validate)(zod_1.z.object(
  *       401:
  *         description: Invalid or expired refresh token
  */
-router.post('/refresh-token', (0, validate_1.validate)(zod_1.z.object({
-    body: zod_1.z.object({ refreshToken: zod_1.z.string() })
-})), authController_1.refreshToken);
+router.post('/refresh-token', authController_1.refreshToken);
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user and invalidate tokens
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ */
+router.post('/logout', authController_1.logout);
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user information
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user information
+ *       401:
+ *         description: Not authenticated
+ */
+router.get('/me', auth_1.authenticate, authController_1.me);
 exports.default = router;
+//# sourceMappingURL=auth.js.map

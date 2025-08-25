@@ -234,3 +234,4 @@ router.post('/seats/extend-lock', (0, auth_1.auth)(), (0, validate_1.validate)(s
  */
 router.post('/seats/confirm', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.confirmSeatsSchema), seatLocking_controller_1.SeatLockingController.confirmSeats);
 exports.default = router;
+//# sourceMappingURL=seatLocking.routes.js.map

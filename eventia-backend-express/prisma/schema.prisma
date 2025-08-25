@@ -27,9 +27,25 @@ model User {
   eventsCreatedBy   Event[]          @relation("EventCreator")
   eventsUpdatedBy   Event[]          @relation("EventUpdater")
   tickets           Ticket[]
+  profile           UserProfile?
 
   @@index([isDeleted])
   @@map("users")
+}
+
+model UserProfile {
+  id         String   @id @default(uuid())
+  userId     String   @unique @map("user_id")
+  street     String?
+  city       String?
+  state      String?
+  postalCode String?  @map("postal_code")
+  country    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }
 
 model Event {

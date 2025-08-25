@@ -60,3 +60,4 @@ router.get('/health', (req, res) => {
     res.json({ status: 'UTR verification service operational' });
 });
 exports.default = router;
+//# sourceMappingURL=utrVerification.routes.js.map

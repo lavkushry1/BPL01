@@ -219,3 +219,4 @@ class SeatLockingService {
 }
 exports.SeatLockingService = SeatLockingService;
 exports.default = SeatLockingService;
+//# sourceMappingURL=seatLocking.service.js.map

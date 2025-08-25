@@ -272,3 +272,4 @@ exports.cancelBooking = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         }
     });
 });
+//# sourceMappingURL=booking.controller.js.map

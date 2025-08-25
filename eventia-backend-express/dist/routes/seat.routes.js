@@ -193,3 +193,4 @@ router.put('/seats/:id/status', (0, auth_1.auth)('admin'), seat_controller_1.Sea
  */
 router.post('/seats/bulk-availability', (0, validate_1.validate)(seatValidation.bulkSeatAvailabilitySchema), seat_controller_1.SeatController.bulkCheckAvailability);
 exports.default = router;
+//# sourceMappingURL=seat.routes.js.map

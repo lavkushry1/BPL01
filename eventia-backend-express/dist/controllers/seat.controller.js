@@ -322,3 +322,4 @@ class SeatController {
 }
 exports.SeatController = SeatController;
 exports.default = SeatController;
+//# sourceMappingURL=seat.controller.js.map

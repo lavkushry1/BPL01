@@ -241,3 +241,4 @@ class DynamicPricingService {
     }
 }
 exports.DynamicPricingService = DynamicPricingService;
+//# sourceMappingURL=dynamicPricing.service.js.map

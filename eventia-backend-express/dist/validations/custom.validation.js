@@ -58,3 +58,4 @@ const phone = (value) => {
     return phonePattern.test(value);
 };
 exports.phone = phone;
+//# sourceMappingURL=custom.validation.js.map

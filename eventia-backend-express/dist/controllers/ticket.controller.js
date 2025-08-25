@@ -295,3 +295,4 @@ class TicketController {
 }
 exports.TicketController = TicketController;
 exports.default = TicketController;
+//# sourceMappingURL=ticket.controller.js.map

@@ -195,3 +195,4 @@ router.delete('/ticket-categories/:id', (0, auth_1.auth)('admin'), ticketCategor
  */
 router.patch('/ticket-categories/:id/booked-seats', (0, auth_1.auth)('admin'), ticketCategory_controller_1.TicketCategoryController.updateBookedSeats);
 exports.default = router;
+//# sourceMappingURL=ticketCategory.routes.js.map

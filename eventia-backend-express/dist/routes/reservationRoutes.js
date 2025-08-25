@@ -15,3 +15,4 @@ router.post('/verify-utr', reservationController_1.verifyUTR);
 // Generate tickets PDF
 router.post('/tickets/generate', reservationController_1.generateTickets);
 exports.default = router;
+//# sourceMappingURL=reservationRoutes.js.map

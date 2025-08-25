@@ -20,3 +20,4 @@ const setupSwagger = (app) => {
     });
 };
 exports.setupSwagger = setupSwagger;
+//# sourceMappingURL=swagger.js.map

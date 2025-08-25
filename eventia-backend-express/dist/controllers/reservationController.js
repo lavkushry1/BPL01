@@ -64,7 +64,7 @@ const verifyUTR = async (req, res) => {
         }
         // Assume we're getting some payment or null response 
         // Safely convert to our expected type using unknown as an intermediate step
-        const rawPayment = await payment_service_1.PaymentService.getPaymentById(utrNumber);
+        const rawPayment = await payment_service_1.paymentService.getPaymentByBookingId(reservationId);
         // Convert to unknown first, then to our Payment interface
         const existingPayment = rawPayment ? {
             id: typeof rawPayment.id === 'string' ? rawPayment.id : '',
@@ -82,10 +82,11 @@ const verifyUTR = async (req, res) => {
             return res.status(402).json({ error: 'Payment verification failed' });
         }
         // Update reservation status
-        await payment_service_1.PaymentService.createPayment({
+        await payment_service_1.paymentService.createPayment({
             booking_id: reservationId,
             amount: 0, // Default amount if no existing payment
-            utr_number: utrNumber
+            utr_number: utrNumber,
+            status: 'pending'
         });
         await ReservationService.updateReservationStatus(reservationId, 'paid');
         res.json({
@@ -172,3 +173,4 @@ const calculateTotal = (tickets) => {
         return sum + (qty * (ticketPrices[category] || 0));
     }, 0);
 };
+//# sourceMappingURL=reservationController.js.map

@@ -49,3 +49,4 @@ exports.confirmSeatsSchema = zod_1.z.object({
     params: zod_1.z.object({}),
     query: zod_1.z.object({})
 });
+//# sourceMappingURL=seatLocking.validation.js.map

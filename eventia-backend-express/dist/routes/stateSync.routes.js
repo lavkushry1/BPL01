@@ -123,3 +123,4 @@ router.get('/locks/:seatId', (0, validate_1.validate)(seatLock_1.checkSeatLockSc
  */
 router.post('/locks/bulk-check', (0, validate_1.validate)(seatLock_1.bulkCheckSeatLocksSchema), stateSync_controller_1.StateSyncController.bulkCheckSeatLocks);
 exports.default = router;
+//# sourceMappingURL=stateSync.routes.js.map

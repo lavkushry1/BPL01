@@ -54,3 +54,4 @@ router.use('/', seat_lock_routes_1.default); // Adds /seats/lock and /seats/unlo
  * Export router with API prefix
  */
 exports.default = (0, express_1.Router)().use(config_1.config.apiPrefix, router);
+//# sourceMappingURL=index.js.map

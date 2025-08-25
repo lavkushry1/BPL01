@@ -21,16 +21,11 @@ export class UserControllerV1 {
       throw new ApiError(401, 'Not authenticated', 'NOT_AUTHENTICATED');
     }
     
-    // Fetch user data from database
+    // Fetch user data from database including profile
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true
+      include: {
+        profile: true
       }
     });
     
@@ -38,7 +33,18 @@ export class UserControllerV1 {
       throw new ApiError(404, 'User not found', 'USER_NOT_FOUND');
     }
     
-    return ApiResponse.success(res, 200, 'User profile fetched successfully', user);
+    // Format the response to match the expected structure
+    const result = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      profile: user.profile
+    };
+    
+    return ApiResponse.success(res, 200, 'User profile fetched successfully', result);
   });
   
   /**
@@ -93,8 +99,47 @@ export class UserControllerV1 {
       }
     });
     
-    // Handle profile data separately - in this case, skip profile operations that cause errors
+    // Handle profile data separately
     let userProfile = null;
+    
+    // If address data is provided, update or create user profile
+    if (address) {
+      // Check if user profile already exists
+      const existingProfile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+      
+      if (existingProfile) {
+        // Update existing profile
+        userProfile = await prisma.userProfile.update({
+          where: { userId },
+          data: {
+            street: address.street,
+            city: address.city,
+            state: address.state,
+            postalCode: address.postalCode,
+            country: address.country
+          }
+        });
+      } else {
+        // Create new profile
+        userProfile = await prisma.userProfile.create({
+          data: {
+            userId,
+            street: address.street,
+            city: address.city,
+            state: address.state,
+            postalCode: address.postalCode,
+            country: address.country
+          }
+        });
+      }
+    } else {
+      // If no address data is provided, fetch existing profile if it exists
+      userProfile = await prisma.userProfile.findUnique({
+        where: { userId }
+      });
+    }
     
     // Return response with user data
     const result = {
@@ -308,4 +353,4 @@ export class UserControllerV1 {
     
     return ApiResponse.success(res, 200, 'User deleted successfully', { id });
   });
-} 
+}

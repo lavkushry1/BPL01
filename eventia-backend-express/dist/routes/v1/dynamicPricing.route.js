@@ -23,3 +23,4 @@ router.put('/:ruleId', auth_1.authenticate, (0, auth_1.authorize)(['admin']), (0
 // Delete a pricing rule
 router.delete('/:ruleId', auth_1.authenticate, (0, auth_1.authorize)(['admin']), (0, validate_1.validate)(dynamicPricing_validation_1.default.deletePricingRule), dynamicPricing_controller_1.default.deletePricingRule);
 exports.default = router;
+//# sourceMappingURL=dynamicPricing.route.js.map

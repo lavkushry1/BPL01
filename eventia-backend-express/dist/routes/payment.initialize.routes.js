@@ -148,3 +148,4 @@ router.post('/payments/verify', auth_1.authenticate, (0, validate_1.validate)(pa
  */
 router.get('/payments/status/:paymentId', auth_1.authenticate, payment_controller_1.PaymentController.getPaymentStatus);
 exports.default = router;
+//# sourceMappingURL=payment.initialize.routes.js.map

@@ -13,7 +13,7 @@ const prisma = new client_1.PrismaClient();
  * Create a new ticket category
  */
 const createTicketCategory = (0, catchAsync_1.catchAsync)(async (req, res) => {
-    const { name, description, price, minimumPrice, totalSeats, eventId } = req.body;
+    const { name, description, price, totalSeats, eventId } = req.body;
     // Check if event exists
     const eventExists = await prisma.event.findUnique({
         where: { id: eventId }
@@ -26,7 +26,6 @@ const createTicketCategory = (0, catchAsync_1.catchAsync)(async (req, res) => {
             name,
             description,
             price,
-            minimumPrice,
             totalSeats,
             bookedSeats: 0,
             eventId
@@ -62,7 +61,7 @@ const getTicketCategoryById = (0, catchAsync_1.catchAsync)(async (req, res) => {
  */
 const updateTicketCategory = (0, catchAsync_1.catchAsync)(async (req, res) => {
     const { id } = req.params;
-    const { name, description, price, minimumPrice, totalSeats } = req.body;
+    const { name, description, price, totalSeats } = req.body;
     // Check if ticket category exists
     const ticketCategoryExists = await prisma.ticketCategory.findUnique({
         where: { id }
@@ -76,7 +75,6 @@ const updateTicketCategory = (0, catchAsync_1.catchAsync)(async (req, res) => {
             name,
             description,
             price,
-            minimumPrice,
             totalSeats
         }
     });
@@ -128,3 +126,4 @@ exports.TicketCategoryController = {
     deleteTicketCategory,
     updateBookedSeats
 };
+//# sourceMappingURL=ticketCategory.controller.js.map

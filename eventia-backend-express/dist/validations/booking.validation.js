@@ -11,3 +11,4 @@ exports.cancelBookingSchema = zod_1.z.object({
     }),
     query: zod_1.z.object({})
 });
+//# sourceMappingURL=booking.validation.js.map

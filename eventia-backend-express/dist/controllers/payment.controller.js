@@ -578,18 +578,48 @@ class PaymentController {
      */
     static generateUpiQr = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
-            const { data } = req.body;
-            if (!data || typeof data !== 'string') {
-                throw new apiError_1.ApiError(400, 'Valid UPI payment data is required', 'MISSING_UPI_DATA');
+            const { amount, upiId: providedUpiId } = req.body;
+            if (!amount) {
+                throw new apiError_1.ApiError(400, 'Amount is required for payment QR generation', 'MISSING_AMOUNT');
             }
+            // Fetch active UPI setting from database
+            const activeSetting = await (0, db_1.db)('upi_settings')
+                .select('*')
+                .where({ isactive: true })
+                .first();
+            // Use the provided UPI ID or get from the database, or use the default required UPI ID
+            let upiId = providedUpiId;
+            if (!upiId) {
+                if (activeSetting) {
+                    upiId = activeSetting.upivpa;
+                    logger_1.logger.info(`Using active UPI ID from database: ${upiId}`);
+                }
+                else {
+                    // Use the required UPI ID as fallback
+                    upiId = '9122036484@hdfc';
+                    logger_1.logger.info(`No active UPI setting found, using fallback UPI ID: ${upiId}`);
+                }
+            }
+            else {
+                logger_1.logger.info(`Using provided UPI ID: ${upiId}`);
+            }
+            // Generate reference ID for tracking
+            const referenceId = `PAY-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+            // Create UPI payment link
+            const upiLink = `upi://pay?pa=${upiId}&pn=Eventia&am=${amount}&tr=${referenceId}&cu=INR`;
+            logger_1.logger.info(`Generated UPI payment link with ID ${upiId} for amount ${amount}`);
             // Generate QR code as data URL
-            const qrCodeUrl = await qrcode.toDataURL(data, {
+            const qrCodeUrl = await qrcode.toDataURL(upiLink, {
                 errorCorrectionLevel: 'H',
                 margin: 1,
                 scale: 6
             });
             return apiResponse_1.ApiResponse.success(res, 200, 'QR code generated successfully', {
-                qrCodeUrl
+                qrCodeUrl,
+                upiLink,
+                referenceId,
+                upiId,
+                amount
             });
         }
         catch (error) {
@@ -781,3 +811,4 @@ const updatePaymentStatus = async (sessionId, status, paymentId) => {
     });
 };
 exports.updatePaymentStatus = updatePaymentStatus;
+//# sourceMappingURL=payment.controller.js.map

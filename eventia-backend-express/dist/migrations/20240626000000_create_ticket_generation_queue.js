@@ -27,3 +27,4 @@ async function up(knex) {
 async function down(knex) {
     return knex.schema.dropTable('ticket_generation_queue');
 }
+//# sourceMappingURL=20240626000000_create_ticket_generation_queue.js.map

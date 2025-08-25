@@ -109,3 +109,4 @@ exports.updateEventSchema = joi_1.default.object({
         is_featured: joi_1.default.boolean()
     }))
 });
+//# sourceMappingURL=event.validation.js.map

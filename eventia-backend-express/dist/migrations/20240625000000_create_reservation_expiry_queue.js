@@ -24,3 +24,4 @@ async function up(knex) {
 async function down(knex) {
     return knex.schema.dropTable('reservation_expiry_queue');
 }
+//# sourceMappingURL=20240625000000_create_reservation_expiry_queue.js.map

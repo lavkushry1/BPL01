@@ -7,9 +7,10 @@ const logger_1 = require("./utils/logger");
 const db_1 = require("./db");
 const websocket_service_1 = require("./services/websocket.service");
 const job_service_1 = require("./services/job.service");
+const prisma_1 = require("./db/prisma");
 async function startServer() {
     try {
-        // Test database connection before starting server
+        // Initialize database connections
         let dbConnected = false;
         try {
             // Skip DB check if we're in a special test mode
@@ -18,7 +19,12 @@ async function startServer() {
                 dbConnected = true;
             }
             else {
-                dbConnected = await (0, db_1.testConnection)();
+                // Initialize Knex database connection with retries
+                await (0, db_1.initializeDatabase)();
+                // Connect Prisma client
+                await (0, prisma_1.connectPrisma)();
+                // Verify database health
+                dbConnected = await (0, db_1.checkDatabaseHealth)();
             }
         }
         catch (error) {
@@ -48,11 +54,28 @@ async function startServer() {
             logger_1.logger.info(`API documentation available at http://localhost:${config_1.config.port}/api-docs`);
             logger_1.logger.info('WebSocket server initialized');
         });
+        // Setup periodic health check for database
+        const healthCheckInterval = setInterval(async () => {
+            const isHealthy = await (0, db_1.checkDatabaseHealth)();
+            if (!isHealthy) {
+                logger_1.logger.error('Database health check failed in periodic check');
+            }
+        }, 60000); // Check every minute
         // Graceful shutdown
         const shutdown = async () => {
             logger_1.logger.info('Shutting down server...');
+            // Clear health check interval
+            clearInterval(healthCheckInterval);
             // Stop all background jobs
             job_service_1.JobService.stopAllJobs();
+            // Close database connections
+            try {
+                await (0, db_1.closeDatabase)();
+                await (0, prisma_1.disconnectPrisma)();
+            }
+            catch (error) {
+                logger_1.logger.error('Error closing database connections:', error);
+            }
             // Close server connections
             server.close(() => {
                 logger_1.logger.info('HTTP server closed');
@@ -83,3 +106,4 @@ if (require.main === module) {
     startServer();
 }
 exports.default = startServer;
+//# sourceMappingURL=server.js.map

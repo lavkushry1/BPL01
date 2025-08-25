@@ -97,3 +97,4 @@ const clearCache = (pattern) => {
     };
 };
 exports.clearCache = clearCache;
+//# sourceMappingURL=cache.js.map

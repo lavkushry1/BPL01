@@ -42,3 +42,4 @@ function setupMiddleware(app) {
         maxAge: config_1.config.static.maxAge,
     }));
 }
+//# sourceMappingURL=index.js.map

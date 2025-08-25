@@ -7,8 +7,11 @@ exports.createApp = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const body_parser_1 = __importDefault(require("body-parser"));
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const helmet_1 = __importDefault(require("helmet"));
+const compression_1 = __importDefault(require("compression"));
+const morgan_1 = __importDefault(require("morgan"));
 const config_1 = require("./config");
-const routes_1 = __importDefault(require("./routes"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const swagger_1 = require("./docs/swagger");
 const apiError_1 = require("./utils/apiError");
@@ -16,29 +19,60 @@ const logger_1 = require("./utils/logger");
 const http_1 = require("http");
 const websocket_service_1 = require("./services/websocket.service");
 const job_service_1 = require("./services/job.service");
-// Routes - Import all route files
-const auth_1 = __importDefault(require("./routes/auth"));
-const user_routes_1 = __importDefault(require("./routes/user.routes"));
-const event_routes_1 = __importDefault(require("./routes/event.routes"));
-const booking_routes_1 = __importDefault(require("./routes/booking.routes"));
-const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
-const discount_routes_1 = __importDefault(require("./routes/discount.routes"));
-const health_routes_1 = __importDefault(require("./routes/health.routes"));
-const seat_routes_1 = __importDefault(require("./routes/seat.routes"));
-const seat_lock_routes_1 = __importDefault(require("./routes/seat.lock.routes"));
-const ticketCategory_routes_1 = __importDefault(require("./routes/ticketCategory.routes"));
-const ticket_routes_1 = __importDefault(require("./routes/ticket.routes"));
-const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
-const stateSync_routes_1 = __importDefault(require("./routes/stateSync.routes"));
-const payment_initialize_routes_1 = __importDefault(require("./routes/payment.initialize.routes"));
-const utrVerification_routes_1 = __importDefault(require("./routes/utrVerification.routes"));
-const payment_routes_2 = __importDefault(require("./routes/v1/payment.routes"));
+const csrf_1 = require("./middleware/csrf");
+const rateLimit_1 = require("./middleware/rateLimit");
+const dataloader_middleware_1 = require("./middleware/dataloader.middleware");
+// Import route files
+const routes_1 = __importDefault(require("./routes"));
+const v1_1 = __importDefault(require("./routes/v1"));
 const createApp = async () => {
     const app = (0, express_1.default)();
     const server = (0, http_1.createServer)(app);
+    // Security headers using Helmet
+    app.use((0, helmet_1.default)({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'"], // Required for Swagger UI
+                styleSrc: ["'self'", "'unsafe-inline'"], // Required for Swagger UI
+                imgSrc: ["'self'", "data:", "https://api.qrserver.com"], // Allow QR code API
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'none'"],
+                frameSrc: ["'none'"]
+            }
+        }
+    }));
+    // Compression middleware
+    app.use((0, compression_1.default)());
+    // Request logging with Morgan
+    app.use((0, morgan_1.default)(config_1.config.nodeEnv === 'production' ? 'combined' : 'dev', {
+        stream: {
+            write: (message) => {
+                logger_1.logger.http(message.trim());
+            }
+        },
+        skip: (req) => {
+            // Skip logging for health check endpoints to reduce noise
+            return req.url.includes('/health');
+        }
+    }));
     // Essential middleware
-    app.use(body_parser_1.default.json());
-    app.use(body_parser_1.default.urlencoded({ extended: true }));
+    app.use(body_parser_1.default.json({ limit: '1mb' }));
+    app.use(body_parser_1.default.urlencoded({ extended: true, limit: '1mb' }));
+    app.use((0, cookie_parser_1.default)());
+    // Apply standard rate limiting to all routes
+    app.use(rateLimit_1.standardLimiter);
+    // Generate CSRF token for GET requests and validate for state-changing methods
+    app.use((req, res, next) => {
+        if (req.method === 'GET') {
+            (0, csrf_1.generateCsrfToken)(req, res, next);
+        }
+        else {
+            (0, csrf_1.validateCsrfToken)(req, res, next);
+        }
+    });
     // Configure CORS to allow frontend access
     const allowedOrigins = process.env.CORS_ORIGIN
         ? process.env.CORS_ORIGIN.split(',')
@@ -57,31 +91,24 @@ const createApp = async () => {
         },
         credentials: true
     }));
+    // Apply DataLoader middleware to optimize database queries
+    app.use(dataloader_middleware_1.dataloaderMiddleware);
+    logger_1.logger.info('DataLoader middleware initialized for optimized queries');
     // Setup API routes
     // Legacy route setup - keep for backward compatibility
     app.use('/api', routes_1.default);
-    // Register all routes with consistent /api/v1 prefix
-    app.use('/api/v1/auth', auth_1.default);
-    app.use('/api/v1/users', user_routes_1.default);
-    app.use('/api/v1/events', event_routes_1.default);
-    app.use('/api/v1/bookings', booking_routes_1.default);
-    app.use('/api/v1/payments', payment_routes_1.default);
-    app.use('/api/v1/payments', payment_routes_2.default);
-    app.use('/api/v1/payment-initialize', payment_initialize_routes_1.default);
-    app.use('/api/v1/discounts', discount_routes_1.default);
-    app.use('/api/v1/seats', seat_routes_1.default);
-    app.use('/api/v1/seat-locks', seat_lock_routes_1.default);
-    app.use('/api/v1/ticket-categories', ticketCategory_routes_1.default);
-    app.use('/api/v1/tickets', ticket_routes_1.default);
-    app.use('/api/v1/admin', admin_routes_1.default);
-    app.use('/api/v1/state-sync', stateSync_routes_1.default);
-    app.use('/api/v1/verify-utr', utrVerification_routes_1.default);
-    app.use('/api/v1/health', health_routes_1.default);
+    // Register v1 API routes
+    app.use('/api/v1', v1_1.default);
     // Setup Swagger documentation
     (0, swagger_1.setupSwagger)(app);
     // Health check endpoint
     app.get('/health', (req, res) => {
-        res.status(200).json({ status: 'ok', environment: config_1.config.nodeEnv });
+        res.status(200).json({
+            status: 'ok',
+            environment: config_1.config.nodeEnv,
+            timestamp: new Date().toISOString(),
+            version: process.env.npm_package_version || 'unknown'
+        });
     });
     // Handle 404 routes
     app.use('*', (req, res, next) => {
@@ -98,3 +125,4 @@ const createApp = async () => {
     return { app, server };
 };
 exports.createApp = createApp;
+//# sourceMappingURL=app.js.map

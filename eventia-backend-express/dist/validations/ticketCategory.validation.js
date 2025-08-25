@@ -51,3 +51,4 @@ const ticketCategoryValidation = {
     getByEventId: exports.getByEventIdSchema
 };
 exports.default = ticketCategoryValidation;
+//# sourceMappingURL=ticketCategory.validation.js.map

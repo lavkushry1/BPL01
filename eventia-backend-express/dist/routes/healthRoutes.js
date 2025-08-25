@@ -12,3 +12,4 @@ exports.healthRouter.get('/health', (req, res) => {
         }
     });
 });
+//# sourceMappingURL=healthRoutes.js.map

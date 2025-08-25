@@ -96,3 +96,4 @@ exports.default = {
     generateToken: exports.generateToken,
     verifyToken: exports.verifyToken
 };
+//# sourceMappingURL=jwt.js.map

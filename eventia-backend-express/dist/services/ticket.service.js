@@ -11,7 +11,7 @@ const pdfkit_1 = __importDefault(require("pdfkit"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const websocket_service_1 = require("./websocket.service");
-const client_1 = require("@prisma/client");
+const prisma_1 = __importDefault(require("../db/prisma"));
 /**
  * Ticket service for generating tickets, QR codes and PDFs
  */
@@ -595,20 +595,18 @@ class TicketService {
      * @returns Ticket with related data
      */
     static async getTicketById(ticketId) {
-        const prisma = new client_1.PrismaClient();
-        const anyPrisma = prisma;
         try {
             // With the current schema, we can't use the include option since
             // we haven't defined the relationships in the Prisma schema
-            const ticket = await anyPrisma.ticket.findUnique({
+            const ticket = await prisma_1.default.ticket.findUnique({
                 where: { id: ticketId }
             });
             // If needed, fetch related data separately
             if (ticket) {
                 const booking = ticket.bookingId ?
-                    await prisma.booking.findUnique({ where: { id: ticket.bookingId } }) : null;
+                    await prisma_1.default.booking.findUnique({ where: { id: ticket.bookingId } }) : null;
                 const event = ticket.eventId ?
-                    await prisma.event.findUnique({ where: { id: ticket.eventId } }) : null;
+                    await prisma_1.default.event.findUnique({ where: { id: ticket.eventId } }) : null;
                 return {
                     ...ticket,
                     booking,
@@ -621,10 +619,8 @@ class TicketService {
             console.error(`Error getting ticket ${ticketId}:`, error);
             throw error;
         }
-        finally {
-            await prisma.$disconnect();
-        }
     }
 }
 exports.TicketService = TicketService;
 exports.default = TicketService;
+//# sourceMappingURL=ticket.service.js.map

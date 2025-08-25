@@ -94,3 +94,4 @@ exports.default = {
     },
     apis: ['./src/routes/**/*.ts'],
 };
+//# sourceMappingURL=swagger.js.map

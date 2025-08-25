@@ -25,3 +25,4 @@ router.get('/health', (req, res) => {
     res.json({ status: 'Reservation service operational' });
 });
 exports.default = router;
+//# sourceMappingURL=reservation.routes.js.map
