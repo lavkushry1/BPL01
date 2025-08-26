@@ -47,9 +47,12 @@ const config = configData as AppConfig;
 
 class ConfigService {
   private config: AppConfig;
+  public stripePublicKey: string;
   
   constructor(configData: AppConfig) {
     this.config = configData;
+    // Get Stripe public key from environment variables
+    this.stripePublicKey = process.env.REACT_APP_STRIPE_PUBLIC_KEY || 'pk_test_dummy_key_for_development';
   }
   
   /**
@@ -170,4 +173,4 @@ class ConfigService {
 
 // Create and export a singleton instance
 const configService = new ConfigService(config);
-export default configService; 
+export default configService;

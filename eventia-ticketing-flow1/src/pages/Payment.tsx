@@ -37,7 +37,7 @@ import { Copy, Check, CopyCheck, AlertCircle, CalendarClock, IndianRupee } from 
 import { usePaymentSettings } from '@/hooks/use-payment-settings';
 import { getBookingById } from '@/services/api/bookingApi';
 import { recordUpiPayment } from '@/services/api/paymentApi';
-import UpiPayment from '@/components/payment/UpiPayment';
+import PaymentFlow from '@/components/payment/PaymentFlow';
 import { isAuthenticated } from '@/services/api/apiUtils';
 
 // Get current date and time in local format
@@ -318,16 +318,17 @@ export default function Payment() {
             <div className="bg-muted rounded-xl p-6">
               <h2 className="text-xl font-semibold mb-4">{t('payment.paymentMethod')}</h2>
 
-              {/* UPI Payment Component */}
-              <UpiPayment
+              {/* Payment Flow Component */}
+              <PaymentFlow
                 bookingId={bookingId || ''}
                 amount={booking.finalAmount || booking.totalAmount}
-                onPaymentSuccess={handleUpiPaymentSuccess}
+                onPaymentComplete={handleUpiPaymentSuccess}
                 customerInfo={{
                   name: deliveryInfo?.name || '',
                   email: deliveryInfo?.email || '',
                   phone: deliveryInfo?.phone || ''
                 }}
+                onPaymentCancel={() => navigate(-1)}
               />
             </div>
           </div>

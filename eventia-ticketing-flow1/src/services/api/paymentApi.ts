@@ -51,6 +51,12 @@ export interface CreatePaymentInput {
   currency: string;
 }
 
+export interface StripePaymentRequest {
+  bookingId: string;
+  amount: number;
+  currency?: string;
+}
+
 export interface PaymentSettings {
   upi: {
     vpa: string;
@@ -88,6 +94,38 @@ export interface PaymentSession {
 
 // Environment check for API calls
 const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * Initialize a Stripe payment
+ */
+export const initializeStripePayment = async (data: StripePaymentRequest) => {
+  try {
+    const response = await defaultApiClient.post('/stripe/payment', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error initializing Stripe payment:', error);
+    return {
+      success: false,
+      message: 'Failed to initialize Stripe payment'
+    };
+  }
+};
+
+/**
+ * Get Stripe payment status
+ */
+export const getStripePaymentStatus = async (paymentIntentId: string) => {
+  try {
+    const response = await defaultApiClient.get(`/stripe/payment/${paymentIntentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting Stripe payment status:', error);
+    return {
+      success: false,
+      message: 'Failed to get payment status'
+    };
+  }
+};
 
 /**
  * Get payment settings for UPI and other methods

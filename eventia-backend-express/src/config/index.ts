@@ -83,6 +83,12 @@ interface UpiPaymentConfig {
   qrCodeBaseUrl: string;
 }
 
+interface StripeConfig {
+  secretKey: string;
+  webhookSecret: string;
+  publicKey: string;
+}
+
 interface AppConfig {
   nodeEnv: string;
   port: number;
@@ -96,6 +102,7 @@ interface AppConfig {
   jwt: JwtConfig;
   email: EmailConfig;
   tasks: TasksConfig;
+  stripe: StripeConfig;
   cors: {
     origin: string;
   };
@@ -203,6 +210,13 @@ export const config: AppConfig = {
     qrCodeBaseUrl: process.env.UPI_QR_CODE_BASE_URL || 'https://api.qrserver.com/v1/create-qr-code/',
   },
 
+  // Stripe payment configuration
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || (process.env.NODE_ENV === 'production' ? '' : 'sk_test_dummy_key_for_development'),
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'whsec_dummy_key_for_development'),
+    publicKey: process.env.STRIPE_PUBLIC_KEY || (process.env.NODE_ENV === 'production' ? '' : 'pk_test_dummy_key_for_development'),
+  },
+
   // Cors origins as array for socket.io
   corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5173'],
 
@@ -284,6 +298,15 @@ const redactSensitiveInfo = (cfg: AppConfig): Record<string, any> => {
   // Redact webhook secret
   if (redacted.upiPayment) {
     redacted.upiPayment = { ...redacted.upiPayment, webhookSecret: '***REDACTED***' };
+  }
+  
+  // Redact Stripe secrets
+  if (redacted.stripe) {
+    redacted.stripe = { 
+      ...redacted.stripe, 
+      secretKey: '***REDACTED***',
+      webhookSecret: '***REDACTED***'
+    };
   }
   
   return redacted;

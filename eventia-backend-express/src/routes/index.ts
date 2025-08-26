@@ -9,6 +9,7 @@ import utrVerificationRoutes from './utrVerification.routes';
 import ticketCategoryRoutes from './ticketCategory.routes';
 import seatLockRoutes from './seat.lock.routes';
 import eventRoutes from './event.routes';
+import stripeRoutes from './stripe.routes';
 import { config } from '../config';
 
 const router = Router();
@@ -48,6 +49,7 @@ router.use('/reservations', reservationRoutes);
 router.use('/verify-utr', utrVerificationRoutes);
 router.use('/', ticketCategoryRoutes); // Routes have ticket-categories prefix internally
 router.use('/', seatLockRoutes); // Adds /seats/lock and /seats/unlock endpoints
+router.use('/stripe', stripeRoutes);
 // router.use('/users', userRoutes);
 
 /**
