@@ -13,6 +13,9 @@ import CombinedProviders from './contexts/CombinedProviders';
 // Import error tracker to initialize it
 import './utils/errorTracker';
 
+// Import performance monitoring
+import performanceMonitor from './utils/performanceMonitoring';
+
 // Create a React Query client with default options
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +46,12 @@ initServiceWorker(() => {
     duration: 0, // Persist until dismissed
   });
 });
+
+// Initialize mobile performance monitoring for mobile devices
+if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+  performanceMonitor.start();
+  console.log('Mobile performance monitoring started');
+}
 
 // Initialize Sentry
 if (import.meta.env.VITE_SENTRY_DSN) {

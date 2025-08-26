@@ -11,7 +11,8 @@ import {
   TruckIcon,
   CreditCard,
   PieChart,
-  LogOut
+  LogOut,
+  Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import useAuth from '@/hooks/useAuth';
@@ -22,9 +23,10 @@ import AdminUpiManagement from './AdminUpiManagement';
 import AdminEventManagement from './AdminEventManagement';
 import UserManagement from '../components/admin/UserManagement';
 import UpiSettingsManager from '../components/admin/UpiSettingsManager';
+import MobilePerformanceDashboard from '../components/admin/MobilePerformanceDashboard';
 
 interface AdminDashboardPageProps {
-  activeTab?: 'overview' | 'users' | 'events' | 'deliveries' | 'payments' | 'settings';
+  activeTab?: 'overview' | 'users' | 'events' | 'deliveries' | 'payments' | 'settings' | 'mobile';
 }
 
 const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
@@ -122,6 +124,13 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             >
               <CreditCard className="h-4 w-4 mr-2" />
               Payments
+            </TabsTrigger>
+            <TabsTrigger
+              value="mobile"
+              className="flex-1 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
+            >
+              <Smartphone className="h-4 w-4 mr-2" />
+              Mobile
             </TabsTrigger>
             <TabsTrigger
               value="settings"
@@ -308,6 +317,12 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
             </div>
           </TabsContent>
 
+          {/* Mobile Performance Monitoring */}
+          <TabsContent value="mobile" className="space-y-4">
+            <h2 className="text-2xl font-bold mb-6">Mobile Performance Monitoring</h2>
+            <MobilePerformanceDashboard />
+          </TabsContent>
+
           {/* Settings */}
           <TabsContent value="settings" className="space-y-4">
             <h2 className="text-2xl font-bold mb-6">System Settings</h2>
@@ -336,4 +351,4 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   );
 };
 
-export default AdminDashboardPage; 
+export default AdminDashboardPage;

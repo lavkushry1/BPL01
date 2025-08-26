@@ -10,6 +10,7 @@ import ticketCategoryRoutes from './ticketCategory.routes';
 import seatLockRoutes from './seat.lock.routes';
 import eventRoutes from './event.routes';
 import stripeRoutes from './stripe.routes';
+import metricsRoutes from './metricsRoutes';
 import { config } from '../config';
 
 const router = Router();
@@ -48,6 +49,7 @@ router.use('/discounts', discountRoutes);
 router.use('/reservations', reservationRoutes);
 router.use('/verify-utr', utrVerificationRoutes);
 router.use('/', ticketCategoryRoutes); // Routes have ticket-categories prefix internally
+router.use('/metrics', metricsRoutes); // Mobile performance monitoring routes
 router.use('/', seatLockRoutes); // Adds /seats/lock and /seats/unlock endpoints
 router.use('/stripe', stripeRoutes);
 // router.use('/users', userRoutes);
