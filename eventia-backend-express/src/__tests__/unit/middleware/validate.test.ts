@@ -168,8 +168,8 @@ describe('Validation Middleware', () => {
       // Check if the error details contain both validation issues
       const details = error.details;
       expect(details).toBeInstanceOf(Array);
-      expect(details.some(d => d.path === 'body.name')).toBe(true);
-      expect(details.some(d => d.path === 'body.email')).toBe(true);
+      expect(details.some((d: { path: string; message: string; code: string }) => d.path === 'body.name')).toBe(true);
+      expect(details.some((d: { path: string; message: string; code: string }) => d.path === 'body.email')).toBe(true);
     });
 
     it('should handle validation with query parameters', async () => {
@@ -347,4 +347,4 @@ describe('Validation Middleware', () => {
       expect(nextFunction).toHaveBeenCalledWith();
     });
   });
-}); 
+});

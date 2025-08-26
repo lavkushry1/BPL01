@@ -1,9 +1,14 @@
 import knex, { Knex } from 'knex';
 import { config } from '../config';
+import path from 'path';
 import { logger } from '../utils/logger';
 
 // Configuration for database connection
 const dbConfig: Knex.Config = {
+  migrations: {
+    directory: path.join(__dirname, '../../prisma/migrations'),
+    tableName: 'knex_migrations',
+  },
   client: 'pg',
   connection: {
     host: config.db.host,
@@ -46,6 +51,11 @@ const dbConfig: Knex.Config = {
 
 // Create the knex instance
 export const db = knex(dbConfig);
+
+// Add this line to ensure Knex is properly initialized with the migration directory
+// This is crucial for the `db.migrate.latest()` and `db.migrate.rollback()` calls in setup.ts
+// to find the migration files.
+// db.migrate.directory = '../prisma/migrations'; // This line is not needed if directory is set in dbConfig
 
 // Max retry attempts
 const MAX_RETRIES = 5;

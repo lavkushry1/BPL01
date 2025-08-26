@@ -29,7 +29,7 @@ const knexConfig = {
       port: config.db.port,
       user: config.db.user,
       password: config.db.password,
-      database: `${config.db.database}_test`,
+      database: config.db.database,
     },
     migrations: {
       directory: path.join(__dirname, '../db/migrations'),

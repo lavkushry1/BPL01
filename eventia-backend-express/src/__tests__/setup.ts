@@ -4,6 +4,26 @@ import supertest from 'supertest';
 import { createApp } from '../app';
 import db from '../db';
 
+// Mock Redis-related modules to prevent actual connections during tests
+jest.mock('../services/cacheService', () => ({
+  cacheService: {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    delByPattern: jest.fn(),
+    isConnected: jest.fn(() => true),
+    close: jest.fn(),
+  },
+}));
+
+jest.mock('../middleware/rateLimit', () => ({
+  standardLimiter: jest.fn((req, res, next) => next()),
+  apiKeyLimiter: jest.fn((req, res, next) => next()),
+  strictLimiter: jest.fn((req, res, next) => next()),
+  authLimiter: jest.fn((req, res, next) => next()),
+  loginLimiter: jest.fn((req, res, next) => next()), // Add this line
+}));
+
 let app: Application;
 // Change the type to any to avoid complex typings issue with supertest
 let request: any;

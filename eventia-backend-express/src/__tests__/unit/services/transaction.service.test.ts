@@ -60,7 +60,7 @@ describe('TransactionService', () => {
       // Setup
       const mockResult = { id: 'test-123' };
       const mockCallback = jest.fn().mockResolvedValue(mockResult);
-      prisma.$transaction.mockImplementation(async (callback) => callback());
+      prisma.$transaction.mockImplementation(async (callback) => callback(prisma as any));
       
       // Act
       const result = await transactionService.executeInTransaction(mockCallback);
@@ -81,7 +81,7 @@ describe('TransactionService', () => {
       // Setup
       const mockResult = { id: 'test-123' };
       const mockCallback = jest.fn().mockResolvedValue(mockResult);
-      prisma.$transaction.mockImplementation(async (callback) => callback());
+      prisma.$transaction.mockImplementation(async (callback) => callback(prisma as any));
       
       const options = {
         maxWait: 10000,
@@ -110,7 +110,7 @@ describe('TransactionService', () => {
       const { logger } = require('../../../utils/logger');
       const mockResult = { id: 'test-123' };
       const mockCallback = jest.fn().mockResolvedValue(mockResult);
-      prisma.$transaction.mockImplementation(async (callback) => callback());
+      prisma.$transaction.mockImplementation(async (callback) => callback(prisma as any));
       
       const options = {
         isolationLevel: IsolationLevel.Serializable
@@ -277,7 +277,7 @@ describe('TransactionService', () => {
     
     it('should retry on PrismaClientRustPanicError', async () => {
       // Setup
-      const rustPanicError = new Prisma.PrismaClientRustPanicError('Rust panic occurred');
+      const rustPanicError = new Prisma.PrismaClientRustPanicError('Rust panic occurred', '5.0.0');
       
       const operation = jest.fn()
         .mockRejectedValueOnce(rustPanicError)
@@ -298,7 +298,7 @@ describe('TransactionService', () => {
     
     it('should retry on PrismaClientInitializationError', async () => {
       // Setup
-      const initError = new Prisma.PrismaClientInitializationError('Failed to initialize Prisma Client');
+      const initError = new Prisma.PrismaClientInitializationError('Failed to initialize Prisma Client', '5.0.0');
       
       const operation = jest.fn()
         .mockRejectedValueOnce(initError)
@@ -317,4 +317,4 @@ describe('TransactionService', () => {
       expect(operation).toHaveBeenCalledTimes(2);
     });
   });
-}); 
+});

@@ -46,7 +46,7 @@ describe('Auth Middleware', () => {
 
   describe('authenticate middleware', () => {
     it('should pass for public endpoints', () => {
-      mockRequest.path = '/api/v1/events'; // This is a public endpoint
+      (mockRequest as any).path = '/api/v1/events'; // This is a public endpoint
 
       authenticate(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -55,7 +55,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should pass for public endpoints with wildcard', () => {
-      mockRequest.path = '/api/v1/events/123'; // This should match the wildcard pattern
+      (mockRequest as any).path = '/api/v1/events/123'; // This should match the wildcard pattern
 
       authenticate(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -64,7 +64,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should require authentication for non-public endpoints', () => {
-      mockRequest.path = '/api/v1/user/profile'; // Non-public endpoint
+      (mockRequest as any).path = '/api/v1/user/profile'; // Non-public endpoint
 
       authenticate(mockRequest as Request, mockResponse as Response, nextFunction);
 
@@ -73,7 +73,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should accept token from authorization header', () => {
-      mockRequest.path = '/api/v1/user/profile'; // Non-public endpoint
+      (mockRequest as any).path = '/api/v1/user/profile'; // Non-public endpoint
       mockRequest.headers = {
         authorization: 'Bearer valid-token',
       };
@@ -89,7 +89,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should accept token from cookies', () => {
-      mockRequest.path = '/api/v1/user/profile'; // Non-public endpoint
+      (mockRequest as any).path = '/api/v1/user/profile'; // Non-public endpoint
       mockRequest.cookies = {
         access_token: 'cookie-token',
       };
@@ -105,7 +105,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should prioritize cookie token over header token', () => {
-      mockRequest.path = '/api/v1/user/profile'; // Non-public endpoint
+      (mockRequest as any).path = '/api/v1/user/profile'; // Non-public endpoint
       mockRequest.headers = {
         authorization: 'Bearer header-token',
       };
@@ -124,7 +124,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should handle expired tokens', () => {
-      mockRequest.path = '/api/v1/user/profile'; // Non-public endpoint
+      (mockRequest as any).path = '/api/v1/user/profile'; // Non-public endpoint
       mockRequest.headers = {
         authorization: 'Bearer expired-token',
       };
@@ -143,7 +143,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should handle invalid tokens', () => {
-      mockRequest.path = '/api/v1/user/profile'; // Non-public endpoint
+      (mockRequest as any).path = '/api/v1/user/profile'; // Non-public endpoint
       mockRequest.headers = {
         authorization: 'Bearer invalid-token',
       };
@@ -162,7 +162,7 @@ describe('Auth Middleware', () => {
     });
 
     it('should handle missing JWT secret', () => {
-      mockRequest.path = '/api/v1/user/profile'; // Non-public endpoint
+      (mockRequest as any).path = '/api/v1/user/profile'; // Non-public endpoint
       mockRequest.headers = {
         authorization: 'Bearer valid-token',
       };
@@ -244,4 +244,4 @@ describe('Auth Middleware', () => {
       expect(nextFunction.mock.calls[0][0].statusCode).toBe(403);
     });
   });
-}); 
+});
