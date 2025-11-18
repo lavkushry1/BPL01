@@ -695,8 +695,8 @@ export class PaymentController {
         200,
         'QR code generated successfully',
         {
-          qrCodeUrl,
-          upiLink,
+          qrImageUrl: qrCodeUrl,
+          qrText: upiLink,
           referenceId,
           upiId,
           amount

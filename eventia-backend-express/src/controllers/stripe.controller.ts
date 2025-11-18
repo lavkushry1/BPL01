@@ -41,7 +41,7 @@ export class StripeController {
       const paymentIntent = await stripeService.createPaymentIntent(amount, currency, metadata);
 
       // Start a transaction
-      await transactionService.transaction(async (trx) => {
+      await transactionService.executeInTransaction(async (trx) => {
         // Create a payment record in our database
         const payment: Omit<Payment, 'id' | 'created_at'> = {
           booking_id: bookingId,
@@ -50,7 +50,7 @@ export class StripeController {
           status: 'pending',
           payment_method: 'stripe',
           payment_intent_id: paymentIntent.id,
-          payment_date: new Date(),
+          payment_date: new Date().toISOString(),
         };
 
         await paymentService.createPayment(payment);
@@ -134,7 +134,7 @@ export class StripeController {
       }
 
       // Update payment status to verified
-      await transactionService.transaction(async (trx) => {
+      await transactionService.executeInTransaction(async (trx) => {
         await paymentService.verifyPayment(payment.id, 'system');
       });
 
@@ -166,7 +166,7 @@ export class StripeController {
       }
 
       // Update payment status to rejected
-      await transactionService.transaction(async (trx) => {
+      await transactionService.executeInTransaction(async (trx) => {
         await paymentService.rejectPayment(payment.id, 'system');
       });
 

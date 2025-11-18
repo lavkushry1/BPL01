@@ -81,7 +81,7 @@ export const metricsController = {
       }
 
       // Get aggregated metrics
-      const aggregatedData = await prisma.$queryRaw`
+      const aggregatedData: any = await prisma.$queryRaw`
         SELECT 
           AVG("fcp") as "avgFcp",
           AVG("lcp") as "avgLcp",
@@ -96,7 +96,7 @@ export const metricsController = {
       `;
 
       // Get percentile data for the specified metric
-      const percentileData = await prisma.$queryRaw`
+      const percentileData: any = await prisma.$queryRaw`
         SELECT 
           PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY ${metric}) as "p50",
           PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY ${metric}) as "p75",

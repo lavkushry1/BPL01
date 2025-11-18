@@ -6,9 +6,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.closeDatabase = exports.checkDatabaseHealth = exports.initializeDatabase = exports.db = void 0;
 const knex_1 = __importDefault(require("knex"));
 const config_1 = require("../config");
+const path_1 = __importDefault(require("path"));
 const logger_1 = require("../utils/logger");
 // Configuration for database connection
 const dbConfig = {
+    migrations: {
+        directory: path_1.default.join(__dirname, '../../prisma/migrations'),
+        tableName: 'knex_migrations',
+    },
     client: 'pg',
     connection: {
         host: config_1.config.db.host,
@@ -50,6 +55,10 @@ const dbConfig = {
 };
 // Create the knex instance
 exports.db = (0, knex_1.default)(dbConfig);
+// Add this line to ensure Knex is properly initialized with the migration directory
+// This is crucial for the `db.migrate.latest()` and `db.migrate.rollback()` calls in setup.ts
+// to find the migration files.
+// db.migrate.directory = '../prisma/migrations'; // This line is not needed if directory is set in dbConfig
 // Max retry attempts
 const MAX_RETRIES = 5;
 // Initial retry delay in ms

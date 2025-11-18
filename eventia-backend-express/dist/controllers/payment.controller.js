@@ -615,8 +615,8 @@ class PaymentController {
                 scale: 6
             });
             return apiResponse_1.ApiResponse.success(res, 200, 'QR code generated successfully', {
-                qrCodeUrl,
-                upiLink,
+                qrImageUrl: qrCodeUrl,
+                qrText: upiLink,
                 referenceId,
                 upiId,
                 amount

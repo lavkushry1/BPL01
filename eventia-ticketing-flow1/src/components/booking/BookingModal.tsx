@@ -2,42 +2,42 @@
  * @component BookingModal
  * @description Modal for selecting ticket quantities and proceeding to checkout.
  * Allows users to select from different ticket categories with pricing and availability info.
- * 
+ *
  * @apiDependencies
  * - POST /api/reservations - Creates a new ticket reservation
- * 
+ *
  * @requiredProps
  * - isOpen (boolean) - Controls modal visibility
  * - onClose (function) - Callback to close the modal
  * - eventTitle (string) - Title of the event being booked
  * - ticketTypes (TicketType[]) - Array of available ticket types with category, price, and availability
- * 
+ *
  * @stateManagement
  * - Uses React Hook Form for form state management
  * - Zod for form validation
  * - Tracks ticket selection quantities
  * - Calculates total tickets and amount
  * - Stores booking data in sessionStorage for use in checkout
- * 
+ *
  * @navigationFlow
  * - On "Proceed to Checkout", navigates to /booking/delivery page
  * - Passes data via sessionStorage and URL parameter (reservationId)
  */
 
-import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Plus, Minus, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, Minus, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
 
 interface TicketType {
@@ -49,6 +49,7 @@ interface TicketType {
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  eventId: string;
   eventTitle: string;
   ticketTypes: TicketType[];
 }
@@ -76,7 +77,7 @@ const createBookingSchema = (ticketTypes: TicketType[]) => {
     data => {
       const totalTickets = Object.values(data.tickets).reduce((sum, qty) => sum + qty, 0);
       return totalTickets > 0;
-    }, 
+    },
     {
       message: "Please select at least one ticket",
       path: ["tickets"]
@@ -96,7 +97,7 @@ const createBookingSchema = (ticketTypes: TicketType[]) => {
     data => {
       // Validate that requested tickets do not exceed availability
       let isValid = true;
-      
+
       for (const ticket of ticketTypes) {
         const requestedQty = data.tickets[ticket.category] || 0;
         if (requestedQty > ticket.available) {
@@ -104,7 +105,7 @@ const createBookingSchema = (ticketTypes: TicketType[]) => {
           break;
         }
       }
-      
+
       return isValid;
     },
     {
@@ -116,17 +117,17 @@ const createBookingSchema = (ticketTypes: TicketType[]) => {
 
 type BookingFormValues = z.infer<ReturnType<typeof createBookingSchema>>;
 
-const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModalProps) => {
+const BookingModal = ({ isOpen, onClose, eventId, eventTitle, ticketTypes }: BookingModalProps) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Initialize form with React Hook Form
   const bookingSchema = createBookingSchema(ticketTypes);
-  
-  const { 
-    handleSubmit, 
-    setValue, 
-    watch, 
+
+  const {
+    handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
     setError,
     clearErrors,
@@ -136,63 +137,64 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
       tickets: Object.fromEntries(ticketTypes.map(ticket => [ticket.category, 0]))
     }
   });
-  
+
   const ticketValues = watch('tickets');
-  
+
   const handleIncrement = (category: string) => {
     const ticket = ticketTypes.find(t => t.category === category);
     if (!ticket) return;
-    
+
     const currentValue = ticketValues[category] || 0;
     if (currentValue < ticket.available) {
       setValue(`tickets.${category}`, currentValue + 1, { shouldValidate: true });
     }
   };
-  
+
   const handleDecrement = (category: string) => {
     const currentValue = ticketValues[category] || 0;
     if (currentValue > 0) {
       setValue(`tickets.${category}`, currentValue - 1, { shouldValidate: true });
     }
   };
-  
+
   // Calculate totals for display
   const totalTickets = Object.values(ticketValues).reduce((sum, count) => sum + (count || 0), 0);
   const totalAmount = ticketTypes.reduce((total, ticket) => {
     return total + ((ticketValues[ticket.category] || 0) * ticket.price);
   }, 0);
-  
+
   const onSubmit = async (data: BookingFormValues) => {
     // Clear any previous form errors
     clearErrors();
     setIsSubmitting(true);
-    
+
     try {
       const response = await fetch('http://localhost:5000/api/reservations', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-          eventId: 'EVENT_123', // TODO: Replace with actual event ID
-          tickets: data.tickets
+          eventId: eventId,
+          tickets: data.tickets,
+          totalAmount: totalAmount
         })
       });
 
       if (!response.ok) {
         const errorData: ApiError = await response.json();
-        
+
         // Handle validation errors from API
         if (errorData.details) {
           Object.entries(errorData.details).forEach(([field, messages]) => {
             if (field.startsWith('tickets.')) {
               const category = field.replace('tickets.', '');
-              setError(`tickets.${category}` as any, { 
-                type: 'server', 
-                message: messages[0] 
+              setError(`tickets.${category}` as any, {
+                type: 'server',
+                message: messages[0]
               });
             } else {
-              setError('root', { 
-                type: 'server', 
-                message: messages[0] 
+              setError('root', {
+                type: 'server',
+                message: messages[0]
               });
             }
           });
@@ -203,14 +205,14 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
       }
 
       const { reservationId, paymentDeadline } = await response.json() as ReservationResponse;
-      
+
       // Store booking data in sessionStorage
       const bookingData = {
-        eventId: 'EVENT_123',
+        eventId: eventId,
         eventTitle: eventTitle,
-        eventDate: '2025-06-15', // Replace with actual event date
-        eventTime: '19:00', // Replace with actual event time
-        venue: 'Venue Name', // Replace with actual venue
+        eventDate: '2025-06-15', // TODO: Pass as prop for real event data
+        eventTime: '19:00', // TODO: Pass as prop for real event data
+        venue: 'Venue Name', // TODO: Pass as prop for real event data
         tickets: Object.entries(data.tickets).map(([category, quantity]) => {
           const ticketType = ticketTypes.find(t => t.category === category);
           return {
@@ -223,30 +225,30 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
         totalAmount: totalAmount,
         paymentDeadline
       };
-      
+
       sessionStorage.setItem('bookingData', JSON.stringify(bookingData));
-      
+
       // Show success toast
       toast({
         title: 'Reservation created',
         description: 'Your ticket reservation was successful!',
         variant: 'default',
       });
-      
+
       // Navigate to delivery address page
       navigate(`/booking/delivery?reservationId=${reservationId}`);
       onClose();
 
     } catch (error) {
       console.error('Checkout error:', error);
-      
+
       if (error instanceof Error) {
         // Set form-level error
         setError('root', {
           type: 'server',
           message: error.message
         });
-        
+
         // Also show toast for visibility
         toast({
           title: 'Checkout failed',
@@ -258,20 +260,20 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
       setIsSubmitting(false);
     }
   };
-  
+
   // If there's a form-level (root) error, display it
   const formError = errors.root?.message;
-  
+
   // Check if any ticket category has an error
   const hasTicketErrors = Object.keys(errors).some(key => key.startsWith('tickets.'));
-  
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg md:text-xl">{eventTitle}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Form-level error message */}
           {formError && (
@@ -280,15 +282,15 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
               <span>{formError}</span>
             </div>
           )}
-          
+
           <div className="py-4">
             <div className="space-y-4 md:space-y-3">
               {ticketTypes.map((ticket) => {
                 const fieldError = errors.tickets?.[ticket.category]?.message;
-                
+
                 return (
-                  <div 
-                    key={ticket.category} 
+                  <div
+                    key={ticket.category}
                     className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border rounded-md gap-2 ${
                       fieldError ? 'border-red-300 bg-red-50' : ''
                     }`}
@@ -297,32 +299,32 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
                       <div className="font-medium">{ticket.category}</div>
                       <div className="text-sm text-gray-500">₹{ticket.price}</div>
                       <div className="text-xs text-gray-400">Available: {ticket.available}</div>
-                      
+
                       {fieldError && (
                         <p className="text-red-500 text-xs mt-1">
                           {String(fieldError)}
                         </p>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center space-x-2 justify-end">
-                      <Button 
+                      <Button
                         type="button"
-                        variant="outline" 
-                        size="icon" 
+                        variant="outline"
+                        size="icon"
                         className="h-8 w-8 rounded-full focus:ring-2 focus:ring-primary focus:ring-offset-2"
                         onClick={() => handleDecrement(ticket.category)}
                         disabled={!ticketValues[ticket.category]}
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      
+
                       <span className="w-6 text-center">{ticketValues[ticket.category] || 0}</span>
-                      
-                      <Button 
+
+                      <Button
                         type="button"
-                        variant="outline" 
-                        size="icon" 
+                        variant="outline"
+                        size="icon"
                         className="h-8 w-8 rounded-full focus:ring-2 focus:ring-primary focus:ring-offset-2"
                         onClick={() => handleIncrement(ticket.category)}
                         disabled={ticketValues[ticket.category] >= ticket.available}
@@ -333,7 +335,7 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
                   </div>
                 );
               })}
-              
+
               {/* Ticket selection error that's not tied to a specific category */}
               {errors.tickets && !hasTicketErrors && (
                 <p className="text-red-500 text-sm mt-1">
@@ -341,7 +343,7 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
                 </p>
               )}
             </div>
-            
+
             {totalTickets > 0 && (
               <div className="mt-6 p-4 border rounded-md bg-gray-50">
                 <div className="flex justify-between font-medium">
@@ -355,18 +357,18 @@ const BookingModal = ({ isOpen, onClose, eventTitle, ticketTypes }: BookingModal
               </div>
             )}
           </div>
-          
+
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
+            <Button
               type="button"
-              variant="outline" 
+              variant="outline"
               onClick={onClose}
               className="w-full sm:w-auto focus:ring-2 focus:ring-primary focus:ring-offset-2"
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               type="submit"
               disabled={totalTickets === 0 || isSubmitting}
               className="w-full sm:w-auto focus:ring-2 focus:ring-primary focus:ring-offset-2"

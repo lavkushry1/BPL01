@@ -2,6 +2,25 @@ module.exports = {
   ci: {
     collect: {
       /* These settings are set via the CLI in the GitHub Actions workflow */
+      numberOfRuns: 3,
+      settings: {
+        // Use mobile preset by default
+        preset: 'mobile',
+        
+        // Throttling settings for mobile simulation
+        throttling: {
+          // Simulate a slow 4G connection
+          downloadThroughputKbps: 1600,
+          uploadThroughputKbps: 750,
+          cpuSlowdownMultiplier: 2,
+        },
+        
+        // Chrome flags
+        chromeFlags: '--no-sandbox --headless --disable-gpu',
+        
+        // Enable mobile emulation
+        emulatedFormFactor: 'mobile',
+      },
     },
     assert: {
       preset: 'lighthouse:no-pwa',

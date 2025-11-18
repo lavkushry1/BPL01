@@ -7,6 +7,24 @@ exports.request = exports.app = void 0;
 const supertest_1 = __importDefault(require("supertest"));
 const app_1 = require("../app");
 const db_1 = __importDefault(require("../db"));
+// Mock Redis-related modules to prevent actual connections during tests
+jest.mock('../services/cacheService', () => ({
+    cacheService: {
+        get: jest.fn(),
+        set: jest.fn(),
+        del: jest.fn(),
+        delByPattern: jest.fn(),
+        isConnected: jest.fn(() => true),
+        close: jest.fn(),
+    },
+}));
+jest.mock('../middleware/rateLimit', () => ({
+    standardLimiter: jest.fn((req, res, next) => next()),
+    apiKeyLimiter: jest.fn((req, res, next) => next()),
+    strictLimiter: jest.fn((req, res, next) => next()),
+    authLimiter: jest.fn((req, res, next) => next()),
+    loginLimiter: jest.fn((req, res, next) => next()), // Add this line
+}));
 let app;
 // Change the type to any to avoid complex typings issue with supertest
 let request;

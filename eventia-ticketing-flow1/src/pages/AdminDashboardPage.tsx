@@ -38,7 +38,9 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
 
   // Update tab when activeTab prop changes
   useEffect(() => {
-    setCurrentTab(activeTab);
+    if (activeTab) {
+      setCurrentTab(activeTab);
+    }
   }, [activeTab]);
 
   // Handle tab change

@@ -3,7 +3,7 @@ import config from '../config';
 
 // Initialize Stripe with the secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16', // Use the latest API version
+  apiVersion: '2025-07-30.basil', // Use the latest API version
 });
 
 /**

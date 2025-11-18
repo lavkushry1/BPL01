@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { stripeController } from '../controllers/stripe.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
@@ -9,7 +9,7 @@ const router = Router();
  * @desc Initialize a Stripe payment
  * @access Private
  */
-router.post('/payment', authMiddleware.authenticate, stripeController.initializePayment.bind(stripeController));
+router.post('/payment', authMiddleware, stripeController.initializePayment.bind(stripeController));
 
 /**
  * @route POST /api/v1/stripe/webhook
@@ -23,6 +23,6 @@ router.post('/webhook', stripeController.handleWebhook.bind(stripeController));
  * @desc Get payment status
  * @access Private
  */
-router.get('/payment/:paymentIntentId', authMiddleware.authenticate, stripeController.getPaymentStatus.bind(stripeController));
+router.get('/payment/:paymentIntentId', authMiddleware, stripeController.getPaymentStatus.bind(stripeController));
 
 export default router;

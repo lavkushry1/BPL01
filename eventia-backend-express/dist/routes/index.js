@@ -14,6 +14,8 @@ const utrVerification_routes_1 = __importDefault(require("./utrVerification.rout
 const ticketCategory_routes_1 = __importDefault(require("./ticketCategory.routes"));
 const seat_lock_routes_1 = __importDefault(require("./seat.lock.routes"));
 const event_routes_1 = __importDefault(require("./event.routes"));
+const stripe_routes_1 = __importDefault(require("./stripe.routes"));
+const metricsRoutes_1 = __importDefault(require("./metricsRoutes"));
 const config_1 = require("../config");
 const router = (0, express_1.Router)();
 /**
@@ -48,7 +50,9 @@ router.use('/discounts', discount_routes_1.default);
 router.use('/reservations', reservation_routes_1.default);
 router.use('/verify-utr', utrVerification_routes_1.default);
 router.use('/', ticketCategory_routes_1.default); // Routes have ticket-categories prefix internally
+router.use('/metrics', metricsRoutes_1.default); // Mobile performance monitoring routes
 router.use('/', seat_lock_routes_1.default); // Adds /seats/lock and /seats/unlock endpoints
+router.use('/stripe', stripe_routes_1.default);
 // router.use('/users', userRoutes);
 /**
  * Export router with API prefix
