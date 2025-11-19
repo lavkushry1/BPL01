@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useUser } from '@/contexts/UserContext';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
-import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
-import PaymentMethodSelector from './PaymentMethodSelector';
 import { useNavigate } from 'react-router-dom';
+import PaymentMethodSelector from './PaymentMethodSelector';
 
 // Payment flow props
 interface PaymentFlowProps {
@@ -28,11 +28,11 @@ const PaymentFlow: React.FC<PaymentFlowProps> = ({
   onPaymentCancel,
   customerInfo
 }) => {
-  const { user } = useUser();
+
   const { toast } = useToast();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  
+
   const [isLoading, setIsLoading] = useState(false);
 
   // Handle payment success

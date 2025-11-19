@@ -80,10 +80,10 @@ export const verifyUTR = async (req: Request, res: Response) => {
       return res.status(402).json({ error: 'Payment verification failed' });
     }
 
-    // Create/Update payment record
-    await paymentService.createPayment({
+    // Record the UTR submission
+    await paymentService.createUTRPayment({
       booking_id: reservationId,
-      amount: Number(booking.finalAmount),
+      amount: booking.finalAmount.toNumber(),
       utr_number: utrNumber,
       status: 'pending' // Pending admin approval
     });

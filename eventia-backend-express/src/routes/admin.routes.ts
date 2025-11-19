@@ -1,11 +1,10 @@
-import express, { Request, Response, NextFunction } from 'express';
-import { auth } from '../middleware/auth';
-import { UserController } from '../controllers/user.controller';
-import { EventController } from '../controllers/event.controller';
+import express, { NextFunction, Request, Response } from 'express';
 import { DashboardController } from '../controllers/dashboard.controller';
+import { EventController } from '../controllers/event.controller';
+import { PaymentController } from '../controllers/payment.controller';
+import { UserController } from '../controllers/user.controller';
+import { authenticate, checkAdmin } from '../middleware/auth';
 import { DatabaseRequest } from '../middleware/database';
-import { authenticate } from '../middleware/auth';
-import { checkAdmin } from '../middleware/auth';
 import adminEventRoutes from './admin/events.routes';
 
 const router = express.Router();
@@ -213,24 +212,16 @@ router.delete('/users/:id', (req: Request, res: Response, next: NextFunction) =>
   return UserController.deleteUser(req as DatabaseRequest, res, next);
 });
 
+// Payment Verification Routes
+router.get('/payments', PaymentController.getAllPayments);
+router.post('/payments/:id/verify', PaymentController.verifyPayment);
+router.post('/payments/:id/reject', PaymentController.rejectPayment);
+
 // Mount admin sub-routes
+// Note: We keep this for backward compatibility if other parts of the app use it
 router.use('/events', adminEventRoutes);
 
-// Admin dashboard routes
-router.get('/dashboard/stats', (req, res) => {
-  // This would be a real implementation in a production environment
-  res.json({
-    success: true,
-    data: {
-      totalUsers: 1250,
-      totalEvents: 45,
-      totalBookings: 5670,
-      revenueLastMonth: 2345000
-    }
-  });
-});
-
-// UPI Settings routes
+// UPI Settings routes (TODO: Implement real controller)
 router.get('/settings/upi', (req, res) => {
   res.json({
     success: true,
@@ -266,9 +257,10 @@ router.put('/settings/upi', (req, res) => {
   });
 });
 
-// Admin event routes (fallback for direct event controller methods)
+// Admin event routes (direct controller methods)
+// These might overlap with adminEventRoutes but are kept for explicit routing
 router.post('/events', EventController.createEvent);
 router.put('/events/:id', EventController.updateEvent);
-router.delete('/events/:id', EventController.deleteEvent);
+// DELETE is already defined above
 
-export default router; 
+export default router;

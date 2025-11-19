@@ -1,13 +1,15 @@
 import { PaymentStatus, PrismaClient } from '@prisma/client';
+import { Omit } from '@prisma/client/runtime/library';
+import { Payment } from '../models/payment.model';
 import { ApiError } from '../utils/apiError';
 
 const prisma = new PrismaClient();
 
 export const paymentService = {
   /**
-   * Create a new payment record (BookingPayment for UTR)
+   * Create a new UTR payment record (BookingPayment)
    */
-  async createPayment(data: {
+  async createUTRPayment(data: {
     booking_id: string;
     amount: number;
     utr_number: string;
@@ -38,6 +40,38 @@ export const paymentService = {
           utrNumber: data.utr_number,
           status: data.status,
           paymentDate: data.payment_date || new Date()
+        }
+      });
+    } catch (error) {
+      console.error('Error creating UTR payment:', error);
+      throw new ApiError(500, 'Failed to create UTR payment record');
+    }
+  },
+
+  /**
+   * Create a generic payment record
+   */
+  async createPayment(data: Omit<Payment, 'id' | 'created_at'>) {
+    try {
+      // Map to Prisma Payment model
+      // Note: Prisma Payment model is different from the Payment interface
+      // We'll try to save what we can to the Payment table
+
+      const statusMap: Record<string, PaymentStatus> = {
+        'pending': PaymentStatus.PENDING,
+        'verified': PaymentStatus.COMPLETED,
+        'rejected': PaymentStatus.FAILED,
+        'refunded': PaymentStatus.REFUNDED
+      };
+
+      const prismaStatus = statusMap[data.status] || PaymentStatus.PENDING;
+
+      return await prisma.payment.create({
+        data: {
+          bookingId: data.booking_id,
+          amount: data.amount,
+          status: prismaStatus,
+          method: data.payment_method || 'unknown'
         }
       });
     } catch (error) {

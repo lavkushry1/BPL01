@@ -48,13 +48,13 @@ const config = configData as AppConfig;
 class ConfigService {
   private config: AppConfig;
   public stripePublicKey: string;
-  
+
   constructor(configData: AppConfig) {
     this.config = configData;
     // Get Stripe public key from environment variables
-    this.stripePublicKey = process.env.REACT_APP_STRIPE_PUBLIC_KEY || 'pk_test_dummy_key_for_development';
+    this.stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_dummy_key_for_development';
   }
-  
+
   /**
    * Get the API URL for a specific feature endpoint
    * @param featureKey The key of the feature in the config
@@ -67,25 +67,25 @@ class ConfigService {
     if (!feature) {
       throw new Error(`Feature ${featureKey} not found in configuration`);
     }
-    
+
     const endpoint = feature.backendEndpoints[endpointKey];
     if (!endpoint) {
       throw new Error(`Endpoint ${endpointKey} not found in feature ${featureKey}`);
     }
-    
+
     let path = endpoint.path;
-    
+
     // Replace path parameters if provided
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         path = path.replace(`:${key}`, value);
       });
     }
-    
+
     // Fix: Remove the apiBasePath since it's already included in the API_URL from apiUtils.ts
     return path;
   }
-  
+
   /**
    * Get the HTTP method for a specific feature endpoint
    * @param featureKey The key of the feature in the config
@@ -97,15 +97,15 @@ class ConfigService {
     if (!feature) {
       throw new Error(`Feature ${featureKey} not found in configuration`);
     }
-    
+
     const endpoint = feature.backendEndpoints[endpointKey];
     if (!endpoint) {
       throw new Error(`Endpoint ${endpointKey} not found in feature ${featureKey}`);
     }
-    
+
     return endpoint.method;
   }
-  
+
   /**
    * Get a static asset URL
    * @param path The path to the asset relative to the staticAssets.baseUrl
@@ -114,7 +114,7 @@ class ConfigService {
   getAssetUrl(path: string): string {
     return `${this.config.staticAssets.baseUrl}${path}`;
   }
-  
+
   /**
    * Get an image asset URL
    * @param key The image key in the configuration (e.g., 'logo', 'backgrounds.login')
@@ -123,23 +123,23 @@ class ConfigService {
   getImageUrl(key: string): string {
     const parts = key.split('.');
     let current: any = this.config.staticAssets.images;
-    
+
     for (const part of parts) {
       if (current[part] === undefined) {
         throw new Error(`Image key ${key} not found in configuration`);
       }
       current = current[part];
     }
-    
+
     // If the result is an object with a path property, return the baseUrl + path
     if (typeof current === 'object' && current.path) {
       return `${this.config.staticAssets.baseUrl}${current.path}`;
     }
-    
+
     // Otherwise, assume it's a direct path
     return `${this.config.staticAssets.baseUrl}${current}`;
   }
-  
+
   /**
    * Check if a feature is implemented in the backend
    * @param featureKey The key of the feature in the config
@@ -150,18 +150,18 @@ class ConfigService {
     if (!feature) {
       throw new Error(`Feature ${featureKey} not found in configuration`);
     }
-    
+
     // If there are no backend endpoints, consider it implemented
     if (Object.keys(feature.backendEndpoints).length === 0) {
       return true;
     }
-    
+
     // Check if all endpoints are implemented
     return Object.values(feature.backendEndpoints).every(
       endpoint => endpoint.status === 'implemented'
     );
   }
-  
+
   /**
    * Get the full configuration
    * @returns The complete configuration object

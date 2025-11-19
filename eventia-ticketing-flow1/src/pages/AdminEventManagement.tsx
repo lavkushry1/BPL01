@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import { IPLMatch } from '@/services/api/eventApi';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Plus, Edit, Trash2, Calendar, MapPin, Clock, Tag } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
+import { defaultApiClient } from '@/services/api';
+import { IPLMatch } from '@/services/api/eventApi';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Clock, Edit, MapPin, Plus, Tag, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 // Form schema for IPL match validation
 const iplMatchSchema = z.object({
-  id: z.string().min(1, "ID is required"),
+  id: z.string().optional(), // ID is optional for new matches
   title: z.string().min(3, "Title must be at least 3 characters"),
   venue: z.string().min(1, "Venue is required"),
   date: z.string().min(1, "Date is required"),
@@ -40,6 +40,7 @@ const AdminEventManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentMatch, setCurrentMatch] = useState<IPLMatch | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<IPLMatchFormValues>({
     resolver: zodResolver(iplMatchSchema),
@@ -62,6 +63,31 @@ const AdminEventManagement = () => {
     }
   });
 
+  const fetchMatches = async () => {
+    setIsLoading(true);
+    try {
+      // Use the public IPL endpoint for now as it formats data correctly
+      // In a real admin scenario, we might want to use /api/admin/events and map it manually
+      const response = await defaultApiClient.get('/public/events/ipl');
+      if (response.data.success) {
+        setMatches(response.data.data.matches);
+      }
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch matches from server.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMatches();
+  }, []);
+
   const handleAddMatch = () => {
     setIsAddDialogOpen(true);
     form.reset();
@@ -70,22 +96,27 @@ const AdminEventManagement = () => {
   const handleEditMatch = (match: IPLMatch) => {
     setCurrentMatch(match);
     setIsEditDialogOpen(true);
+
+    // Extract team names from match data or title if needed
+    const team1Name = match.teams?.team1?.name || match.title.split(' vs ')[0] || '';
+    const team2Name = match.teams?.team2?.name || match.title.split(' vs ')[1] || '';
+
     form.reset({
       id: match.id,
       title: match.title,
       venue: match.venue,
-      date: match.date,
-      time: match.time,
-      team1Name: match.teams.team1.name,
-      team1ShortName: match.teams.team1.shortName,
-      team2Name: match.teams.team2.name,
-      team2ShortName: match.teams.team2.shortName,
-      generalPrice: match.ticketTypes[0].price,
-      generalAvailable: match.ticketTypes[0].available,
-      premiumPrice: match.ticketTypes[1].price,
-      premiumAvailable: match.ticketTypes[1].available,
-      vipPrice: match.ticketTypes[2].price,
-      vipAvailable: match.ticketTypes[2].available
+      date: match.start_date.split('T')[0],
+      time: match.time || '19:00',
+      team1Name: team1Name,
+      team1ShortName: match.teams?.team1?.shortName || team1Name.substring(0, 3).toUpperCase(),
+      team2Name: team2Name,
+      team2ShortName: match.teams?.team2?.shortName || team2Name.substring(0, 3).toUpperCase(),
+      generalPrice: match.ticketTypes?.find(t => t.category === 'General Stand')?.price || 1000,
+      generalAvailable: match.ticketTypes?.find(t => t.category === 'General Stand')?.available || 1000,
+      premiumPrice: match.ticketTypes?.find(t => t.category === 'Premium Stand')?.price || 3000,
+      premiumAvailable: match.ticketTypes?.find(t => t.category === 'Premium Stand')?.available || 500,
+      vipPrice: match.ticketTypes?.find(t => t.category === 'VIP Box')?.price || 8000,
+      vipAvailable: match.ticketTypes?.find(t => t.category === 'VIP Box')?.available || 100
     });
   };
 
@@ -94,341 +125,121 @@ const AdminEventManagement = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  // Save events to localStorage for public display
-  const saveToLocalStorage = (eventData: IPLMatch[]) => {
+  const onSubmitAdd = async (data: IPLMatchFormValues) => {
     try {
-      const storageKey = 'admin_created_events';
-
-      // Generate a more reliable UUID-like string
-      const generateUUID = () => {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-          const r = Math.random() * 16 | 0;
-          const v = c === 'x' ? r : (r & 0x3 | 0x8);
-          return v.toString(16);
-        });
+      // Construct the payload for the backend
+      const payload = {
+        title: `${data.team1Name} vs ${data.team2Name}`,
+        description: `IPL match between ${data.team1Name} and ${data.team2Name}`,
+        startDate: new Date(`${data.date}T${data.time}:00`).toISOString(),
+        endDate: new Date(`${data.date}T${parseInt(data.time.split(':')[0]) + 3}:${data.time.split(':')[1]}:00`).toISOString(), // Approx 3 hours
+        location: data.venue,
+        status: 'PUBLISHED', // Auto-publish for now
+        ticketCategories: [
+          {
+            name: "General Stand",
+            price: data.generalPrice,
+            totalSeats: data.generalAvailable
+          },
+          {
+            name: "Premium Stand",
+            price: data.premiumPrice,
+            totalSeats: data.premiumAvailable
+          },
+          {
+            name: "VIP Box",
+            price: data.vipPrice,
+            totalSeats: data.vipAvailable
+          }
+        ],
+        imageUrl: "/placeholder.svg" // Default image
       };
 
-      // Convert IPL match format to the Event format expected by the Events page
-      const eventsForStorage = eventData.map(match => {
-        // Generate a truly unique ID using UUID approach
-        const uniqueId = generateUUID();
+      await defaultApiClient.post('/admin/events', payload);
 
-        return {
-          id: uniqueId,
-          title: `${match.teams.team1.name} vs ${match.teams.team2.name}`,
-          description: `IPL match between ${match.teams.team1.name} and ${match.teams.team2.name}`,
-          start_date: match.date,
-          location: match.venue,
-          organizer_id: 'admin',
-          status: 'published',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          category: 'Cricket',
-          teams: match.teams,
-          venue: match.venue,
-          time: match.time,
-          ticket_types: match.ticketTypes.map(tt => ({
-            id: `${uniqueId}-${tt.category.toLowerCase().replace(/\s+/g, '-')}`,
-            name: tt.category,
-            price: tt.price,
-            quantity: tt.available + 100, // Total capacity is more than available
-            available: tt.available
-          })),
-          images: [{
-            id: `${uniqueId}-img1`,
-            url: (match.posterImage || (match.images && match.images.length > 0 ? match.images[0].url : '/placeholder.svg')),
-            alt_text: `${match.teams.team1.name} vs ${match.teams.team2.name}`,
-            is_featured: true
-          }],
-          poster_image: match.posterImage || (match.images && match.images.length > 0 ? match.images[0].url : '/placeholder.svg'),
-          source: 'admin', // Explicitly mark as admin-created
-          original_id: match.id // Store the original ID for reference
-        };
-      });
-
-      localStorage.setItem(storageKey, JSON.stringify(eventsForStorage));
-
-      // Dispatch both a storage event and a custom event for better cross-component communication
-      window.dispatchEvent(new Event('storage'));
-      window.dispatchEvent(new CustomEvent('admin-events-updated'));
-
-      console.log('Saved admin events to localStorage:', eventsForStorage.length);
-
+      setIsAddDialogOpen(false);
       toast({
         title: "Success",
-        description: `${eventsForStorage.length} events saved and will appear on the public page`,
+        description: "New IPL match has been added.",
       });
-    } catch (e) {
-      console.error('Error saving admin events to localStorage:', e);
+      fetchMatches(); // Refresh list
+    } catch (error) {
+      console.error('Error adding match:', error);
       toast({
         title: "Error",
-        description: "Failed to save events to localStorage. Events may not appear on the public page.",
+        description: "Failed to add match.",
         variant: "destructive"
       });
     }
   };
 
-  const onSubmitAdd = (data: IPLMatchFormValues) => {
-    // Generate a unique UUID for the match
-    const generateUUID = () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    };
-
-    const uniqueId = generateUUID();
-
-    const newMatch: IPLMatch = {
-      id: uniqueId,
-      title: data.title,
-      description: `IPL match between ${data.team1Name} and ${data.team2Name}`,
-      category: "IPL",
-      teams: {
-        team1: {
-          name: data.team1Name,
-          shortName: data.team1ShortName,
-          logo: "/placeholder.svg"
-        },
-        team2: {
-          name: data.team2Name,
-          shortName: data.team2ShortName,
-          logo: "/placeholder.svg"
-        }
-      },
-      venue: data.venue,
-      date: data.date,
-      time: data.time,
-      ticketTypes: [
-        {
-          category: "General Stand",
-          price: data.generalPrice,
-          available: data.generalAvailable,
-          capacity: data.generalAvailable * 2
-        },
-        {
-          category: "Premium Stand",
-          price: data.premiumPrice,
-          available: data.premiumAvailable,
-          capacity: data.premiumAvailable * 2
-        },
-        {
-          category: "VIP Box",
-          price: data.vipPrice,
-          available: data.vipAvailable,
-          capacity: data.vipAvailable * 2
-        }
-      ],
-      images: [{
-        id: `${uniqueId}-img1`,
-        url: "/placeholder.svg",
-        alt_text: `${data.team1Name} vs ${data.team2Name}`,
-        is_featured: true
-      }],
-      status: 'draft',
-      start_date: data.date,
-      organizer_id: '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    const updatedMatches = [...matches, newMatch];
-    setMatches(updatedMatches);
-
-    // Save to localStorage for public display
-    saveToLocalStorage(updatedMatches);
-
-    setIsAddDialogOpen(false);
-    toast({
-      title: "Success",
-      description: "New IPL match has been added. It is now visible on the public events page.",
-    });
-  };
-
-  const onSubmitEdit = (data: IPLMatchFormValues) => {
+  const onSubmitEdit = async (data: IPLMatchFormValues) => {
     if (!currentMatch) return;
 
-    // Generate a unique UUID for the match
-    const generateUUID = () => {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    };
+    try {
+      const payload = {
+        title: `${data.team1Name} vs ${data.team2Name}`,
+        description: `IPL match between ${data.team1Name} and ${data.team2Name}`,
+        startDate: new Date(`${data.date}T${data.time}:00`).toISOString(),
+        endDate: new Date(`${data.date}T${parseInt(data.time.split(':')[0]) + 3}:${data.time.split(':')[1]}:00`).toISOString(),
+        location: data.venue,
+        ticketCategories: [
+          {
+            name: "General Stand",
+            price: data.generalPrice,
+            totalSeats: data.generalAvailable
+          },
+          {
+            name: "Premium Stand",
+            price: data.premiumPrice,
+            totalSeats: data.premiumAvailable
+          },
+          {
+            name: "VIP Box",
+            price: data.vipPrice,
+            totalSeats: data.vipAvailable
+          }
+        ]
+      };
 
-    // Generate a new unique ID
-    const uniqueId = generateUUID();
+      await defaultApiClient.put(`/admin/events/${currentMatch.id}`, payload);
 
-    const updatedMatch: IPLMatch = {
-      id: uniqueId,
-      title: data.title,
-      description: `IPL match between ${data.team1Name} and ${data.team2Name}`,
-      category: "IPL",
-      teams: {
-        team1: {
-          name: data.team1Name,
-          shortName: data.team1ShortName,
-          logo: "/placeholder.svg"
-        },
-        team2: {
-          name: data.team2Name,
-          shortName: data.team2ShortName,
-          logo: "/placeholder.svg"
-        }
-      },
-      venue: data.venue,
-      date: data.date,
-      time: data.time,
-      ticketTypes: [
-        {
-          category: "General Stand",
-          price: data.generalPrice,
-          available: data.generalAvailable,
-          capacity: data.generalAvailable * 2
-        },
-        {
-          category: "Premium Stand",
-          price: data.premiumPrice,
-          available: data.premiumAvailable,
-          capacity: data.premiumAvailable * 2
-        },
-        {
-          category: "VIP Box",
-          price: data.vipPrice,
-          available: data.vipAvailable,
-          capacity: data.vipAvailable * 2
-        }
-      ],
-      images: [{
-        id: `${uniqueId}-img1`,
-        url: "/placeholder.svg",
-        alt_text: `${data.team1Name} vs ${data.team2Name}`,
-        is_featured: true
-      }],
-      status: 'draft',
-      start_date: data.date,
-      organizer_id: '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Replace the edited match in the array
-    const updatedMatches = matches.map(match =>
-      match.id === currentMatch.id ? updatedMatch : match
-    );
-
-    setMatches(updatedMatches);
-
-    // Save to localStorage for public display
-    saveToLocalStorage(updatedMatches);
-
-    setIsEditDialogOpen(false);
-    toast({
-      title: "Success",
-      description: "IPL match has been updated. Changes are visible on the public events page.",
-    });
-  };
-
-  const confirmDelete = () => {
-    if (currentMatch) {
-      const updatedMatches = matches.filter(match => match.id !== currentMatch.id);
-      setMatches(updatedMatches);
-
-      // Save the updated list (without the deleted match) to localStorage
-      saveToLocalStorage(updatedMatches);
-
-      setIsDeleteDialogOpen(false);
+      setIsEditDialogOpen(false);
       toast({
         title: "Success",
-        description: "IPL match has been deleted. It has been removed from the public events page.",
+        description: "IPL match has been updated.",
+      });
+      fetchMatches();
+    } catch (error) {
+      console.error('Error updating match:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update match.",
+        variant: "destructive"
       });
     }
   };
 
-  // Load existing admin events from localStorage on component mount
-  useEffect(() => {
-    try {
-      // First, load the default IPL matches if no localStorage data is available
-      const initialMatches = [];
-      setMatches(initialMatches);
-
-      // Then try to load from localStorage
-      const storageKey = 'admin_created_events';
-      const savedEventsJson = localStorage.getItem(storageKey);
-
-      if (savedEventsJson) {
-        try {
-          const savedEvents = JSON.parse(savedEventsJson);
-
-          if (Array.isArray(savedEvents) && savedEvents.length > 0) {
-            // Convert stored events back to IPLMatch format
-            const convertedMatches: IPLMatch[] = savedEvents.map((event: any) => {
-              // Verify that this is an event with the expected properties
-              if (!event.id || !event.title) {
-                console.warn('Found invalid event in localStorage:', event);
-                return null;
-              }
-
-              // Create a proper IPLMatch object
-              const match: IPLMatch = {
-                id: event.id,
-                title: event.title,
-                description: event.description || '',
-                category: event.category || 'Cricket',
-                venue: event.venue || event.location || '',
-                date: event.start_date || event.date || new Date().toISOString().split('T')[0],
-                time: event.time || '19:00',
-                teams: event.teams || {
-                  team1: { name: 'Team 1', shortName: 'T1', logo: '/placeholder.svg' },
-                  team2: { name: 'Team 2', shortName: 'T2', logo: '/placeholder.svg' }
-                },
-                ticketTypes: (event.ticket_types || []).map((tt: any) => ({
-                  category: tt.name || 'General',
-                  price: tt.price || 1000,
-                  available: tt.available || 100,
-                  capacity: tt.quantity || tt.available * 2 || 200
-                })),
-                images: event.images || [{
-                  id: `${event.id}-img1`,
-                  url: event.poster_image || (event.images && event.images.length > 0 ? event.images[0].url : '/placeholder.svg'),
-                  alt_text: `${event.teams?.team1?.name || 'Team 1'} vs ${event.teams?.team2?.name || 'Team 2'}`,
-                  is_featured: true
-                }],
-                start_date: event.start_date || event.date || new Date().toISOString().split('T')[0],
-                organizer_id: event.organizer_id || '',
-                status: event.status || 'draft',
-                created_at: event.created_at || new Date().toISOString(),
-                updated_at: event.updated_at || new Date().toISOString(),
-              };
-
-              return match;
-            }).filter(Boolean) as IPLMatch[]; // Remove any null entries
-
-            if (convertedMatches.length > 0) {
-              console.log('Loaded admin events from localStorage:', convertedMatches.length);
-              setMatches(convertedMatches);
-
-              // Save back to localStorage to ensure proper format for next load
-              saveToLocalStorage(convertedMatches);
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing saved events from localStorage:', e);
-
-          // If we fail to load from localStorage, ensure we save the default matches
-          saveToLocalStorage(initialMatches);
-        }
-      } else {
-        // If no events in localStorage, initialize with default matches
-        console.log('No saved events found, initializing with default matches');
-        saveToLocalStorage(initialMatches);
+  const confirmDelete = async () => {
+    if (currentMatch) {
+      try {
+        await defaultApiClient.delete(`/admin/events/${currentMatch.id}`);
+        setIsDeleteDialogOpen(false);
+        toast({
+          title: "Success",
+          description: "IPL match has been deleted.",
+        });
+        fetchMatches();
+      } catch (error) {
+        console.error('Error deleting match:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete match.",
+          variant: "destructive"
+        });
       }
-    } catch (e) {
-      console.error('Error in useEffect:', e);
     }
-  }, []);
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -447,55 +258,61 @@ const AdminEventManagement = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {matches.map((match) => (
-              <Card key={match.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                <CardHeader className="bg-primary/5 pb-2">
-                  <CardTitle className="text-xl">{match.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center">
-                        <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-2">
-                          {match.teams.team1.shortName}
-                        </span>
-                        <span>vs</span>
-                        <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center ml-2">
-                          {match.teams.team2.shortName}
-                        </span>
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {matches.map((match) => (
+                  <Card key={match.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                    <CardHeader className="bg-primary/5 pb-2">
+                      <CardTitle className="text-xl">{match.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center">
+                            <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-2">
+                            {match.teams?.team1?.shortName || 'T1'}
+                          </span>
+                          <span>vs</span>
+                          <span className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center ml-2">
+                            {match.teams?.team2?.shortName || 'T2'}
+                          </span>
+                        </div>
+                        <div className="text-gray-500 font-medium">
+                          {new Date(match.start_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                        </div>
                       </div>
-                      <div className="text-gray-500 font-medium">
-                        {new Date(match.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                      <div className="flex items-center text-gray-700">
+                        <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                        {match.venue}
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                        {match.time}
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <Tag className="h-4 w-4 mr-2 text-gray-400" />
+                        Tickets from ₹{match.ticketTypes && match.ticketTypes.length > 0 ? Math.min(...match.ticketTypes.map(type => type.price)) : 'N/A'}
                       </div>
                     </div>
-                    <div className="flex items-center text-gray-700">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                      {match.venue}
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                      {match.time}
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <Tag className="h-4 w-4 mr-2 text-gray-400" />
-                      Tickets from ₹{Math.min(...match.ticketTypes.map(type => type.price))}
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between border-t bg-muted/20 px-6 py-3">
-                  <Button variant="ghost" size="sm" onClick={() => handleEditMatch(match)}>
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteMatch(match)}>
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between border-t bg-muted/20 px-6 py-3">
+                    <Button variant="ghost" size="sm" onClick={() => handleEditMatch(match)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteMatch(match)}>
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+              </div>
+          )}
         </div>
       </main>
 
@@ -516,9 +333,9 @@ const AdminEventManagement = () => {
                   name="id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Match ID</FormLabel>
+                      <FormLabel>Match ID (Auto-generated)</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., ipl-2025-05" {...field} />
+                        <Input disabled placeholder="Auto-generated" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -983,31 +800,21 @@ const AdminEventManagement = () => {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle>Delete Match</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this match? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-red-50 p-3 rounded-md border border-red-100">
-            <p className="text-sm font-medium text-red-800">
-              {currentMatch?.title}
-            </p>
-            <p className="text-xs text-red-600 mt-1">
-              {currentMatch?.venue} - {new Date(currentMatch?.date || '').toLocaleDateString()}
-            </p>
-          </div>
           <div className="flex justify-end space-x-3 pt-4">
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
-              Delete Match
+              Delete
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      <Footer />
     </div>
   );
 };
