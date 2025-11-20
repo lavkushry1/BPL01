@@ -4,9 +4,10 @@
  * Provides standard methods for API calls with proper typing and error handling
  */
 
-import { AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
+import { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { apiClient } from './clientFactory';
 import { ApiResponse, PaginatedResponse, PaginationParams } from '@/types/api';
+import { unwrapApiResponse } from './responseUtils';
 
 export class BaseApiService {
   protected client: AxiosInstance;
@@ -28,11 +29,8 @@ export class BaseApiService {
    * @returns Extracted data from the API response
    * @throws Error if response format is invalid
    */
-  protected extractData<T>(response: AxiosResponse<ApiResponse<T>>): T {
-    if (response.data && response.data.data !== undefined) {
-      return response.data.data;
-    }
-    throw new Error('Invalid API response format');
+  protected extractData<T>(response: any): T {
+    return unwrapApiResponse<T>(response);
   }
 
   /**

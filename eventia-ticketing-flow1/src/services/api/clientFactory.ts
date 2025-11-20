@@ -1,16 +1,11 @@
 /**
  * @file clientFactory.ts
- * @description Factory for creating configured axios instances
- * Provides centralized configuration and interceptors for API clients
+ * @description Centralized client exports that now defer to the cookie-aware defaultApiClient.
  */
 
-import axios, { AxiosInstance } from 'axios';
-import { API_BASE_URL } from '../../config';
+import { defaultApiClient, API_URL, WS_URL } from './apiUtils';
 import { ApiError } from './types';
-
-// Define API URLs
-export const API_URL = API_BASE_URL;
-export const WS_URL = API_BASE_URL.replace(/^http/, 'ws');
+import axios from 'axios';
 
 /**
  * Log API error for debugging
@@ -52,57 +47,8 @@ export const handleApiError = (error: unknown): ApiError => {
   };
 };
 
-/**
- * Creates an API client with custom configuration
- */
-export const createApiClient = (options: {
-  baseURL?: string;
-  timeout?: number;
-  withCredentials?: boolean;
-  headers?: Record<string, string>;
-} = {}): AxiosInstance => {
-  // Create Axios instance with provided options
-  const instance = axios.create({
-    baseURL: options.baseURL || API_URL,
-    timeout: options.timeout || 30000,
-    withCredentials: options.withCredentials !== undefined ? options.withCredentials : true,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...options.headers,
-    },
-  });
+// Preserve API for legacy imports while routing everything through defaultApiClient
+export const createApiClient = () => defaultApiClient;
+export const apiClient = defaultApiClient;
 
-  // Add request interceptor
-  instance.interceptors.request.use(
-    (config) => {
-      // Get auth token
-      const token = localStorage.getItem('auth_token');
-
-      // Add token to headers if available
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-
-      return config;
-    },
-    (error) => Promise.reject(error)
-  );
-
-  // Add response interceptor
-  instance.interceptors.response.use(
-    (response) => response.data,
-    (error) => {
-      // Log the error
-      logApiError(error);
-
-      // Format and return the error
-      return Promise.reject(handleApiError(error));
-    }
-  );
-
-  return instance;
-};
-
-// Default API client instance
-export const apiClient = createApiClient();
+export { API_URL, WS_URL };
