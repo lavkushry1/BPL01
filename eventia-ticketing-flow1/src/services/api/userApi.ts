@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { API_BASE_URL } from './apiUtils';
+import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 // Define interfaces for user data
 export interface User {
