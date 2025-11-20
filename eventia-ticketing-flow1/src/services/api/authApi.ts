@@ -11,6 +11,7 @@
  * - POST /api/v1/auth/refresh-token - Refresh the user access token
  */
 import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 // Types
 export interface User {
@@ -45,7 +46,7 @@ export interface RegisterData {
 export const register = async (userData: RegisterData): Promise<any> => {
   try {
     const response = await defaultApiClient.post('/auth/register', userData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Registration error:', error);
     throw error;
@@ -67,7 +68,7 @@ export const login = async (email: string, password: string): Promise<AuthRespon
     }, { withCredentials: true });
     
     // Response will now contain user data but not tokens (they're in HttpOnly cookies)
-    return response.data.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Login error:', error);
     throw error;
@@ -82,7 +83,7 @@ export const logout = async (): Promise<{ success: boolean; message: string }> =
   try {
     // Call logout endpoint with credentials to clear cookies
     const response = await defaultApiClient.post('/auth/logout', {}, { withCredentials: true });
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Logout error:', error);
     throw error;
@@ -111,7 +112,7 @@ export const refreshToken = async (): Promise<{ success: boolean }> => {
 export const getCurrentUser = async (): Promise<User> => {
   try {
     const response = await defaultApiClient.get('/auth/me', { withCredentials: true });
-    return response.data.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Get current user error:', error);
     throw error;
