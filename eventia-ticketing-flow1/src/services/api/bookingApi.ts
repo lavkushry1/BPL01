@@ -3,6 +3,7 @@
  * @description Service for handling booking-related API calls to the Express backend.
  */
 import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 export interface BookingRequest {
   eventId: string;
@@ -66,15 +67,15 @@ export const createBooking = async (bookingData: BookingRequest, maxRetries = 2)
       };
       
       const response = await defaultApiClient.post('/bookings', requestData);
-      
-      // Save the booking ID to local storage for recovery purposes
-      if (response.data.booking?.id) {
-        localStorage.setItem('last_booking_id', response.data.booking.id);
-        // Remove any stale booking error
+      const booking = unwrapApiResponse<{ booking: Booking }>(response)?.booking;
+      if (booking?.id) {
+        localStorage.setItem('last_booking_id', booking.id);
         localStorage.removeItem('booking_error');
       }
-      
-      return response.data.booking;
+      if (!booking) {
+        throw new Error('Invalid booking response');
+      }
+      return booking;
     } catch (error: any) {
       attempt++;
       lastError = error;
@@ -143,7 +144,11 @@ export const checkPendingBooking = async (): Promise<Booking | null> => {
 export const getBookingById = async (bookingId: string): Promise<Booking> => {
   try {
     const response = await defaultApiClient.get(`/bookings/${bookingId}`);
-    return response.data.booking;
+    const booking = unwrapApiResponse<{ booking: Booking }>(response)?.booking;
+    if (!booking) {
+      throw new Error('Booking not found');
+    }
+    return booking;
   } catch (error) {
     console.error(`Error fetching booking ${bookingId}:`, error);
     throw error;
@@ -156,7 +161,7 @@ export const getBookingById = async (bookingId: string): Promise<Booking> => {
 export const getUserBookings = async (): Promise<Booking[]> => {
   try {
     const response = await defaultApiClient.get('/bookings/user');
-    return response.data.bookings;
+    return unwrapApiResponse<{ bookings: Booking[] }>(response)?.bookings || [];
   } catch (error) {
     console.error('Error fetching user bookings:', error);
     throw error;
@@ -169,7 +174,7 @@ export const getUserBookings = async (): Promise<Booking[]> => {
 export const cancelBooking = async (bookingId: string): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await defaultApiClient.post(`/bookings/${bookingId}/cancel`);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error(`Error cancelling booking ${bookingId}:`, error);
     throw error;
@@ -182,7 +187,7 @@ export const cancelBooking = async (bookingId: string): Promise<{ success: boole
 export const addDeliveryDetails = async (deliveryData: DeliveryDetailsRequest): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await defaultApiClient.post('/delivery-details', deliveryData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error adding delivery details:', error);
     throw error;
@@ -201,7 +206,7 @@ export const saveDeliveryDetails = async (bookingId: string, deliveryData: {
 }): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await defaultApiClient.post(`/bookings/${bookingId}/delivery`, deliveryData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error saving delivery details:', error);
     throw error;
@@ -214,7 +219,8 @@ export const saveDeliveryDetails = async (bookingId: string, deliveryData: {
 export const getTicketPdfUrl = async (bookingId: string): Promise<string> => {
   try {
     const response = await defaultApiClient.get(`/bookings/${bookingId}/ticket-pdf`);
-    return response.data.pdfUrl;
+    const data = unwrapApiResponse<{ pdfUrl: string }>(response);
+    return data?.pdfUrl;
   } catch (error) {
     console.error(`Error getting ticket PDF URL for booking ${bookingId}:`, error);
     throw error;
@@ -227,7 +233,7 @@ export const getTicketPdfUrl = async (bookingId: string): Promise<string> => {
 export const getAvailableSeats = async (eventId: string): Promise<any[]> => {
   try {
     const response = await defaultApiClient.get(`/events/${eventId}/seats`);
-    return response.data.seats;
+    return unwrapApiResponse<{ seats: any[] }>(response)?.seats || [];
   } catch (error) {
     console.error(`Error fetching available seats for event ${eventId}:`, error);
     throw error;
@@ -240,7 +246,7 @@ export const getAvailableSeats = async (eventId: string): Promise<any[]> => {
 export const lockSeats = async (eventId: string, seats: { seatId: string }[]): Promise<{ success: boolean; message: string; expiresAt: string }> => {
   try {
     const response = await defaultApiClient.post(`/events/${eventId}/seats/lock`, { seats });
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error(`Error locking seats for event ${eventId}:`, error);
     throw error;
