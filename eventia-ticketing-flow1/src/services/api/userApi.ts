@@ -136,7 +136,7 @@ const userApi = {
    * @param data Registration data
    */
   register: (data: RegisterRequest) => {
-    return apiClient.post<AuthResponse>('/auth/register', data);
+    return apiClient.post<AuthResponse>('/auth/register', data).then(unwrapApiResponse);
   },
 
   /**
@@ -144,21 +144,21 @@ const userApi = {
    * @param data Login credentials
    */
   login: (data: LoginRequest) => {
-    return apiClient.post<AuthResponse>('/auth/login', data);
+    return apiClient.post<AuthResponse>('/auth/login', data).then(unwrapApiResponse);
   },
 
   /**
    * Logout current user
    */
   logout: () => {
-    return apiClient.post('/auth/logout');
+    return apiClient.post('/auth/logout').then(unwrapApiResponse);
   },
 
   /**
    * Get current user profile
    */
   getCurrentUser: () => {
-    return apiClient.get<UserResponse>('/users/me');
+    return apiClient.get<UserResponse>('/users/me').then(unwrapApiResponse);
   },
 
   /**
@@ -166,7 +166,7 @@ const userApi = {
    * @param data Profile data to update
    */
   updateProfile: (data: UpdateProfileRequest) => {
-    return apiClient.patch<UserResponse>('/users/me', data);
+    return apiClient.patch<UserResponse>('/users/me', data).then(unwrapApiResponse);
   },
 
   /**
@@ -174,7 +174,7 @@ const userApi = {
    * @param data Password change data
    */
   changePassword: (data: ChangePasswordRequest) => {
-    return apiClient.post('/users/me/change-password', data);
+    return apiClient.post('/users/me/change-password', data).then(unwrapApiResponse);
   },
 
   /**
@@ -182,7 +182,7 @@ const userApi = {
    * @param data Password reset request data
    */
   requestPasswordReset: (data: ResetPasswordRequest) => {
-    return apiClient.post('/auth/forgot-password', data);
+    return apiClient.post('/auth/forgot-password', data).then(unwrapApiResponse);
   },
 
   /**
@@ -191,7 +191,7 @@ const userApi = {
    * @param password New password
    */
   resetPassword: (token: string, password: string) => {
-    return apiClient.post('/auth/reset-password', { token, password });
+    return apiClient.post('/auth/reset-password', { token, password }).then(unwrapApiResponse);
   },
 
   /**
@@ -199,21 +199,21 @@ const userApi = {
    * @param token Verification token
    */
   verifyEmail: (token: string) => {
-    return apiClient.post('/auth/verify-email', { token });
+    return apiClient.post('/auth/verify-email', { token }).then(unwrapApiResponse);
   },
 
   /**
    * Resend verification email
    */
   resendVerificationEmail: () => {
-    return apiClient.post('/auth/resend-verification');
+    return apiClient.post('/auth/resend-verification').then(unwrapApiResponse);
   },
 
   /**
    * Get user addresses
    */
   getUserAddresses: () => {
-    return apiClient.get<AddressesResponse>('/users/me/addresses');
+    return apiClient.get<AddressesResponse>('/users/me/addresses').then(unwrapApiResponse);
   },
 
   /**
@@ -221,7 +221,7 @@ const userApi = {
    * @param address Address data
    */
   addUserAddress: (address: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    return apiClient.post<AddressResponse>('/users/me/addresses', address);
+    return apiClient.post<AddressResponse>('/users/me/addresses', address).then(unwrapApiResponse);
   },
 
   /**
@@ -230,7 +230,7 @@ const userApi = {
    * @param address Address data to update
    */
   updateUserAddress: (addressId: string, address: Partial<Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
-    return apiClient.patch<AddressResponse>(`/users/me/addresses/${addressId}`, address);
+    return apiClient.patch<AddressResponse>(`/users/me/addresses/${addressId}`, address).then(unwrapApiResponse);
   },
 
   /**
@@ -238,7 +238,7 @@ const userApi = {
    * @param addressId Address ID
    */
   deleteUserAddress: (addressId: string) => {
-    return apiClient.delete(`/users/me/addresses/${addressId}`);
+    return apiClient.delete(`/users/me/addresses/${addressId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -246,7 +246,7 @@ const userApi = {
    * @param addressId Address ID
    */
   setDefaultAddress: (addressId: string) => {
-    return apiClient.post<AddressResponse>(`/users/me/addresses/${addressId}/set-default`);
+    return apiClient.post<AddressResponse>(`/users/me/addresses/${addressId}/set-default`).then(unwrapApiResponse);
   },
 
   /**
@@ -254,7 +254,7 @@ const userApi = {
    * @param preferences User preferences
    */
   updatePreferences: (preferences: Partial<UserPreferences>) => {
-    return apiClient.patch<UserResponse>('/users/me/preferences', { preferences });
+    return apiClient.patch<UserResponse>('/users/me/preferences', { preferences }).then(unwrapApiResponse);
   },
 
   /**
@@ -264,7 +264,7 @@ const userApi = {
   getUserProfile: async (): Promise<UserProfile> => {
     try {
       const response = await apiClient.get<{ status: string; data: UserProfile }>('/users/me');
-      return response.data.data;
+      return unwrapApiResponse<UserProfile>(response);
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
       throw error;
@@ -279,7 +279,7 @@ const userApi = {
   updateUserProfileDetails: async (data: ProfileUpdateRequest): Promise<UserProfile> => {
     try {
       const response = await apiClient.patch<{ status: string; data: UserProfile }>('/users/me', data);
-      return response.data.data;
+      return unwrapApiResponse<UserProfile>(response);
     } catch (error) {
       console.error('Failed to update user profile:', error);
       throw error;
