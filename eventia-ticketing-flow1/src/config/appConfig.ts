@@ -5,7 +5,7 @@
  * backend endpoints, and static assets.
  */
 
-import configData from '../../../project.config.json';
+import configData from '../../project.config.json';
 
 // Define types for better TypeScript integration
 export interface ApiEndpoint {
