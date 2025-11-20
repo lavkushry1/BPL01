@@ -56,7 +56,7 @@ services:
   backend:
     build:
       context: ./eventia-backend-express
-      dockerfile: ${NODE_ENV:-development}.Dockerfile
+      dockerfile: Dockerfile.prod
     container_name: eventia_backend
     depends_on:
       postgres:
@@ -83,11 +83,6 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
       TZ: ${TZ:-UTC}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-    volumes:
-      - backend_data:/app/public
-      - backend_logs:/app/logs
-      - ./eventia-backend-express:/app
-      - ./eventia-backend-express/.env.docker:/app/.env.development
     ports:
       - "4000:4000"
     networks:
@@ -104,21 +99,18 @@ services:
   frontend:
     build:
       context: ./eventia-ticketing-flow1
-      dockerfile: ${NODE_ENV:-development}.Dockerfile
+      dockerfile: Dockerfile.prod
     container_name: eventia_frontend
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      VITE_API_BASE_URL: ${API_URL:-http://localhost:4000}
-      NODE_ENV: ${NODE_ENV:-development}
-    volumes:
-      - ./eventia-ticketing-flow1:/app
+      VITE_API_URL: http://backend:4000
+      NODE_ENV: production
     ports:
-      - "5173:5173"
+      - "8081:80"
     networks:
       - eventia-net
-    command: npm run dev -- --host 0.0.0.0
     restart: unless-stopped
 
 volumes:

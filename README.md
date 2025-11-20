@@ -32,7 +32,35 @@ The application consists of:
 - Docker and Docker Compose
 - Git
 
-## Development Setup
+## Development Setup (Docker)
+
+1. Copy the provided Docker envs (they already contain sane local defaults):
+   ```bash
+   cp eventia-backend-express/.env.docker eventia-backend-express/.env.development
+   ```
+
+2. Start all services (Postgres, Redis, backend, frontend) in one go:
+   ```bash
+   docker-compose up --build
+   ```
+
+3. Run database migrations inside the backend container:
+   ```bash
+   docker exec eventia_backend npx prisma migrate deploy
+   ```
+
+4. (Optional) Seed sample data:
+   ```bash
+   docker exec eventia_backend npm run seed
+   ```
+
+5. Access the apps:
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:4000/api/v1
+   - API Docs: http://localhost:4000/api-docs
+   - Adminer (DB UI): http://localhost:8080
+
+## Development Setup (Manual)
 
 1. Clone the repository:
    ```bash

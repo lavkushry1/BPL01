@@ -1,7 +1,10 @@
 # Build stage
-FROM node:18-alpine AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
+
+# Dependencies needed for native modules like bcrypt
+RUN apk add --no-cache python3 make g++ openssl
 
 # Install dependencies
 COPY package*.json ./
@@ -10,33 +13,25 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the app
+# Generate Prisma client and build
+RUN npx prisma generate
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --only=production
-
-# Copy built app from build stage
+# Copy dependencies and built assets from builder
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+COPY package*.json ./
 
-# Copy other necessary files
-COPY .env.example .env
-
-# Environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=4000
 
-# Expose port
-EXPOSE 3000
+EXPOSE 4000
 
-# Run migrations on startup and start the app
-CMD npm run migrate && node dist/index.js 
+# Run migrations then start server
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
