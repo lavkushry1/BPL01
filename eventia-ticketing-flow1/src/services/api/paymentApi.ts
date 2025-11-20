@@ -5,6 +5,7 @@
 import { defaultApiClient } from './apiUtils';
 import axios from 'axios';
 import { API_BASE_URL } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 export interface UpiPaymentRequest {
   bookingId: string;
@@ -100,7 +101,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 export const initializeStripePayment = async (data: StripePaymentRequest) => {
   try {
     const response = await defaultApiClient.post('/stripe/payment', data);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error initializing Stripe payment:', error);
     return {
@@ -116,7 +117,7 @@ export const initializeStripePayment = async (data: StripePaymentRequest) => {
 export const getStripePaymentStatus = async (paymentIntentId: string) => {
   try {
     const response = await defaultApiClient.get(`/stripe/payment/${paymentIntentId}`);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error getting Stripe payment status:', error);
     return {
@@ -284,7 +285,7 @@ export const getActiveUpiSettings = async (): Promise<UpiSettings> => {
 
     if (response.data) {
       console.log('Successfully fetched UPI settings from public endpoint');
-      return response.data;
+      return unwrapApiResponse(response);
     }
     throw new Error('Invalid response format from public endpoint');
   } catch (error) {
@@ -531,7 +532,7 @@ export const confirmUpiPayment = async (sessionId: string, utrNumber: string): P
       sessionId,
       utrNumber
     });
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error confirming UPI payment:', error);
     throw error;

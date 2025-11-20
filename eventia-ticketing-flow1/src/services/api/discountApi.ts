@@ -3,6 +3,7 @@
  * @description Service for handling discount-related API calls to the Express backend.
  */
 import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 export interface Discount {
   id: string;
@@ -33,7 +34,7 @@ export interface DiscountValidationResponse {
 export const getAllDiscounts = async (): Promise<Discount[]> => {
   try {
     const response = await defaultApiClient.get('/admin/discounts');
-    return response.data.discounts;
+    return unwrapApiResponse<Discount[]>(response);
   } catch (error: any) {
     console.error('Error fetching all discounts:', error);
     throw error;
@@ -57,7 +58,7 @@ export interface CreateDiscountData {
 export const createDiscount = async (data: CreateDiscountData): Promise<Discount> => {
   try {
     const response = await defaultApiClient.post('/admin/discounts', data);
-    return response.data.discount;
+    return unwrapApiResponse<Discount>(response);
   } catch (error: any) {
     console.error('Error creating discount:', error);
     throw error;
@@ -95,7 +96,7 @@ export const validateDiscountCode = async (
     }
 
     const response = await defaultApiClient.post('/discounts/validate', params);
-    return response.data.data;
+    return unwrapApiResponse<DiscountValidationResponse>(response);
   } catch (error: any) {
     // Handle specific API errors
     if (error.response?.data?.message) {
