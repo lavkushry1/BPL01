@@ -1,22 +1,19 @@
-import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/apiError';
-import { db } from '../db';
-import { v4 as uuidv4 } from 'uuid';
-import { asyncHandler } from '../utils/asyncHandler';
-import { ApiResponse } from '../utils/apiResponse';
-import { paymentService } from '../services/payment.service';
-import { logger } from '../utils/logger';
-import { WebsocketService } from '../services/websocket.service';
-import { withRetry } from '../utils/retry';
-import { TicketService } from '../services/ticket.service';
-import { PrismaClient, PaymentStatus } from '@prisma/client';
-import * as razorpayService from '../services/razorpay.service';
-import * as seatService from '../services/seat.service';
-import * as bookingService from '../services/booking.service';
-import * as socketService from '../services/websocket.service';
-import { generateQRCode } from '../utils/qrCode';
-import * as upiPaymentService from '../services/upiPayment.service';
+import { PaymentStatus, PrismaClient } from '@prisma/client';
+import { Request, Response } from 'express';
 import * as qrcode from 'qrcode';
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../db';
+import * as bookingService from '../services/booking.service';
+import * as seatService from '../services/seat.service';
+import { TicketService } from '../services/ticket.service';
+import * as upiPaymentService from '../services/upiPayment.service';
+import * as socketService from '../services/websocket.service';
+import { WebsocketService } from '../services/websocket.service';
+import { ApiError } from '../utils/apiError';
+import { ApiResponse } from '../utils/apiResponse';
+import { asyncHandler } from '../utils/asyncHandler';
+import { logger } from '../utils/logger';
+import { withRetry } from '../utils/retry';
 
 // Define seat status enum values
 enum SeatStatus {
@@ -243,59 +240,87 @@ export class PaymentController {
    * Get all payments with pagination and filters
    * @route GET /api/payments
    */
+  /**
+   * Get all payments with pagination and filters
+   * @route GET /api/payments
+   */
   static getAllPayments = asyncHandler(async (req: Request, res: Response) => {
-    const { page = 1, limit = 10, status, startDate, endDate, sort = 'created_at', order = 'desc' } = req.query;
+    try {
+      const { page = 1, limit = 10, status, startDate, endDate, sort = 'created_at', order = 'desc' } = req.query;
 
-    const offset = (Number(page) - 1) * Number(limit);
+      const offset = (Number(page) - 1) * Number(limit);
 
-    // Build query with filters
-    let query = db('booking_payments').select('*');
+      // Build query with filters and joins
+      let query = db('booking_payments')
+        .select(
+          'booking_payments.*',
+          'bookings.event_id',
+          'bookings.user_id',
+          'users.name as user_name',
+          'users.email as user_email',
+          'events.title as event_title'
+        )
+        .leftJoin('bookings', 'booking_payments.booking_id', 'bookings.id')
+        .leftJoin('users', 'bookings.user_id', 'users.id')
+        .leftJoin('events', 'bookings.event_id', 'events.id');
 
-    // Apply filters if provided
-    if (status) {
-      query = query.where({ status });
-    }
-
-    if (startDate) {
-      query = query.where('created_at', '>=', new Date(startDate as string));
-    }
-
-    if (endDate) {
-      query = query.where('created_at', '<=', new Date(endDate as string));
-    }
-
-    // Get total count for pagination
-    const [{ count }] = await db('booking_payments')
-      .count('id as count')
-      .modify(builder => {
-        if (status) {
-          builder.where({ status });
-        }
-        if (startDate) {
-          builder.where('created_at', '>=', new Date(startDate as string));
-        }
-        if (endDate) {
-          builder.where('created_at', '<=', new Date(endDate as string));
-        }
-      });
-
-    // Apply sorting and pagination
-    const payments = await query
-      .orderBy(sort as string, order as 'asc' | 'desc')
-      .limit(Number(limit))
-      .offset(offset);
-
-    const totalPages = Math.ceil(Number(count) / Number(limit));
-
-    return ApiResponse.success(res, 200, 'Payments fetched successfully', {
-      payments,
-      pagination: {
-        total: Number(count),
-        page: Number(page),
-        limit: Number(limit),
-        totalPages
+      // Apply filters if provided
+      if (status) {
+        query = query.where('booking_payments.status', status);
       }
-    });
+
+      if (startDate) {
+        query = query.where('booking_payments.created_at', '>=', new Date(startDate as string));
+      }
+
+      if (endDate) {
+        query = query.where('booking_payments.created_at', '<=', new Date(endDate as string));
+      }
+
+      // Get total count for pagination
+      const [{ count }] = await db('booking_payments')
+        .count('booking_payments.id as count')
+        .leftJoin('bookings', 'booking_payments.booking_id', 'bookings.id')
+        .modify(builder => {
+          if (status) {
+            builder.where('booking_payments.status', status);
+          }
+          if (startDate) {
+            builder.where('booking_payments.created_at', '>=', new Date(startDate as string));
+          }
+          if (endDate) {
+            builder.where('booking_payments.created_at', '<=', new Date(endDate as string));
+          }
+        });
+
+      // Apply sorting and pagination
+      const rawPayments = await query
+        .orderBy(`booking_payments.${sort}`, order as 'asc' | 'desc')
+        .limit(Number(limit))
+        .offset(offset);
+
+      const totalPages = Math.ceil(Number(count) / Number(limit));
+
+      // Format payments for frontend
+      const payments = rawPayments.map(payment => ({
+        id: payment.id,
+        customer: {
+          name: payment.user_name || 'Unknown User',
+          email: payment.user_email || 'No Email',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(payment.user_name || 'U')}&background=random`
+        },
+        event: payment.event_title || 'Unknown Event',
+        amount: Number(payment.amount),
+        status: payment.status,
+        utr: payment.utr_number || 'N/A',
+        timestamp: payment.created_at
+      }));
+
+      return ApiResponse.success(res, 200, 'Payments fetched successfully', payments);
+    } catch (error) {
+      console.error('Error in getAllPayments:', error);
+      throw error;
+    }
   });
 
   /**

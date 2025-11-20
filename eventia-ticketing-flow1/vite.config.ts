@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
 import { componentTagger } from "lovable-tagger";
+import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
+import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -11,11 +11,11 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api/v1/events': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:4000',
         changeOrigin: true,
       },
       '/api/v1': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:4000',
         changeOrigin: true,
       },
     },
@@ -47,8 +47,8 @@ export default defineConfig(({ mode }) => ({
         // Configure code splitting for better performance
         manualChunks: {
           vendor: [
-            'react', 
-            'react-dom', 
+            'react',
+            'react-dom',
             'react-router-dom',
             '@tanstack/react-query',
           ],

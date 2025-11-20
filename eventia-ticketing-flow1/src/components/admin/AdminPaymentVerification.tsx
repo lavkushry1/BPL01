@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AlertCircle, CheckCircle2, XCircle, Clock, Search, ExternalLink, Filter, Download, Loader2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { defaultApiClient } from '@/services/api/apiUtils';
+import { AlertCircle, CheckCircle2, Clock, Download, ExternalLink, Filter, Loader2, Search, XCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface Customer {
   name: string;
@@ -89,22 +90,16 @@ const AdminPaymentVerification: React.FC = () => {
   const [isRejecting, setIsRejecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Fetch payments from API
   useEffect(() => {
     const fetchPayments = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        const response = await fetch('/api/admin/payments');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch payment data');
-        }
-        
-        const data = await response.json();
-        setPayments(data);
+        const response = await defaultApiClient.get('/admin/payments');
+        setPayments(response.data);
       } catch (err) {
         console.error('Error fetching payment data:', err);
         setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
@@ -112,25 +107,25 @@ const AdminPaymentVerification: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchPayments();
   }, []);
-  
+
   // Filter payments based on tab and search query
   useEffect(() => {
     if (payments.length === 0) return;
-    
+
     let result = payments;
-    
+
     // Filter by status tab
     if (activeTab !== 'all') {
       result = result.filter(payment => payment.status === activeTab);
     }
-    
+
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(payment => 
+      result = result.filter(payment =>
         payment.customer.name.toLowerCase().includes(query) ||
         payment.customer.email.toLowerCase().includes(query) ||
         payment.event.toLowerCase().includes(query) ||
@@ -138,35 +133,26 @@ const AdminPaymentVerification: React.FC = () => {
         payment.id.toLowerCase().includes(query)
       );
     }
-    
+
     setFilteredPayments(result);
   }, [payments, activeTab, searchQuery]);
-  
+
   // Handle payment verification
   const handleVerifyPayment = async (paymentId: string) => {
     setIsVerifying(true);
-    
+
     try {
-      const response = await fetch(`/api/admin/payments/${paymentId}/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to verify payment');
-      }
-      
+      await defaultApiClient.post(`/admin/payments/${paymentId}/verify`);
+
       // Update payment status in state
-      setPayments(prevPayments => 
-        prevPayments.map(payment => 
-          payment.id === paymentId 
-            ? { ...payment, status: 'verified' } 
+      setPayments(prevPayments =>
+        prevPayments.map(payment =>
+          payment.id === paymentId
+            ? { ...payment, status: 'verified' }
             : payment
         )
       );
-      
+
       // Show success toast
       toast({
         title: "Payment verified successfully",
@@ -183,32 +169,23 @@ const AdminPaymentVerification: React.FC = () => {
       setIsVerifying(false);
     }
   };
-  
+
   // Handle payment rejection
   const handleRejectPayment = async (paymentId: string) => {
     setIsRejecting(true);
-    
+
     try {
-      const response = await fetch(`/api/admin/payments/${paymentId}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to reject payment');
-      }
-      
+      await defaultApiClient.post(`/admin/payments/${paymentId}/reject`);
+
       // Update payment status in state
-      setPayments(prevPayments => 
-        prevPayments.map(payment => 
-          payment.id === paymentId 
-            ? { ...payment, status: 'rejected' } 
+      setPayments(prevPayments =>
+        prevPayments.map(payment =>
+          payment.id === paymentId
+            ? { ...payment, status: 'rejected' }
             : payment
         )
       );
-      
+
       // Show error toast
       toast({
         title: "Payment rejected",
@@ -226,12 +203,12 @@ const AdminPaymentVerification: React.FC = () => {
       setIsRejecting(false);
     }
   };
-  
+
   // Handle export of payments data
   const handleExportPayments = () => {
     window.location.href = `/api/admin/payments/export?status=${activeTab}&search=${encodeURIComponent(searchQuery)}`;
   };
-  
+
   if (loading) {
     return (
       <Card className="w-full">
@@ -248,7 +225,7 @@ const AdminPaymentVerification: React.FC = () => {
       </Card>
     );
   }
-  
+
   if (error) {
     return (
       <Card className="w-full">
@@ -266,7 +243,7 @@ const AdminPaymentVerification: React.FC = () => {
       </Card>
     );
   }
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -280,9 +257,9 @@ const AdminPaymentVerification: React.FC = () => {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="hidden sm:flex"
               onClick={handleExportPayments}
             >
@@ -303,7 +280,7 @@ const AdminPaymentVerification: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         {/* Tabs for filtering */}
         <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
@@ -313,7 +290,7 @@ const AdminPaymentVerification: React.FC = () => {
             <TabsTrigger value="all">All</TabsTrigger>
           </TabsList>
         </Tabs>
-        
+
         {/* Payments table for larger screens */}
         <div className="hidden md:block">
           <Table>
@@ -361,7 +338,7 @@ const AdminPaymentVerification: React.FC = () => {
                       <div className="flex items-center gap-2">
                         {payment.status === 'pending' && (
                           <>
-                            <Button 
+                            <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleVerifyPayment(payment.id)}
@@ -371,9 +348,9 @@ const AdminPaymentVerification: React.FC = () => {
                               <CheckCircle2 className="h-3.5 w-3.5" />
                               <span>Verify</span>
                             </Button>
-                            <Button 
+                            <Button
                               variant="outline"
-                              size="sm" 
+                              size="sm"
                               onClick={() => handleRejectPayment(payment.id)}
                               disabled={isRejecting}
                               className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
@@ -384,9 +361,9 @@ const AdminPaymentVerification: React.FC = () => {
                           </>
                         )}
                         {(payment.status === 'verified' || payment.status === 'rejected') && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="h-8 gap-1"
                             onClick={() => window.location.href = `/admin/payments/${payment.id}`}
                           >
@@ -402,7 +379,7 @@ const AdminPaymentVerification: React.FC = () => {
             </TableBody>
           </Table>
         </div>
-        
+
         {/* Mobile-friendly payment cards */}
         <div className="md:hidden space-y-4">
           {filteredPayments.length === 0 ? (
@@ -427,7 +404,7 @@ const AdminPaymentVerification: React.FC = () => {
                     </div>
                     <StatusBadge status={payment.status} />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <div className="text-muted-foreground">Event</div>
@@ -446,10 +423,10 @@ const AdminPaymentVerification: React.FC = () => {
                       <div className="font-medium">{formatDate(payment.timestamp)}</div>
                     </div>
                   </div>
-                  
+
                   {payment.status === 'pending' && (
                     <div className="flex items-center gap-2 pt-2">
-                      <Button 
+                      <Button
                         variant="default"
                         size="sm"
                         onClick={() => handleVerifyPayment(payment.id)}
@@ -459,9 +436,9 @@ const AdminPaymentVerification: React.FC = () => {
                         <CheckCircle2 className="h-4 w-4 mr-1" />
                         Verify
                       </Button>
-                      <Button 
+                      <Button
                         variant="outline"
-                        size="sm" 
+                        size="sm"
                         onClick={() => handleRejectPayment(payment.id)}
                         disabled={isRejecting}
                         className="flex-1 border-red-200 hover:bg-red-50 hover:text-red-600"
@@ -471,12 +448,12 @@ const AdminPaymentVerification: React.FC = () => {
                       </Button>
                     </div>
                   )}
-                  
+
                   {(payment.status === 'verified' || payment.status === 'rejected') && (
                     <div className="pt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="w-full"
                         onClick={() => window.location.href = `/admin/payments/${payment.id}`}
                       >
@@ -500,9 +477,9 @@ const AdminPaymentVerification: React.FC = () => {
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="md:hidden"
             onClick={handleExportPayments}
           >

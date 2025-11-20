@@ -7,10 +7,7 @@ const router = Router();
 // Seat reservation endpoints
 router.post('/', authenticate, reservationController.createReservation);
 
-router.put('/:id', authenticate, (req, res) => {
-  // TODO: Implement update reservation logic
-  res.json({ message: 'Reservation update not yet implemented' });
-});
+router.put('/:id', authenticate, reservationController.updateReservation);
 
 router.get('/:eventId', authenticate, async (req, res) => {
   try {

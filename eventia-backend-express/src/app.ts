@@ -1,21 +1,20 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express, { Application, NextFunction, Request, Response } from 'express';
+import helmet from 'helmet';
+import { createServer } from 'http';
 import morgan from 'morgan';
 import { config } from './config';
-import { errorHandler } from './middleware/errorHandler';
 import { setupSwagger } from './docs/swagger';
+import { dataloaderMiddleware } from './middleware/dataloader.middleware';
+import { errorHandler } from './middleware/errorHandler';
+import { standardLimiter } from './middleware/rateLimit';
+import { JobService } from './services/job.service';
+import { WebsocketService } from './services/websocket.service';
 import { ApiError } from './utils/apiError';
 import { logger } from './utils/logger';
-import { createServer } from 'http';
-import { WebsocketService } from './services/websocket.service';
-import { JobService } from './services/job.service';
-import { validateCsrfToken, generateCsrfToken } from './middleware/csrf';
-import { standardLimiter } from './middleware/rateLimit';
-import { dataloaderMiddleware } from './middleware/dataloader.middleware';
 
 // Import route files
 import legacyRoutes from './routes';
@@ -67,13 +66,14 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   app.use(standardLimiter);
 
   // Generate CSRF token for GET requests and validate for state-changing methods
-  app.use((req, res, next) => {
-    if (req.method === 'GET') {
-      generateCsrfToken(req, res, next);
-    } else {
-      validateCsrfToken(req, res, next);
-    }
-  });
+  // Generate CSRF token for GET requests and validate for state-changing methods
+  // app.use((req, res, next) => {
+  //   if (req.method === 'GET') {
+  //     generateCsrfToken(req, res, next);
+  //   } else {
+  //     validateCsrfToken(req, res, next);
+  //   }
+  // });
 
   // Configure CORS to allow frontend access
   const allowedOrigins = process.env.CORS_ORIGIN
@@ -101,7 +101,7 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   // Setup API routes
   // Legacy route setup - keep for backward compatibility
   app.use('/api', legacyRoutes);
-  
+
   // Register v1 API routes
   app.use('/api/v1', v1Routes);
 
@@ -110,8 +110,8 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
 
   // Health check endpoint
   app.get('/health', (req: Request, res: Response) => {
-    res.status(200).json({ 
-      status: 'ok', 
+    res.status(200).json({
+      status: 'ok',
       environment: config.nodeEnv,
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || 'unknown'

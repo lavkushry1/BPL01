@@ -1,29 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Shield,
-  Users,
-  Ticket,
-  Calendar,
-  Settings,
-  TruckIcon,
-  CreditCard,
-  PieChart,
-  LogOut,
-  Smartphone
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import useAuth from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
+import useAuth from '@/hooks/useAuth';
+import {
+  Calendar,
+  CreditCard,
+  LogOut,
+  PieChart,
+  Settings,
+  Shield,
+  Smartphone,
+  TruckIcon,
+  Users
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Import existing admin components
-import AdminUpiManagement from './AdminUpiManagement';
-import AdminEventManagement from './AdminEventManagement';
-import UserManagement from '../components/admin/UserManagement';
-import UpiSettingsManager from '../components/admin/UpiSettingsManager';
+import AdminPaymentVerification from '../components/admin/AdminPaymentVerification';
 import MobilePerformanceDashboard from '../components/admin/MobilePerformanceDashboard';
+import UpiSettingsManager from '../components/admin/UpiSettingsManager';
+import UserManagement from '../components/admin/UserManagement';
+import AdminEventManagement from './AdminEventManagement';
 
 interface AdminDashboardPageProps {
   activeTab?: 'overview' | 'users' | 'events' | 'deliveries' | 'payments' | 'settings' | 'mobile';
@@ -308,14 +307,14 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           {/* Payment Approval */}
           <TabsContent value="payments" className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Payment Settings</h2>
+              <h2 className="text-2xl font-bold">Payment Verification</h2>
               <Button variant="outline" onClick={() => navigate('/admin/upi-settings')} className="mt-2 md:mt-0">
                 <CreditCard className="h-4 w-4 mr-2" />
                 Manage UPI Settings
               </Button>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-sm">
-              <AdminUpiManagement />
+              <AdminPaymentVerification />
             </div>
           </TabsContent>
 

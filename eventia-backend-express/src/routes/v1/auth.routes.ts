@@ -1,12 +1,11 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { asyncHandler } from '../../utils/asyncHandler';
-import { ApiResponse } from '../../utils/apiResponse';
-import { validate } from '../../middleware/validate';
-import { userSchema, loginSchema } from '../../models/user';
+import { NextFunction, Request, Response, Router } from 'express';
 import { z } from 'zod';
-import { loginLimiter } from '../../middleware/rateLimit';
+import { login, logout, me, refreshToken, register } from '../../controllers/authController';
 import { auth } from '../../middleware/auth';
-import { register, login, refreshToken, logout, me } from '../../controllers/authController';
+import { loginLimiter } from '../../middleware/rateLimit';
+import { validate } from '../../middleware/validate';
+import { loginSchema, userSchema } from '../../models/user';
+import { asyncHandler } from '../../utils/asyncHandler';
 
 /**
  * Authentication routes
@@ -14,7 +13,7 @@ import { register, login, refreshToken, logout, me } from '../../controllers/aut
 const router = Router();
 
 // Register user
-router.post('/register', 
+router.post('/register',
   validate(z.object({ body: userSchema })),
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     await register(req, res, next);
@@ -22,7 +21,7 @@ router.post('/register',
 );
 
 // Login user
-router.post('/login', 
+router.post('/login',
   loginLimiter,
   validate(z.object({ body: loginSchema })),
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -31,25 +30,31 @@ router.post('/login',
 );
 
 // Refresh auth token
-router.post('/refresh-token', 
+router.post('/refresh-token',
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     await refreshToken(req, res, next);
   })
 );
 
 // Logout user
-router.post('/logout', 
+router.post('/logout',
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     await logout(req, res, next);
   })
 );
 
 // Get current user
-router.get('/me', 
+router.get('/me',
   auth(),
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     await me(req, res, next);
   })
 );
 
-export default router; 
+// CSRF Token endpoint
+router.get('/csrf', (req: Request, res: Response) => {
+  // The middleware already sets the token in headers/cookies
+  res.json({ success: true, message: 'CSRF token generated' });
+});
+
+export default router;

@@ -22,22 +22,15 @@ export const createReservation = async (req: Request, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { eventId, tickets } = req.body;
+    const { eventId, tickets, totalAmount } = req.body;
     // @ts-ignore - User is attached by auth middleware
     const userId = req.user.id;
-
-    // Calculate total amount (Mock calculation, ideally should fetch prices from DB)
-    // In a real scenario, reservationService should handle price calculation based on DB
-    // For this fix, we'll assume the frontend sends the correct total or we calculate it here
-    // Better: Let's fetch the event to get prices? For now, we'll trust the request or use a placeholder
-    // Let's assume the service handles it or we pass a dummy total if not provided
-    const totalAmount = req.body.totalAmount || 1000; // Fallback
 
     const booking = await reservationService.createReservation({
       userId,
       eventId,
       tickets,
-      totalAmount
+      totalAmount // Optional, service will calculate if missing
     });
 
     res.status(201).json({
@@ -50,6 +43,32 @@ export const createReservation = async (req: Request, res: Response) => {
     const status = error instanceof ApiError ? error.statusCode : 500;
     const message = error instanceof ApiError ? error.message : 'Failed to create reservation';
     res.status(status).json({ error: message });
+  }
+};
+
+export const updateReservation = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+
+    // Validate status enum if needed, but service/prisma will throw if invalid
+    const booking = await reservationService.updateReservation(id, { status });
+
+    res.json({
+      success: true,
+      message: 'Reservation updated successfully',
+      reservation: booking
+    });
+  } catch (error: any) {
+    console.error('Update reservation error:', error);
+    res.status(500).json({
+      error: 'Failed to update reservation',
+      details: error.message
+    });
   }
 };
 

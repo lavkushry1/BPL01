@@ -4,11 +4,11 @@
  * Provides centralized configuration and interceptors for API clients
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
-import { ApiError } from './types';
+import axios, { AxiosInstance } from 'axios';
 import { API_BASE_URL } from '../../config';
+import { ApiError } from './types';
 
-// Define API URLs 
+// Define API URLs
 export const API_URL = API_BASE_URL;
 export const WS_URL = API_BASE_URL.replace(/^http/, 'ws');
 
@@ -16,7 +16,7 @@ export const WS_URL = API_BASE_URL.replace(/^http/, 'ws');
  * Log API error for debugging
  */
 export const logApiError = (error: unknown): void => {
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.MODE !== 'production') {
     console.error('API Error:', error);
   }
 };
@@ -78,12 +78,12 @@ export const createApiClient = (options: {
     (config) => {
       // Get auth token
       const token = localStorage.getItem('auth_token');
-      
+
       // Add token to headers if available
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      
+
       return config;
     },
     (error) => Promise.reject(error)
@@ -95,7 +95,7 @@ export const createApiClient = (options: {
     (error) => {
       // Log the error
       logApiError(error);
-      
+
       // Format and return the error
       return Promise.reject(handleApiError(error));
     }
@@ -105,4 +105,4 @@ export const createApiClient = (options: {
 };
 
 // Default API client instance
-export const apiClient = createApiClient(); 
+export const apiClient = createApiClient();
