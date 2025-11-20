@@ -1,0 +1,187 @@
+name: Frontend Continuous Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'eventia-ticketing-flow1/**'
+      - '!eventia-ticketing-flow1/**/*.md'
+      - '!eventia-ticketing-flow1/**/*.test.{js,jsx,ts,tsx}'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+          - development
+
+jobs:
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      version: ${{ steps.set-version.outputs.version }}
+    
+    steps:
+      - name: Determine environment
+        id: set-env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "environment=development" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Set version
+        id: set-version
+        run: |
+          echo "version=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build Frontend
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prepare.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './eventia-ticketing-flow1/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ./eventia-ticketing-flow1
+        run: npm ci
+      
+      - name: Run linting
+        working-directory: ./eventia-ticketing-flow1
+        run: npm run lint
+      
+      - name: Run type checking
+        working-directory: ./eventia-ticketing-flow1
+        run: npm run typecheck
+      
+      - name: Build application
+        working-directory: ./eventia-ticketing-flow1
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets[format('VITE_API_URL_{0}', needs.prepare.outputs.environment)] }}
+          VITE_WS_URL: ${{ secrets[format('VITE_WS_URL_{0}', needs.prepare.outputs.environment)] }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_APP_VERSION: ${{ needs.prepare.outputs.version }}
+          VITE_RELEASE_ID: ${{ github.sha }}
+          VITE_PAYMENT_GATEWAY_PUBLIC_KEY: ${{ secrets.VITE_PAYMENT_GATEWAY_PUBLIC_KEY }}
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: ./eventia-ticketing-flow1/dist
+
+  deploy:
+    name: Deploy to ${{ needs.prepare.outputs.environment }}
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    environment: ${{ needs.prepare.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-build
+          path: ./eventia-ticketing-flow1/dist
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./eventia-ticketing-flow1
+          file: ./eventia-ticketing-flow1/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/eventia-frontend:${{ needs.prepare.outputs.environment }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/eventia-frontend:${{ needs.prepare.outputs.environment }}-${{ needs.prepare.outputs.version }}
+          build-args: |
+            VITE_API_URL=${{ secrets[format('VITE_API_URL_{0}', needs.prepare.outputs.environment)] }}
+            VITE_WS_URL=${{ secrets[format('VITE_WS_URL_{0}', needs.prepare.outputs.environment)] }}
+            VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
+            VITE_APP_VERSION=${{ needs.prepare.outputs.version }}
+            VITE_RELEASE_ID=${{ github.sha }}
+            VITE_PAYMENT_GATEWAY_PUBLIC_KEY=${{ secrets.VITE_PAYMENT_GATEWAY_PUBLIC_KEY }}
+      
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets[format('SSH_HOST_{0}', needs.prepare.outputs.environment)] }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/eventia
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/eventia-frontend:${{ needs.prepare.outputs.environment }}
+            docker-compose -f docker-compose.${{ needs.prepare.outputs.environment }}.yml up -d frontend
+            docker image prune -f
+      
+      - name: Create Sentry release
+        if: needs.prepare.outputs.environment == 'staging' || needs.prepare.outputs.environment == 'production'
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: ${{ needs.prepare.outputs.environment }}
+          version: ${{ needs.prepare.outputs.version }}
+
+  notify:
+    name: Notify Deployment
+    needs: [prepare, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notify success
+        if: needs.deploy.result == 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "✅ Frontend deployment to *${{ needs.prepare.outputs.environment }}* successful!\nVersion: ${{ needs.prepare.outputs.version }}\nTriggered by: ${{ github.actor }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
+      - name: Notify failure
+        if: needs.deploy.result != 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "❌ Frontend deployment to *${{ needs.prepare.outputs.environment }}* failed!\nVersion: ${{ needs.prepare.outputs.version }}\nTriggered by: ${{ github.actor }}\nSee: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

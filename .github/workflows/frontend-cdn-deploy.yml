@@ -1,0 +1,170 @@
+name: Frontend CDN Deployment
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'eventia-ticketing-flow1/**'
+      - '!eventia-ticketing-flow1/**/*.md'
+      - '!eventia-ticketing-flow1/**/*.test.{js,jsx,ts,tsx}'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target CDN environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  build:
+    name: Build for CDN
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      version: ${{ steps.set-version.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Determine environment
+        id: set-env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=production" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Set version
+        id: set-version
+        run: |
+          echo "version=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: './eventia-ticketing-flow1/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ./eventia-ticketing-flow1
+        run: npm ci
+      
+      - name: Build application with CDN configuration
+        working-directory: ./eventia-ticketing-flow1
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets[format('VITE_API_URL_{0}', steps.set-env.outputs.environment)] }}
+          VITE_WS_URL: ${{ secrets[format('VITE_WS_URL_{0}', steps.set-env.outputs.environment)] }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_APP_VERSION: ${{ steps.set-version.outputs.version }}
+          VITE_RELEASE_ID: ${{ github.sha }}
+          VITE_CDN_URL: ${{ secrets[format('VITE_CDN_URL_{0}', steps.set-env.outputs.environment)] }}
+          VITE_PAYMENT_GATEWAY_PUBLIC_KEY: ${{ secrets.VITE_PAYMENT_GATEWAY_PUBLIC_KEY }}
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-cdn-build
+          path: ./eventia-ticketing-flow1/dist
+
+  deploy-aws:
+    name: Deploy to AWS CloudFront
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ needs.build.outputs.environment }}
+    if: needs.build.outputs.environment == 'production' || needs.build.outputs.environment == 'staging'
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-cdn-build
+          path: ./dist
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+      
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./dist s3://${{ secrets[format('AWS_S3_BUCKET_{0}', needs.build.outputs.environment)] }} --delete
+      
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets[format('AWS_CLOUDFRONT_DISTRIBUTION_{0}', needs.build.outputs.environment)] }} \
+            --paths "/*"
+      
+      - name: Create Sentry release
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: ${{ needs.build.outputs.environment }}
+          version: ${{ needs.build.outputs.version }}
+          sourcemaps: ./dist
+
+  performance-check:
+    name: CDN Performance Check
+    needs: [build, deploy-aws]
+    runs-on: ubuntu-latest
+    if: always() && needs.deploy-aws.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.11.x
+      
+      - name: Run Lighthouse CI
+        run: |
+          lhci autorun \
+            --collect.url=${{ secrets[format('VITE_CDN_URL_{0}', needs.build.outputs.environment)] }} \
+            --collect.settings.preset=desktop \
+            --upload.target=temporary-public-storage
+      
+      - name: Check CDN performance
+        run: |
+          curl -s "https://www.webpagetest.org/runtest.php?url=${{ secrets[format('VITE_CDN_URL_{0}', needs.build.outputs.environment)] }}&k=${{ secrets.WEBPAGETEST_API_KEY }}&f=json" > wpt_result.json
+          echo "WebPageTest started. Check results at: $(cat wpt_result.json | jq -r '.data.userUrl')"
+
+  notify:
+    name: Notify CDN Deployment
+    needs: [build, deploy-aws, performance-check]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Notify success
+        if: needs.deploy-aws.result == 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "✅ Frontend CDN deployment to *${{ needs.build.outputs.environment }}* successful!\nVersion: ${{ needs.build.outputs.version }}\nCDN URL: ${{ secrets[format('VITE_CDN_URL_{0}', needs.build.outputs.environment)] }}\nTriggered by: ${{ github.actor }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      
+      - name: Notify failure
+        if: needs.deploy-aws.result != 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "text": "❌ Frontend CDN deployment to *${{ needs.build.outputs.environment }}* failed!\nVersion: ${{ needs.build.outputs.version }}\nTriggered by: ${{ github.actor }}\nSee: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
