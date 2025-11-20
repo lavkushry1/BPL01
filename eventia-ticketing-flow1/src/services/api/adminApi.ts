@@ -97,7 +97,7 @@ export interface UpdateUpiSettingInput {
 export const getStats = async (): Promise<AdminStats> => {
   try {
     const response = await defaultApiClient.get('/admin/stats');
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error fetching admin stats:', error);
     throw error;
@@ -112,7 +112,7 @@ export const getUsers = async (): Promise<User[]> => {
   try {
     // Uncomment for production use
     // const response = await axios.get(`${API_BASE_URL}/admin/users`);
-    // return response.data;
+    // return unwrapApiResponse(response);
 
     // For development/testing, return mock data
     return [
@@ -171,7 +171,7 @@ export const getUsers = async (): Promise<User[]> => {
 export const createUser = async (userData: Omit<User, 'id' | 'created_at'>): Promise<User> => {
   try {
     const response = await defaultApiClient.post('/admin/users', userData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error creating user:', error);
     throw error;
@@ -187,7 +187,7 @@ export const createUser = async (userData: Omit<User, 'id' | 'created_at'>): Pro
 export const updateUser = async (id: string, userData: Partial<User>): Promise<User> => {
   try {
     const response = await defaultApiClient.put(`/admin/users/${id}`, userData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error updating user:', error);
     throw error;
@@ -202,7 +202,7 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
 export const deleteUser = async (id: string): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await defaultApiClient.delete(`/admin/users/${id}`);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error deleting user:', error);
     throw error;
@@ -216,7 +216,7 @@ export const deleteUser = async (id: string): Promise<{ success: boolean; messag
 export const getDeliveries = async (): Promise<Delivery[]> => {
   try {
     const response = await defaultApiClient.get('/admin/deliveries');
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error fetching deliveries:', error);
     throw error;
@@ -231,7 +231,7 @@ export const getDeliveries = async (): Promise<Delivery[]> => {
 export const createDelivery = async (deliveryData: Omit<Delivery, 'id' | 'created_at'>): Promise<Delivery> => {
   try {
     const response = await defaultApiClient.post('/admin/deliveries', deliveryData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error creating delivery:', error);
     throw error;
@@ -247,7 +247,7 @@ export const createDelivery = async (deliveryData: Omit<Delivery, 'id' | 'create
 export const updateDelivery = async (id: string, deliveryData: Partial<Delivery>): Promise<Delivery> => {
   try {
     const response = await defaultApiClient.put(`/admin/deliveries/${id}`, deliveryData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error updating delivery:', error);
     throw error;
@@ -262,7 +262,7 @@ export const updateDelivery = async (id: string, deliveryData: Partial<Delivery>
 export const deleteDelivery = async (id: string): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await defaultApiClient.delete(`/admin/deliveries/${id}`);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error deleting delivery:', error);
     throw error;
@@ -276,7 +276,7 @@ export const deleteDelivery = async (id: string): Promise<{ success: boolean; me
 export const getEvents = async (): Promise<Event[]> => {
   try {
     const response = await defaultApiClient.get('/admin/events');
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error fetching events:', error);
     throw error;
@@ -291,7 +291,7 @@ export const getEvents = async (): Promise<Event[]> => {
 export const createEvent = async (eventData: Omit<Event, 'id'>): Promise<Event> => {
   try {
     const response = await defaultApiClient.post('/admin/events', eventData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error creating event:', error);
     throw error;
@@ -307,7 +307,7 @@ export const createEvent = async (eventData: Omit<Event, 'id'>): Promise<Event> 
 export const updateEvent = async (id: string, eventData: Partial<Event>): Promise<Event> => {
   try {
     const response = await defaultApiClient.put(`/admin/events/${id}`, eventData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error updating event:', error);
     throw error;
@@ -322,7 +322,7 @@ export const updateEvent = async (id: string, eventData: Partial<Event>): Promis
 export const deleteEvent = async (id: string): Promise<{ success: boolean; message: string }> => {
   try {
     const response = await defaultApiClient.delete(`/admin/events/${id}`);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error deleting event:', error);
     throw error;
@@ -336,7 +336,7 @@ export const deleteEvent = async (id: string): Promise<{ success: boolean; messa
 export const getPendingPayments = async (): Promise<Payment[]> => {
   try {
     const response = await defaultApiClient.get('/admin/payments');
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error fetching payments:', error);
     throw error;
@@ -351,7 +351,7 @@ export const getPendingPayments = async (): Promise<Payment[]> => {
 export const approvePayment = async (id: string): Promise<Payment> => {
   try {
     const response = await defaultApiClient.post(`/admin/payments/${id}/approve`);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error approving payment:', error);
     throw error;
@@ -367,7 +367,7 @@ export const approvePayment = async (id: string): Promise<Payment> => {
 export const rejectPayment = async (id: string, reason: string): Promise<Payment> => {
   try {
     const response = await defaultApiClient.post(`/admin/payments/${id}/reject`, { reason });
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error rejecting payment:', error);
     throw error;
@@ -378,7 +378,7 @@ export const updateUserRole = async (userId: string, role: 'admin' | 'user') => 
   try {
     // Uncomment for production use
     // const response = await axios.put(`${API_BASE_URL}/admin/users/${userId}/role`, { role });
-    // return response.data;
+    // return unwrapApiResponse(response);
 
     // For development/testing, just log the action
     console.log(`Updated user ${userId} role to ${role}`);
@@ -393,7 +393,7 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
   try {
     // Uncomment for production use
     // const response = await axios.put(`${API_BASE_URL}/admin/users/${userId}/status`, { isActive });
-    // return response.data;
+    // return unwrapApiResponse(response);
 
     // For development/testing, just log the action
     console.log(`Updated user ${userId} status to ${isActive ? 'active' : 'inactive'}`);
@@ -411,7 +411,7 @@ export const upiSettingsApi = {
   getAllUpiSettings: async (): Promise<{ data: UpiSetting[] }> => {
     try {
       const response = await defaultApiClient.get('/admin/upi-settings');
-      return response.data;
+      return unwrapApiResponse(response);
     } catch (error) {
       console.error('Error fetching all UPI settings:', error);
       throw error;
@@ -424,7 +424,7 @@ export const upiSettingsApi = {
   getActiveUpiSetting: async (): Promise<{ data: UpiSetting | null }> => {
     try {
       const response = await defaultApiClient.get('/admin/upi-settings/active');
-      return response.data;
+      return unwrapApiResponse(response);
     } catch (error) {
       console.error('Error fetching active UPI setting:', error);
       throw error;
@@ -437,7 +437,7 @@ export const upiSettingsApi = {
   getUpiSettingById: async (id: string): Promise<{ data: UpiSetting }> => {
     try {
       const response = await defaultApiClient.get(`/admin/upi-settings/${id}`);
-      return response.data;
+      return unwrapApiResponse(response);
     } catch (error) {
       console.error(`Error fetching UPI setting ${id}:`, error);
       throw error;
@@ -450,7 +450,7 @@ export const upiSettingsApi = {
   createUpiSetting: async (data: CreateUpiSettingInput): Promise<{ data: UpiSetting }> => {
     try {
       const response = await defaultApiClient.post('/admin/upi-settings', data);
-      return response.data;
+      return unwrapApiResponse(response);
     } catch (error) {
       console.error('Error creating UPI setting:', error);
       throw error;
@@ -463,7 +463,7 @@ export const upiSettingsApi = {
   updateUpiSetting: async (id: string, data: UpdateUpiSettingInput): Promise<{ data: UpiSetting }> => {
     try {
       const response = await defaultApiClient.put(`/admin/upi-settings/${id}`, data);
-      return response.data;
+      return unwrapApiResponse(response);
     } catch (error) {
       console.error(`Error updating UPI setting ${id}:`, error);
       throw error;
