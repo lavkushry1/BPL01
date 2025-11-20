@@ -4,6 +4,7 @@
  */
 import { defaultApiClient } from './apiUtils';
 import { API_BASE_URL } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 export interface Category {
   id: string;
@@ -175,12 +176,8 @@ export const getEvents = async (filters?: EventFilters): Promise<Event[]> => {
 
     // Use defaultApiClient which already has the base URL configured
     const response = await defaultApiClient.get('/events', { params: queryParams });
-
-    if (response.data && response.data.data) {
-      return response.data.data.events || [];
-    }
-
-    throw new Error('Invalid API response format');
+    const data = unwrapApiResponse<{ events?: Event[] }>(response);
+    return data?.events || [];
   } catch (error) {
     console.error('Error fetching events from API:', error);
     throw new Error('Failed to fetch events. Please try again later.');
@@ -201,12 +198,11 @@ export const getEvent = async (eventId: string): Promise<Event> => {
 
     // Use defaultApiClient which already has the base URL configured
     const response = await defaultApiClient.get(`/events/${eventId}`);
-
-    if (response.data && response.data.data) {
-      return response.data.data;
+    const data = unwrapApiResponse<Event>(response);
+    if (!data) {
+      throw new Error('Event not found');
     }
-
-    throw new Error('Event not found');
+    return data;
   } catch (error) {
     console.error(`Error fetching event ${eventId} from API:`, error);
     throw new Error('Failed to fetch event details. Please try again later.');
