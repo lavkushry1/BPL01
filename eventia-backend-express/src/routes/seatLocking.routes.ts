@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { SeatLockingController } from '../controllers/seatLocking.controller';
+import * as SeatLockingController from '../controllers/seatLocking.controller';
 import { validate } from '../middleware/validate';
 import { auth } from '../middleware/auth';
 import * as seatLockingValidation from '../validations/seatLocking.validation';
