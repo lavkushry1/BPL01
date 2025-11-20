@@ -3,31 +3,10 @@
  * Handles operations related to payments, UTR verification, etc.
  */
 
-import axios from 'axios';
+import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
-
-// Create a configured axios instance
-const apiClient = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add auth token to requests if available
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const apiClient = defaultApiClient;
 
 /**
  * Interface for payment data
@@ -75,7 +54,7 @@ export const verifyUtrPayment = async (paymentData: PaymentData): Promise<{
 }> => {
   try {
     const response = await apiClient.post('/payments/verify-utr', paymentData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error verifying UTR payment:', error);
     throw new Error('Failed to verify payment');
@@ -94,7 +73,7 @@ export const createBooking = async (bookingData: BookingData): Promise<{
 }> => {
   try {
     const response = await apiClient.post('/bookings', bookingData);
-    return response.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error creating booking:', error);
     throw new Error('Failed to create booking');

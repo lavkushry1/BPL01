@@ -324,7 +324,7 @@ export const getActiveUpiSettings = async (): Promise<UpiSettings> => {
 export const getAllUpiSettings = async (): Promise<UpiSetting[]> => {
   try {
     const response = await defaultApiClient.get('/admin/upi-settings');
-    return response.data.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error fetching all UPI settings:', error);
     throw error;
@@ -334,7 +334,7 @@ export const getAllUpiSettings = async (): Promise<UpiSetting[]> => {
 export const getUpiSettingById = async (id: string): Promise<UpiSetting> => {
   try {
     const response = await defaultApiClient.get(`/admin/upi-settings/${id}`);
-    return response.data.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error(`Error fetching UPI setting ${id}:`, error);
     throw error;
@@ -344,7 +344,7 @@ export const getUpiSettingById = async (id: string): Promise<UpiSetting> => {
 export const createUpiSetting = async (data: CreateUpiSettingInput): Promise<UpiSetting> => {
   try {
     const response = await defaultApiClient.post('/admin/upi-settings', data);
-    return response.data.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error creating UPI setting:', error);
     throw error;
@@ -354,7 +354,7 @@ export const createUpiSetting = async (data: CreateUpiSettingInput): Promise<Upi
 export const updateUpiSetting = async (id: string, data: UpdateUpiSettingInput): Promise<UpiSetting> => {
   try {
     const response = await defaultApiClient.put(`/admin/upi-settings/${id}`, data);
-    return response.data.data;
+    return unwrapApiResponse(response);
   } catch (error) {
     console.error(`Error updating UPI setting ${id}:`, error);
     throw error;
@@ -421,7 +421,7 @@ export const generateUpiQrCode = async (amount: number, reference: string): Prom
 
       // If we successfully got a QR code URL from the backend
       if (response.data?.data?.qrCodeUrl) {
-        qrUrl = response.data.data.qrCodeUrl;
+        qrUrl = unwrapApiResponse(response).qrCodeUrl;
         console.log(`Successfully generated QR from backend API: ${qrUrl.substring(0, 50)}...`);
         return { qrUrl, upiUrl };
       }
@@ -507,7 +507,7 @@ export const initiateUpiPayment = async (data: {
   amount?: number;
 }): Promise<PaymentSessionResponse> => {
   const response = await defaultApiClient.post<any>('/upi-payments/initiate', data);
-  return response.data.data;
+  return unwrapApiResponse(response);
 };
 
 /**
@@ -517,7 +517,7 @@ export const initiateUpiPayment = async (data: {
  */
 export const getUpiPaymentStatus = async (sessionId: string): Promise<PaymentSession> => {
   const response = await defaultApiClient.get<any>(`/upi-payments/status/${sessionId}`);
-  return response.data.data;
+  return unwrapApiResponse(response);
 };
 
 /**
