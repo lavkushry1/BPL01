@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as reservationController from '../controllers/reservationController';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { prisma } from '../db/prisma';
 import * as paymentValidation from '../validations/payment.validation';
 
 const router = Router();
@@ -15,10 +16,6 @@ router.post('/verify',
 
 router.get('/status/:utr', authenticate, async (req, res) => {
   try {
-    // Retrieve verification status from database
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-
     const payment = await prisma.bookingPayment.findFirst({
       where: { utrNumber: req.params.utr },
       include: {
@@ -34,8 +31,6 @@ router.get('/status/:utr', authenticate, async (req, res) => {
         }
       }
     });
-
-    await prisma.$disconnect();
 
     if (!payment) {
       return res.status(404).json({

@@ -42,7 +42,11 @@ const router = Router();
  *       201:
  *         description: Booking created successfully
  */
-router.post('/', createBooking);
+router.post(
+  '/',
+  validate(bookingValidation.createBookingSchema),
+  createBooking
+);
 
 /**
  * @swagger
@@ -61,7 +65,11 @@ router.post('/', createBooking);
  *       200:
  *         description: Booking details
  */
-router.get('/:id', getBookingById);
+router.get(
+  '/:id',
+  validate(bookingValidation.getBookingSchema),
+  getBookingById
+);
 
 /**
  * @swagger
@@ -86,7 +94,11 @@ router.get('/:id', getBookingById);
  *       201:
  *         description: Delivery details saved successfully
  */
-router.post('/delivery-details', saveDeliveryDetails);
+router.post(
+  '/delivery-details',
+  validate(bookingValidation.saveDeliveryDetailsSchema),
+  saveDeliveryDetails
+);
 
 /**
  * @swagger
@@ -117,7 +129,11 @@ router.post('/delivery-details', saveDeliveryDetails);
  *       200:
  *         description: Booking status updated successfully
  */
-router.put('/:id/status', updateBookingStatus);
+router.put(
+  '/:id/status',
+  validate(bookingValidation.updateBookingStatusSchema),
+  updateBookingStatus
+);
 
 /**
  * @swagger

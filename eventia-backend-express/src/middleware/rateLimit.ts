@@ -17,7 +17,14 @@ const createRedisStore = () => {
       
       // Connect to Redis
       redisClient.connect().catch(err => {
-        logger.error('Redis connection error (falling back to memory store):', err);
+        logger.error('Redis connection error for rate limiting:', err);
+        if (config.isProduction) {
+          // Fail fast in production instead of silently falling back
+          logger.error('Redis is required for distributed rate limiting in production. Exiting.');
+          process.exit(1);
+        } else {
+          logger.warn('Redis unavailable; falling back to in-memory rate limiting');
+        }
         return null;
       });
       
@@ -35,6 +42,7 @@ const createRedisStore = () => {
 
 // Store for rate limit data (Redis in production, memory in development)
 const limiterStore = createRedisStore();
+const rateLimitStore = limiterStore ?? undefined;
 
 // Define configuration properties
 const MAX_REQUESTS = config.rateLimit.max || 100;
@@ -44,6 +52,7 @@ const WINDOW_MS = config.rateLimit.windowMs || 15 * 60 * 1000; // 15 minutes
 export const standardLimiter = rateLimit({
   windowMs: WINDOW_MS,
   max: MAX_REQUESTS,
+  store: rateLimitStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -61,6 +70,7 @@ export const standardLimiter = rateLimit({
 export const apiKeyLimiter = rateLimit({
   windowMs: WINDOW_MS,
   max: MAX_REQUESTS * 5, // Higher limit for API keys
+  store: rateLimitStore,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req: Request) => {
@@ -80,6 +90,7 @@ export const apiKeyLimiter = rateLimit({
 export const strictLimiter = rateLimit({
   windowMs: WINDOW_MS,
   max: 30, // Lower limit for sensitive operations
+  store: rateLimitStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -93,6 +104,7 @@ export const strictLimiter = rateLimit({
 export const loginLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // 10 requests per hour
+  store: rateLimitStore,
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Only count failed attempts
@@ -107,6 +119,7 @@ export const loginLimiter = rateLimit({
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 30, // 30 requests per 15 minutes for auth endpoints
+  store: rateLimitStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

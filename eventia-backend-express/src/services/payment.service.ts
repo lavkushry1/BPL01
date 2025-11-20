@@ -1,9 +1,8 @@
-import { PaymentStatus, PrismaClient } from '@prisma/client';
+import { PaymentStatus } from '@prisma/client';
 import { Omit } from '@prisma/client/runtime/library';
 import { Payment } from '../models/payment.model';
 import { ApiError } from '../utils/apiError';
-
-const prisma = new PrismaClient();
+import { prisma } from '../db/prisma';
 
 export const paymentService = {
   /**

@@ -1,7 +1,7 @@
 import express from 'express';
 import { register, login, refreshToken, logout, me } from '../controllers/authController';
 import { validate } from '../middleware/validate';
-import { userSchema, loginSchema } from '../models/user';
+import { loginSchema, registerSchema } from '../models/user';
 import { z } from 'zod';
 import { authLimiter } from '../middleware/rateLimit';
 import { authenticate } from '../middleware/auth';
@@ -13,6 +13,7 @@ const router = express.Router();
  * /auth/register:
  *   post:
  *     summary: Register a new user
+ *     description: Self-service registration always creates USER role accounts.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -36,10 +37,6 @@ const router = express.Router();
  *                 type: string
  *                 format: password
  *                 example: password123
- *               role:
- *                 type: string
- *                 enum: [user, admin]
- *                 example: user
  *     responses:
  *       201:
  *         description: User created successfully
@@ -48,7 +45,7 @@ const router = express.Router();
  *       409:
  *         description: Email already in use
  */
-router.post('/register', validate(z.object({ body: userSchema })), register);
+router.post('/register', validate(z.object({ body: registerSchema })), register);
 
 /**
  * @swagger

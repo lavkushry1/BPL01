@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, PaymentStatus as PrismaPaymentStatus } from '@prisma/client';
+import { PaymentStatus as PrismaPaymentStatus } from '@prisma/client';
 import { ApiResponse } from '../utils/apiResponse';
 import { ApiError } from '../utils/apiError';
 import { generateQRCode } from '../utils/qrCode';
@@ -10,8 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as qrcode from 'qrcode';
 import { SeatStatus } from '../models/seat';
 import { PaymentStatus } from '../models/payment';
-
-const prisma = new PrismaClient();
+import { prisma } from '../db/prisma';
 
 // UPI payment lock timeout in minutes
 const PAYMENT_TIMEOUT_MINUTES = 10;

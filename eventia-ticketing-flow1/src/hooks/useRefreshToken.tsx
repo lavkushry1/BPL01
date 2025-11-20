@@ -1,6 +1,6 @@
 import { API_URL } from '@/services/api/apiUtils';
-import useAuth from './useAuth';
 import axios from 'axios';
+import useAuth from './useAuth';
 
 /**
  * Custom hook to refresh the access token using refresh token stored in HTTP-only cookie
@@ -14,10 +14,10 @@ const useRefreshToken = () => {
     if (!persist) {
       return null;
     }
-    
+
     try {
       // Use a separate axios instance (not the one with auth headers)
-      const response = await axios.get(`${API_URL}/auth/refresh`, {
+      const response = await axios.post(`${API_URL}/auth/refresh-token`, {}, {
         withCredentials: true // Important: needed to include cookies in the request
       });
 
@@ -44,4 +44,4 @@ const useRefreshToken = () => {
   return refresh;
 };
 
-export default useRefreshToken; 
+export default useRefreshToken;

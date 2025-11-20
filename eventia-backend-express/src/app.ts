@@ -10,6 +10,7 @@ import { config } from './config';
 import { setupSwagger } from './docs/swagger';
 import { dataloaderMiddleware } from './middleware/dataloader.middleware';
 import { errorHandler } from './middleware/errorHandler';
+import { generateCsrfToken, validateCsrfToken } from './middleware/csrf';
 import { standardLimiter } from './middleware/rateLimit';
 import { JobService } from './services/job.service';
 import { WebsocketService } from './services/websocket.service';
@@ -66,14 +67,12 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   app.use(standardLimiter);
 
   // Generate CSRF token for GET requests and validate for state-changing methods
-  // Generate CSRF token for GET requests and validate for state-changing methods
-  // app.use((req, res, next) => {
-  //   if (req.method === 'GET') {
-  //     generateCsrfToken(req, res, next);
-  //   } else {
-  //     validateCsrfToken(req, res, next);
-  //   }
-  // });
+  app.use((req, res, next) => {
+    if (req.method === 'GET') {
+      return generateCsrfToken(req, res, next);
+    }
+    return validateCsrfToken(req, res, next);
+  });
 
   // Configure CORS to allow frontend access
   const allowedOrigins = process.env.CORS_ORIGIN

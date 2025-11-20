@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import httpStatus from 'http-status';
+import { prisma } from '../db/prisma';
 import { ApiError } from '../utils/apiError';
 import { catchAsync } from '../utils/catchAsync';
-
-const prisma = new PrismaClient();
 
 /**
  * Create a new ticket category

@@ -1,6 +1,5 @@
-import React, { createContext, useState, useEffect } from 'react';
-import { defaultApiClient } from '@/services/api/apiUtils';
-import { getCurrentUser, logout as apiLogout, login as apiLogin, AuthResponse } from '@/services/api/authApi';
+import { login as apiLogin, logout as apiLogout, AuthResponse, getCurrentUser } from '@/services/api/authApi';
+import React, { createContext, useEffect, useState } from 'react';
 
 type AdminUser = {
   id: string;
@@ -19,6 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
+  setAccessToken: (token: string) => void; // Add this
 }
 
 const defaultValue: AuthContextType = {
@@ -30,7 +30,8 @@ const defaultValue: AuthContextType = {
   isAuthenticated: false,
   login: async () => ({ user: { id: '', email: '', name: '', role: 'admin' } }),
   logout: async () => {},
-  refreshSession: async () => false
+  refreshSession: async () => false,
+  setAccessToken: () => { } // Add this
 };
 
 const AuthContext = createContext<AuthContextType>(defaultValue);
@@ -38,7 +39,7 @@ const AuthContext = createContext<AuthContextType>(defaultValue);
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<AdminUser>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Add persist state to remember user preference on page reload
   const [persist, setPersist] = useState<boolean>(() => {
     const persistValue = localStorage.getItem('persist');
@@ -52,7 +53,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       try {
         // Use the getCurrentUser endpoint to validate session
         const userData = await getCurrentUser();
-        
+
         // Check if the user is an admin
         if (userData.role?.toLowerCase() === 'admin') {
           setUser({
@@ -72,7 +73,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         setIsLoading(false);
       }
     };
-    
+
     validateSession();
   }, []);
 
@@ -84,12 +85,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Add login function to the context
   const login = async (email: string, password: string): Promise<AuthResponse> => {
     const response = await apiLogin(email, password);
-    
+
     // Only set user if the user is an admin
     if (response.user.role?.toLowerCase() === 'admin') {
       setUser(response.user as AdminUser);
     }
-    
+
     return response;
   };
 
@@ -111,7 +112,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     try {
       // Get current user data
       const userData = await getCurrentUser();
-      
+
       // Check if the user is an admin
       if (userData.role?.toLowerCase() === 'admin') {
         setUser({
@@ -135,6 +136,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   const isAuthenticated = !!user;
 
+  // Add setAccessToken to match the interface expected by useRefreshToken
+  const setAccessToken = (token: string) => {
+    // This is a placeholder as we are using HTTP-only cookies
+    // But we need it to satisfy the interface
+    console.log('setAccessToken called with:', token ? 'token' : 'empty');
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -145,11 +153,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       isAuthenticated,
       login,
       logout,
-      refreshSession
+      refreshSession,
+      setAccessToken // Add this
     }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export default AuthContext; 
+export default AuthContext;

@@ -19,10 +19,11 @@
  * Booking Status: 'pending' → 'payment_initiated' → 'payment_completed' → 'confirmed' → 'delivered'
  */
 
+import type { PrismaClient } from '@prisma/client';
 import { Booking, DeliveryDetails } from '../models';
 import { db } from '../db';
+import { prisma } from '../db/prisma';
 import { ApiError } from '../utils/apiError';
-import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import * as ticketService from './ticket.service';
 
@@ -277,12 +278,9 @@ export const createBookingFromPaymentIntent = async (prisma: PrismaClient, payme
  * @returns Booking with related data
  */
 export const getBookingById = async (bookingId: string) => {
-  const prisma = new PrismaClient();
-  const anyPrisma = prisma as any;
-
   try {
     // Using "any" type to bypass type checking limitations in our current schema
-    const booking = await anyPrisma.booking.findUnique({
+    const booking = await (prisma as any).booking.findUnique({
       where: { id: bookingId },
       include: {
         event: true,
@@ -294,8 +292,6 @@ export const getBookingById = async (bookingId: string) => {
   } catch (error) {
     console.error(`Error getting booking ${bookingId}:`, error);
     throw error;
-  } finally {
-    await prisma.$disconnect();
   }
 };
 

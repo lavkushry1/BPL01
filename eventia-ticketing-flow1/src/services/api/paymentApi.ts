@@ -5,7 +5,6 @@
 import { defaultApiClient } from './apiUtils';
 import axios from 'axios';
 import { API_BASE_URL } from './apiUtils';
-import { apiClient } from './client';
 
 export interface UpiPaymentRequest {
   bookingId: string;
@@ -134,7 +133,7 @@ export const getPaymentSettings = async () => {
   try {
     // First attempt to use the public endpoint that doesn't require authentication
     console.log('Attempting to fetch UPI settings from public endpoint');
-    const response = await apiClient.get<any>('/payments/upi-settings');
+    const response = await defaultApiClient.get<any>('/payments/upi-settings');
     console.log('UPI settings response from public endpoint:', response.data);
 
     // Return normalized data
@@ -151,7 +150,7 @@ export const getPaymentSettings = async () => {
     // Try protected endpoint as fallback
     try {
       console.log('Attempting to fetch UPI settings from fallback endpoint');
-      const fallbackResponse = await apiClient.get<any>('/admin/upi-settings/active');
+      const fallbackResponse = await defaultApiClient.get<any>('/admin/upi-settings/active');
       console.log('UPI settings response from fallback endpoint:', fallbackResponse.data);
 
       // Access data safely with optional chaining
@@ -187,14 +186,14 @@ export const getPaymentSettings = async () => {
  * Get payment by booking ID
  */
 export const getPaymentByBookingId = (bookingId: string) => {
-  return apiClient.get<any>(`/payments/booking/${bookingId}`);
+  return defaultApiClient.get<any>(`/payments/booking/${bookingId}`);
 };
 
 /**
  * Submit UTR verification for a payment
  */
 export const submitUtrVerification = (paymentId: string, utrNumber: string) => {
-  return apiClient.post<any>('/payments/verify-utr', {
+  return defaultApiClient.post<any>('/payments/verify-utr', {
     payment_id: paymentId,
     utr_number: utrNumber
   });
@@ -204,14 +203,14 @@ export const submitUtrVerification = (paymentId: string, utrNumber: string) => {
  * Create a new payment
  */
 export const createPayment = async (paymentData: CreatePaymentInput): Promise<{ data: { data: any } }> => {
-  return apiClient.post<any>('/payments', paymentData);
+  return defaultApiClient.post<any>('/payments', paymentData);
 };
 
 /**
  * Get payment status
  */
 export const getPaymentStatus = (intentId: string) => {
-  return apiClient.get<any>(`/payments/status/${intentId}`);
+  return defaultApiClient.get<any>(`/payments/status/${intentId}`);
 };
 
 /**
@@ -223,7 +222,7 @@ export const initiatePayment = (data: {
   seatIds: string[];
   userId: string;
 }) => {
-  return apiClient.post<any>('/payments/initiate', data);
+  return defaultApiClient.post<any>('/payments/initiate', data);
 };
 
 /**
@@ -231,7 +230,7 @@ export const initiatePayment = (data: {
  */
 export const verifyPayment = async (bookingId: string): Promise<{ success: boolean; status: string; message: string }> => {
   try {
-    const response = await apiClient.post(`/payments/verify/${bookingId}`);
+    const response = await defaultApiClient.post(`/payments/verify/${bookingId}`);
     return {
       success: true,
       status: response.data.status,
@@ -251,7 +250,7 @@ export const verifyPayment = async (bookingId: string): Promise<{ success: boole
  */
 export const recordUpiPayment = async (paymentData: UpiPaymentRequest): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await apiClient.post('/payments/upi', paymentData);
+    const response = await defaultApiClient.post('/payments/upi', paymentData);
     return {
       success: true,
       message: response.data.message
@@ -281,7 +280,7 @@ export const getActiveUpiSettings = async (): Promise<UpiSettings> => {
   try {
     // First attempt to use the dedicated public endpoint that doesn't require authentication
     console.log('Fetching UPI settings from public endpoint');
-    const response = await apiClient.get('/payments/upi-settings');
+    const response = await defaultApiClient.get('/payments/upi-settings');
 
     if (response.data) {
       console.log('Successfully fetched UPI settings from public endpoint');
@@ -294,7 +293,7 @@ export const getActiveUpiSettings = async (): Promise<UpiSettings> => {
     // If authentication error (401) or other error, try the admin endpoint
     try {
       console.log('Attempting to fetch UPI settings from admin endpoint');
-      const fallbackResponse = await apiClient.get('/admin/upi-settings/active');
+      const fallbackResponse = await defaultApiClient.get('/admin/upi-settings/active');
 
       if (fallbackResponse.data) {
         console.log('Successfully fetched UPI settings from admin endpoint');
@@ -323,7 +322,7 @@ export const getActiveUpiSettings = async (): Promise<UpiSettings> => {
  */
 export const getAllUpiSettings = async (): Promise<UpiSetting[]> => {
   try {
-    const response = await apiClient.get('/admin/upi-settings');
+    const response = await defaultApiClient.get('/admin/upi-settings');
     return response.data.data;
   } catch (error) {
     console.error('Error fetching all UPI settings:', error);
@@ -333,7 +332,7 @@ export const getAllUpiSettings = async (): Promise<UpiSetting[]> => {
 
 export const getUpiSettingById = async (id: string): Promise<UpiSetting> => {
   try {
-    const response = await apiClient.get(`/admin/upi-settings/${id}`);
+    const response = await defaultApiClient.get(`/admin/upi-settings/${id}`);
     return response.data.data;
   } catch (error) {
     console.error(`Error fetching UPI setting ${id}:`, error);
@@ -343,7 +342,7 @@ export const getUpiSettingById = async (id: string): Promise<UpiSetting> => {
 
 export const createUpiSetting = async (data: CreateUpiSettingInput): Promise<UpiSetting> => {
   try {
-    const response = await apiClient.post('/admin/upi-settings', data);
+    const response = await defaultApiClient.post('/admin/upi-settings', data);
     return response.data.data;
   } catch (error) {
     console.error('Error creating UPI setting:', error);
@@ -353,7 +352,7 @@ export const createUpiSetting = async (data: CreateUpiSettingInput): Promise<Upi
 
 export const updateUpiSetting = async (id: string, data: UpdateUpiSettingInput): Promise<UpiSetting> => {
   try {
-    const response = await apiClient.put(`/admin/upi-settings/${id}`, data);
+    const response = await defaultApiClient.put(`/admin/upi-settings/${id}`, data);
     return response.data.data;
   } catch (error) {
     console.error(`Error updating UPI setting ${id}:`, error);
@@ -363,7 +362,7 @@ export const updateUpiSetting = async (id: string, data: UpdateUpiSettingInput):
 
 export const deleteUpiSetting = async (id: string): Promise<{ success: boolean }> => {
   try {
-    await apiClient.delete(`/admin/upi-settings/${id}`);
+    await defaultApiClient.delete(`/admin/upi-settings/${id}`);
     return { success: true };
   } catch (error) {
     console.error(`Error deleting UPI setting ${id}:`, error);
@@ -413,7 +412,7 @@ export const generateUpiQrCode = async (amount: number, reference: string): Prom
     try {
       attempts++;
       console.log(`Attempt ${attempts}: Using backend API for QR generation...`);
-      const response = await apiClient.post('/payments/generate-qr', {
+      const response = await defaultApiClient.post('/payments/generate-qr', {
         data: upiUrl
       }, {
         timeout: 5000 // 5-second timeout to prevent long waits
@@ -506,7 +505,7 @@ export const initiateUpiPayment = async (data: {
   userId: string;
   amount?: number;
 }): Promise<PaymentSessionResponse> => {
-  const response = await apiClient.post<any>('/upi-payments/initiate', data);
+  const response = await defaultApiClient.post<any>('/upi-payments/initiate', data);
   return response.data.data;
 };
 
@@ -516,7 +515,7 @@ export const initiateUpiPayment = async (data: {
  * @returns Payment session details
  */
 export const getUpiPaymentStatus = async (sessionId: string): Promise<PaymentSession> => {
-  const response = await apiClient.get<any>(`/upi-payments/status/${sessionId}`);
+  const response = await defaultApiClient.get<any>(`/upi-payments/status/${sessionId}`);
   return response.data.data;
 };
 
@@ -528,7 +527,7 @@ export const getUpiPaymentStatus = async (sessionId: string): Promise<PaymentSes
  */
 export const confirmUpiPayment = async (sessionId: string, utrNumber: string): Promise<any> => {
   try {
-    const response = await apiClient.post(`/upi-payments/confirm`, {
+    const response = await defaultApiClient.post(`/upi-payments/confirm`, {
       sessionId,
       utrNumber
     });

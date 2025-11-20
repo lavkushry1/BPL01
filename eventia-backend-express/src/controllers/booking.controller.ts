@@ -13,11 +13,6 @@ import { SeatStatus } from '../models/seat';
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
   const { event_id, user_id, seat_ids, amount, payment_method } = req.body;
 
-  // Validate required fields
-  if (!event_id || !user_id || !amount || !payment_method) {
-    throw ApiError.badRequest('Missing required booking information');
-  }
-
   // Check if event exists and has enough capacity
   const event = await db('events')
     .select('id', 'capacity', 'booked_count')
@@ -47,7 +42,24 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
 
     // If seat_ids are provided, reserve those seats
     if (seat_ids && seat_ids.length > 0) {
-      const seats = { seat_ids, booking_id };
+      // Pessimistically lock requested seats to prevent double booking
+      const seats = await trx('seats')
+        .whereIn('id', seat_ids)
+        .forUpdate()
+        .select('id', 'status');
+
+      if (seats.length !== seat_ids.length) {
+        throw ApiError.badRequest('One or more seats were not found');
+      }
+
+      const unavailableSeats = seats.filter(seat => seat.status !== SeatStatus.AVAILABLE);
+      if (unavailableSeats.length > 0) {
+        throw ApiError.conflict(
+          'One or more seats are no longer available',
+          'SEAT_NOT_AVAILABLE',
+          unavailableSeats.map(seat => seat.id)
+        );
+      }
       
       // Update seat status to booked
       await trx('seats')
@@ -56,11 +68,11 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           booking_id: booking_id,
           updated_at: trx.fn.now()
         })
-        .whereIn('id', seats.seat_ids);
+        .whereIn('id', seat_ids);
       
       // Notify other clients that seats have been booked
       WebsocketService.notifySeatStatusChange(
-        seats.seat_ids, 
+        seat_ids, 
         SeatStatus.BOOKED
       );
     }
@@ -87,7 +99,16 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
 
   // Get booking details
   const booking = await db('bookings')
-    .select('*')
+    .select(
+      'id',
+      'event_id',
+      'user_id',
+      'amount',
+      'payment_method',
+      'status',
+      'created_at',
+      'updated_at'
+    )
     .where('id', id)
     .first();
 

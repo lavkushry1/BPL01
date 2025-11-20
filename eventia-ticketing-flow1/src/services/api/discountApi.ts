@@ -2,7 +2,7 @@
  * @service DiscountApiService
  * @description Service for handling discount-related API calls to the Express backend.
  */
-import { apiClient } from './client';
+import { defaultApiClient } from './apiUtils';
 
 export interface Discount {
   id: string;
@@ -32,7 +32,7 @@ export interface DiscountValidationResponse {
  */
 export const getAllDiscounts = async (): Promise<Discount[]> => {
   try {
-    const response = await apiClient.get('/admin/discounts');
+    const response = await defaultApiClient.get('/admin/discounts');
     return response.data.discounts;
   } catch (error: any) {
     console.error('Error fetching all discounts:', error);
@@ -56,7 +56,7 @@ export interface CreateDiscountData {
 
 export const createDiscount = async (data: CreateDiscountData): Promise<Discount> => {
   try {
-    const response = await apiClient.post('/admin/discounts', data);
+    const response = await defaultApiClient.post('/admin/discounts', data);
     return response.data.discount;
   } catch (error: any) {
     console.error('Error creating discount:', error);
@@ -69,7 +69,7 @@ export const createDiscount = async (data: CreateDiscountData): Promise<Discount
  */
 export const deleteDiscount = async (id: string): Promise<void> => {
   try {
-    await apiClient.delete(`/admin/discounts/${id}`);
+    await defaultApiClient.delete(`/admin/discounts/${id}`);
   } catch (error: any) {
     console.error(`Error deleting discount ${id}:`, error);
     throw error;
@@ -94,7 +94,7 @@ export const validateDiscountCode = async (
       params.eventId = eventId;
     }
 
-    const response = await apiClient.post('/discounts/validate', params);
+    const response = await defaultApiClient.post('/discounts/validate', params);
     return response.data.data;
   } catch (error: any) {
     // Handle specific API errors
@@ -120,7 +120,7 @@ export const applyDiscount = async (
   finalAmount?: number;
 }> => {
   try {
-    const response = await apiClient.post('/discounts/apply', {
+    const response = await defaultApiClient.post('/discounts/apply', {
       code,
       booking_id: bookingId,
       total_amount: totalAmount
@@ -143,7 +143,7 @@ export const getAutoApplyDiscount = async (
   eventId: string
 ): Promise<Discount | null> => {
   try {
-    const response = await apiClient.get(`/discounts/auto-apply?eventId=${eventId}`);
+    const response = await defaultApiClient.get(`/discounts/auto-apply?eventId=${eventId}`);
     return response.data.data.discount;
   } catch (error) {
     console.error('Error fetching auto-apply discount:', error);

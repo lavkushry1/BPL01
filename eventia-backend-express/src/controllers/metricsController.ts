@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db/prisma';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
 
 /**
  * Controller for handling performance metrics

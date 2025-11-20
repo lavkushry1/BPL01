@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { ApiError } from '../utils/apiError';
 import { logger } from '../utils/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../db/prisma';
 
 interface PricingRule {
   id: string;

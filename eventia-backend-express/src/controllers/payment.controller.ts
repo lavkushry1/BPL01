@@ -1,8 +1,9 @@
-import { PaymentStatus, PrismaClient } from '@prisma/client';
+import { PaymentStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import * as qrcode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
+import { prisma } from '../db/prisma';
 import * as bookingService from '../services/booking.service';
 import * as seatService from '../services/seat.service';
 import { TicketService } from '../services/ticket.service';
@@ -22,8 +23,6 @@ enum SeatStatus {
   LOCKED = 'LOCKED',
   BOOKED = 'BOOKED'
 }
-
-const prisma = new PrismaClient();
 
 // Lock timeout in minutes
 const SEAT_LOCK_TIMEOUT_MINUTES = 10;
@@ -246,76 +245,82 @@ export class PaymentController {
    */
   static getAllPayments = asyncHandler(async (req: Request, res: Response) => {
     try {
-      const { page = 1, limit = 10, status, startDate, endDate, sort = 'created_at', order = 'desc' } = req.query;
+      console.log('getAllPayments called with query:', req.query);
+      const { page = 1, limit = 10, status, startDate, endDate, sort = 'createdAt', order = 'desc' } = req.query;
 
       const offset = (Number(page) - 1) * Number(limit);
 
-      // Build query with filters and joins
-      let query = db('booking_payments')
-        .select(
-          'booking_payments.*',
-          'bookings.event_id',
-          'bookings.user_id',
-          'users.name as user_name',
-          'users.email as user_email',
-          'events.title as event_title'
-        )
-        .leftJoin('bookings', 'booking_payments.booking_id', 'bookings.id')
-        .leftJoin('users', 'bookings.user_id', 'users.id')
-        .leftJoin('events', 'bookings.event_id', 'events.id');
+      // Build Prisma where clause
+      const where: any = {};
 
-      // Apply filters if provided
       if (status) {
-        query = query.where('booking_payments.status', status);
+        where.status = status;
       }
 
-      if (startDate) {
-        query = query.where('booking_payments.created_at', '>=', new Date(startDate as string));
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) {
+          where.createdAt.gte = new Date(startDate as string);
+        }
+        if (endDate) {
+          where.createdAt.lte = new Date(endDate as string);
+        }
       }
 
-      if (endDate) {
-        query = query.where('booking_payments.created_at', '<=', new Date(endDate as string));
-      }
+      console.log('Counting payments with where:', JSON.stringify(where));
+      // Get total count
+      const count = await prisma.bookingPayment.count({ where });
+      console.log('Payment count:', count);
 
-      // Get total count for pagination
-      const [{ count }] = await db('booking_payments')
-        .count('booking_payments.id as count')
-        .leftJoin('bookings', 'booking_payments.booking_id', 'bookings.id')
-        .modify(builder => {
-          if (status) {
-            builder.where('booking_payments.status', status);
-          }
-          if (startDate) {
-            builder.where('booking_payments.created_at', '>=', new Date(startDate as string));
-          }
-          if (endDate) {
-            builder.where('booking_payments.created_at', '<=', new Date(endDate as string));
-          }
-        });
+      // Map frontend sort field to Prisma field names
+      const sortFieldMap: Record<string, string> = {
+        'created_at': 'createdAt',
+        'createdAt': 'createdAt',
+        'amount': 'amount',
+        'status': 'status'
+      };
 
-      // Apply sorting and pagination
-      const rawPayments = await query
-        .orderBy(`booking_payments.${sort}`, order as 'asc' | 'desc')
-        .limit(Number(limit))
-        .offset(offset);
+      const prismaSort = sortFieldMap[sort as string] || 'createdAt';
 
-      const totalPages = Math.ceil(Number(count) / Number(limit));
+      console.log('Fetching payments with:', { where, sort: prismaSort, order, take: Number(limit), skip: offset });
+      // Get payments with related data
+      const rawPayments = await prisma.bookingPayment.findMany({
+        where,
+        include: {
+          booking: {
+            include: {
+              user: true,
+              event: true
+            }
+          }
+        },
+        orderBy: {
+          [prismaSort]: order === 'asc' ? 'asc' : 'desc'
+        },
+        take: Number(limit),
+        skip: offset
+      });
+
+      console.log('Fetched', rawPayments.length, 'payments');
+
+      const totalPages = Math.ceil(count / Number(limit));
 
       // Format payments for frontend
       const payments = rawPayments.map(payment => ({
         id: payment.id,
         customer: {
-          name: payment.user_name || 'Unknown User',
-          email: payment.user_email || 'No Email',
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(payment.user_name || 'U')}&background=random`
+          name: payment.booking?.user?.name || 'Unknown User',
+          email: payment.booking?.user?.email || 'No Email',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(payment.booking?.user?.name || 'U')}&background=random`
         },
-        event: payment.event_title || 'Unknown Event',
+        event: payment.booking?.event?.title || 'Unknown Event',
         amount: Number(payment.amount),
         status: payment.status,
-        utr: payment.utr_number || 'N/A',
-        timestamp: payment.created_at
+        utr: payment.utrNumber || 'N/A',
+        timestamp: payment.createdAt
       }));
 
+      console.log('Returning', payments.length, 'formatted payments');
       return ApiResponse.success(res, 200, 'Payments fetched successfully', payments);
     } catch (error) {
       console.error('Error in getAllPayments:', error);

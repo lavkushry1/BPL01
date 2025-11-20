@@ -4,7 +4,7 @@ import { login, logout, me, refreshToken, register } from '../../controllers/aut
 import { auth } from '../../middleware/auth';
 import { loginLimiter } from '../../middleware/rateLimit';
 import { validate } from '../../middleware/validate';
-import { loginSchema, userSchema } from '../../models/user';
+import { loginSchema, registerSchema } from '../../models/user';
 import { asyncHandler } from '../../utils/asyncHandler';
 
 /**
@@ -14,7 +14,7 @@ const router = Router();
 
 // Register user
 router.post('/register',
-  validate(z.object({ body: userSchema })),
+  validate(z.object({ body: registerSchema })),
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     await register(req, res, next);
   })
