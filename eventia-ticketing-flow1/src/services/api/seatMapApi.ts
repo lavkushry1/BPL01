@@ -19,8 +19,8 @@
  * - Seat model for individual seat properties
  * - SeatReservation model for temporary holds
  */
-import axios from 'axios';
-import { API_BASE_URL } from './apiUtils';
+import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 // Define interfaces for seat map data
 export interface SeatSection {
@@ -103,27 +103,7 @@ export interface SeatAvailabilityResponse {
   };
 }
 
-// Create axios instance
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor to include auth token if available
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const apiClient = defaultApiClient;
 
 // SeatMap API service
 const seatMapApi = {
@@ -140,7 +120,7 @@ const seatMapApi = {
    * @param eventId Event ID
    */
   getSeatMapByEventId: (eventId: string) => {
-    return apiClient.get<SeatMapResponse>(`/api/events/${eventId}/seat-map`);
+    return apiClient.get<SeatMapResponse>(`/api/events/${eventId}/seat-map`).then(unwrapApiResponse);
   },
 
   /**
@@ -149,7 +129,7 @@ const seatMapApi = {
    * @param data Reservation data
    */
   reserveSeats: (seatMapId: string, data: SeatReservationRequest) => {
-    return apiClient.post<SeatReservationResponse>(`/api/seat-maps/${seatMapId}/reserve`, data);
+    return apiClient.post<SeatReservationResponse>(`/api/seat-maps/${seatMapId}/reserve`, data).then(unwrapApiResponse);
   },
 
   /**
@@ -157,7 +137,7 @@ const seatMapApi = {
    * @param reservationId Reservation ID
    */
   releaseReservation: (reservationId: string) => {
-    return apiClient.delete(`/api/reservations/${reservationId}`);
+    return apiClient.delete(`/api/reservations/${reservationId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -165,7 +145,7 @@ const seatMapApi = {
    * @param seatMapId Seat map ID
    */
   getSeatAvailability: (seatMapId: string) => {
-    return apiClient.get<SeatAvailabilityResponse>(`/api/seat-maps/${seatMapId}/availability`);
+    return apiClient.get<SeatAvailabilityResponse>(`/api/seat-maps/${seatMapId}/availability`).then(unwrapApiResponse);
   },
 
   /**
@@ -174,7 +154,7 @@ const seatMapApi = {
    * @param sectionId Section ID
    */
   getSeatsBySection: (seatMapId: string, sectionId: string) => {
-    return apiClient.get<{ status: string; data: Seat[] }>(`/api/seat-maps/${seatMapId}/sections/${sectionId}/seats`);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/api/seat-maps/${seatMapId}/sections/${sectionId}/seats`).then(unwrapApiResponse);
   },
 
   /**
@@ -183,7 +163,7 @@ const seatMapApi = {
    * @param status New seat status
    */
   updateSeatStatus: (seatId: string, status: Seat['status']) => {
-    return apiClient.patch(`/api/seats/${seatId}`, { status });
+    return apiClient.patch(`/api/seats/${seatId}`, { status }).then(unwrapApiResponse);
   },
 
   /**
@@ -191,7 +171,7 @@ const seatMapApi = {
    * @param userId User ID
    */
   getUserSelectedSeats: (userId: string) => {
-    return apiClient.get<{ status: string; data: Seat[] }>(`/api/users/${userId}/selected-seats`);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/api/users/${userId}/selected-seats`).then(unwrapApiResponse);
   },
 
   /**
@@ -199,7 +179,7 @@ const seatMapApi = {
    * @param bookingId Booking ID
    */
   getSeatsByBookingId: (bookingId: string) => {
-    return apiClient.get<{ status: string; data: Seat[] }>(`/api/bookings/${bookingId}/seats`);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/api/bookings/${bookingId}/seats`).then(unwrapApiResponse);
   }
 };
 

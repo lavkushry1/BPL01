@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { API_BASE_URL } from './apiUtils';
+import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 // Define interfaces for ticket data
 export interface Ticket {
@@ -65,26 +65,7 @@ export interface GenerateTicketsRequest {
 }
 
 // Create axios instance
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add request interceptor to include auth token if available
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const apiClient = defaultApiClient;
 
 // TicketApi service
 const ticketApi = {
@@ -93,7 +74,7 @@ const ticketApi = {
    * @param bookingId Booking ID
    */
   getTicketsByBookingId: (bookingId: string) => {
-    return apiClient.get<TicketsResponse>(`/bookings/${bookingId}/tickets`);
+    return apiClient.get<TicketsResponse>(`/bookings/${bookingId}/tickets`).then(unwrapApiResponse);
   },
 
   /**
@@ -101,7 +82,7 @@ const ticketApi = {
    * @param ticketId Ticket ID
    */
   getTicketById: (ticketId: string) => {
-    return apiClient.get<TicketResponse>(`/tickets/${ticketId}`);
+    return apiClient.get<TicketResponse>(`/tickets/${ticketId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -109,7 +90,7 @@ const ticketApi = {
    * @param data Ticket generation data
    */
   generateTickets: (data: GenerateTicketsRequest) => {
-    return apiClient.post<TicketsResponse>('/tickets/generate', data);
+    return apiClient.post<TicketsResponse>('/tickets/generate', data).then(unwrapApiResponse);
   },
 
   /**
@@ -118,7 +99,7 @@ const ticketApi = {
    * @param reason Optional cancellation reason
    */
   cancelTicket: (ticketId: string, reason?: string) => {
-    return apiClient.patch<TicketResponse>(`/tickets/${ticketId}/cancel`, { reason });
+    return apiClient.patch<TicketResponse>(`/tickets/${ticketId}/cancel`, { reason }).then(unwrapApiResponse);
   },
 
   /**
@@ -126,7 +107,7 @@ const ticketApi = {
    * @param data Check-in data
    */
   checkInTicket: (data: CheckInRequest) => {
-    return apiClient.post<CheckInResponse>('/tickets/check-in', data);
+    return apiClient.post<CheckInResponse>('/tickets/check-in', data).then(unwrapApiResponse);
   },
 
   /**
@@ -135,7 +116,7 @@ const ticketApi = {
    * @param email Optional different email to send to
    */
   resendTicket: (ticketId: string, email?: string) => {
-    return apiClient.post<{ status: string; message: string }>(`/tickets/${ticketId}/resend`, { email });
+    return apiClient.post<{ status: string; message: string }>(`/tickets/${ticketId}/resend`, { email }).then(unwrapApiResponse);
   },
 
   /**
@@ -146,7 +127,7 @@ const ticketApi = {
   verifyTicket: (ticketId: string, eventId: string) => {
     return apiClient.get<{ status: string; data: { valid: boolean; message: string; ticket?: Ticket } }>(
       `/tickets/${ticketId}/verify?event_id=${eventId}`
-    );
+    ).then(unwrapApiResponse);
   },
 
   /**
@@ -163,7 +144,7 @@ const ticketApi = {
       ...(status && { status }),
     }).toString();
 
-    return apiClient.get<TicketsResponse>(`/users/${userId}/tickets?${query}`);
+    return apiClient.get<TicketsResponse>(`/users/${userId}/tickets?${query}`).then(unwrapApiResponse);
   },
 
   /**
@@ -173,7 +154,7 @@ const ticketApi = {
   downloadTicket: (ticketId: string) => {
     return apiClient.get<Blob>(`/tickets/${ticketId}/download`, {
       responseType: 'blob'
-    });
+    }).then(unwrapApiResponse);
   },
 
   /**
@@ -190,7 +171,7 @@ const ticketApi = {
       ...(status && { status }),
     }).toString();
 
-    return apiClient.get<TicketsResponse>(`/events/${eventId}/tickets?${query}`);
+    return apiClient.get<TicketsResponse>(`/events/${eventId}/tickets?${query}`).then(unwrapApiResponse);
   },
 
   /**
@@ -199,7 +180,7 @@ const ticketApi = {
    * @param data Updated ticket data
    */
   updateTicket: (ticketId: string, data: Partial<Ticket>) => {
-    return apiClient.patch<TicketResponse>(`/tickets/${ticketId}`, data);
+    return apiClient.patch<TicketResponse>(`/tickets/${ticketId}`, data).then(unwrapApiResponse);
   }
 };
 
