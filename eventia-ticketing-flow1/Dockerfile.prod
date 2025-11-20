@@ -10,12 +10,7 @@ RUN npm ci --audit=false --production=false
 # Copy source code
 COPY . .
 
-# Generate release ID if not provided (ignore if script missing)
-RUN if [ -f ./scripts/set-release-id.sh ]; then \
-      chmod +x ./scripts/set-release-id.sh && ./scripts/set-release-id.sh ; \
-    else \
-      echo "set-release-id.sh not found, skipping"; \
-    fi
+# Skip release ID generation in container build (handled externally if needed)
 
 # Build arguments for environment variables
 ARG VITE_API_URL
