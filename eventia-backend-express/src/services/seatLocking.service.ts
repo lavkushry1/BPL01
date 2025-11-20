@@ -1,4 +1,4 @@
-import { CacheService } from './cacheService';
+import CacheService from './cacheService';
 import { logger } from '../utils/logger';
 
 /**

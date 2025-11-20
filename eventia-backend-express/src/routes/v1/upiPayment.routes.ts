@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { UpiPaymentController } from '../../controllers/upiPayment.controller';
 import { auth } from '../../middleware/auth';
-import { validate } from '../../middlewares/validation.middleware';
+import { validate } from '../../middleware/validate';
 import { upiPaymentValidation } from '../../validations/upiPayment.validations';
 
 const router = Router();

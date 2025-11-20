@@ -6,9 +6,9 @@ WORKDIR /app
 # Dependencies needed for native modules like bcrypt
 RUN apk add --no-cache python3 make g++ openssl
 
-# Install dependencies
+# Install dependencies (use npm install to honor updated package.json)
 COPY package*.json ./
-RUN npm ci
+RUN npm install --production=false
 
 # Copy source code
 COPY . .

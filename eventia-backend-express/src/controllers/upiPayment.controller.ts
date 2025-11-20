@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PaymentStatus as PrismaPaymentStatus } from '@prisma/client';
+import { PaymentStatus as PrismaPaymentStatus, SeatStatus as PrismaSeatStatus } from '@prisma/client';
 import { ApiResponse } from '../utils/apiResponse';
 import { ApiError } from '../utils/apiError';
 import { generateQRCode } from '../utils/qrCode';
@@ -47,7 +47,7 @@ export class UpiPaymentController {
                 const seats = await tx.seat.findMany({
                     where: {
                         id: { in: seatIds },
-                        status: 'available'
+                        status: PrismaSeatStatus.AVAILABLE
                     }
                 });
 
@@ -84,18 +84,23 @@ export class UpiPaymentController {
                         status: PrismaPaymentStatus.PENDING,
                         referenceId,
                         upiId: upiSettings.upivpa,
-                        expiresAt: new Date(Date.now() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000),
-                        seats: {
-                            connect: seatIds.map((id: string) => ({ id }))
-                        }
+                        expiresAt: new Date(Date.now() + PAYMENT_TIMEOUT_MINUTES * 60 * 1000)
                     }
+                });
+
+                // Link seats to the payment session
+                await tx.paymentSessionSeat.createMany({
+                    data: seatIds.map((id: string) => ({
+                        paymentSessionId: paymentSession.id,
+                        seatId: id
+                    }))
                 });
 
                 // Lock the seats
                 await tx.seat.updateMany({
                     where: { id: { in: seatIds } },
                     data: {
-                        status: 'locked'
+                        status: PrismaSeatStatus.LOCKED
                     }
                 });
 
@@ -260,12 +265,21 @@ export class UpiPaymentController {
         return prisma.$transaction(async (tx) => {
             const paymentSession = await tx.paymentSession.findUnique({
                 where: { id: sessionId },
-                include: { seats: true }
+                include: {
+                    sessionSeats: {
+                        include: {
+                            seat: true
+                        }
+                    }
+                }
             });
 
             if (!paymentSession) {
                 throw new Error('Payment session not found');
             }
+
+            const seatIds = paymentSession.sessionSeats.map(s => s.seatId);
+            const seats = paymentSession.sessionSeats.map(s => s.seat).filter(Boolean) as any[];
 
             // Update payment session status
             const updatedSession = await tx.paymentSession.update({
@@ -278,9 +292,9 @@ export class UpiPaymentController {
 
             // Mark seats as booked
             await tx.seat.updateMany({
-                where: { id: { in: paymentSession.seats.map(seat => seat.id) } },
+                where: { id: { in: seatIds } },
                 data: {
-                    status: 'booked'
+                    status: PrismaSeatStatus.BOOKED
                 }
             });
 
@@ -291,7 +305,7 @@ export class UpiPaymentController {
                     eventId: paymentSession.eventId,
                     status: 'CONFIRMED',
                     finalAmount: paymentSession.amount,
-                    seats: paymentSession.seats.map(seat => ({
+                    seats: seats.map(seat => ({
                         id: seat.id,
                         section: seat.section,
                         row: seat.row,
@@ -321,8 +335,8 @@ export class UpiPaymentController {
             });
 
             // Emit seat booked events
-            paymentSession.seats.forEach(seat => {
-                WebsocketService.emitSeatStatusChange(paymentSession.eventId, seat.id, 'BOOKED');
+            seatIds.forEach(seatId => {
+                WebsocketService.emitSeatStatusChange(paymentSession.eventId, seatId, PrismaSeatStatus.BOOKED);
             });
 
             return {
@@ -342,8 +356,7 @@ export class UpiPaymentController {
                 where: {
                     status: PrismaPaymentStatus.PENDING,
                     expiresAt: { lt: new Date() }
-                },
-                include: { seats: true }
+                }
             });
 
             console.log(`Found ${expiredSessions.length} expired payment sessions`);
@@ -368,7 +381,9 @@ export class UpiPaymentController {
             // Get the payment session with seats
             const session = await tx.paymentSession.findUnique({
                 where: { id: sessionId },
-                include: { seats: true }
+                include: {
+                    sessionSeats: true
+                }
             });
 
             if (!session) {
@@ -380,23 +395,23 @@ export class UpiPaymentController {
             await tx.paymentSession.update({
                 where: { id: sessionId },
                 data: {
-                    status: 'EXPIRED' as PrismaPaymentStatus,
+                    status: PrismaPaymentStatus.FAILED,
                     updatedAt: new Date()
                 }
             });
 
             // Release seats
-            const seatIds = session.seats.map(seat => seat.id);
+            const seatIds = session.sessionSeats.map(seat => seat.seatId);
             await tx.seat.updateMany({
                 where: { id: { in: seatIds } },
                 data: {
-                    status: 'available'
+                    status: PrismaSeatStatus.AVAILABLE
                 }
             });
 
             // Emit seat released events
             seatIds.forEach(seatId => {
-                WebsocketService.emitSeatStatusChange(session.eventId, seatId, 'AVAILABLE');
+                WebsocketService.emitSeatStatusChange(session.eventId, seatId, PrismaSeatStatus.AVAILABLE);
             });
 
             return session;
