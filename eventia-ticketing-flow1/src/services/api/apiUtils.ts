@@ -1,11 +1,12 @@
 import axios, { AxiosError } from 'axios';
+import { API_BASE_URL as CONFIG_API_URL } from '../../config';
 import { refreshToken } from './authApi';
 
 // Get the API URL from environment variables - ensure correct port for backend
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+export const API_URL = CONFIG_API_URL;
 
 // Create a default API client instance with common configuration
-const baseURL = API_URL.endsWith('/api/v1') ? API_URL : `${API_URL}/api/v1`;
+const baseURL = API_URL;
 
 export const defaultApiClient = axios.create({
   baseURL,

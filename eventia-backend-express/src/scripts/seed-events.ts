@@ -1,14 +1,12 @@
 /**
  * Event Seeding Script
- * 
+ *
  * This script seeds realistic IPL event data into the database.
  * Run with: npx ts-node src/scripts/seed-events.ts
  */
 
-import { PrismaClient, EventStatus } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
-
-const prisma = new PrismaClient();
+import { EventStatus } from '@prisma/client';
+import { prisma } from '../db/prisma';
 
 interface IPLTeam {
     name: string;
@@ -208,4 +206,4 @@ generateIPLMatches()
     .catch((error) => {
         console.error('Error during seeding:', error);
         process.exit(1);
-    }); 
+    });

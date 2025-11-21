@@ -1,15 +1,15 @@
-import { Request, Response } from 'express';
-import { ApiError } from '../utils/apiError';
-import { asyncHandler } from '../utils/asyncHandler';
-import { ApiResponse } from '../utils/apiResponse';
-import { logger } from '../utils/logger';
 import { EventStatus } from '@prisma/client';
-import { v4 as uuidv4 } from 'uuid';
-import path from 'path';
+import { Request, Response } from 'express';
 import fs from 'fs';
-import { eventService } from '../services/event.service';
-import { EventFilters, EventCreateInput, EventUpdateInput } from '../types/event.types';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import prisma from '../db/prisma';
+import { eventService } from '../services/event.service';
+import { EventCreateInput, EventFilters, EventUpdateInput } from '../types/event.types';
+import { ApiError } from '../utils/apiError';
+import { ApiResponse } from '../utils/apiResponse';
+import { asyncHandler } from '../utils/asyncHandler';
+import { logger } from '../utils/logger';
 
 /**
  * Controller for handling event operations
@@ -23,14 +23,14 @@ export class EventController {
   static getAllEvents = asyncHandler(async (req: Request, res: Response) => {
     // Parse query parameters for filtering
     const filters = EventController.parseEventFilters(req);
-    
+
     // Delegate to service
     const result = await eventService.getAllEvents(filters);
-    
+
     // Return standardized response
     return ApiResponse.success(
-      res, 
-      200, 
+      res,
+      200,
       'Events fetched successfully',
       {
         events: result.events,
@@ -45,23 +45,23 @@ export class EventController {
    */
   static getEventById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const includeParams = req.query.include ? 
-      (req.query.include as string).split(',') : 
+    const includeParams = req.query.include ?
+      (req.query.include as string).split(',') :
       ['ticketCategories', 'categories'];
-    
+
     // Use the dataloader from request for optimized query performance
-    const event = await req.loaders.eventWithIncludeLoader.load({ 
+    const event = await req.loaders.eventWithIncludeLoader.load({
       id,
       include: includeParams
     });
-    
+
     if (!event) {
       throw ApiError.notFound('Event not found', 'EVENT_NOT_FOUND');
     }
-    
+
     // Get the enhanced event with seat map from the service
     const enhancedEvent = await eventService.getEventById(id, includeParams);
-    
+
     // Return standardized response
     return ApiResponse.success(res, 200, 'Event fetched successfully', enhancedEvent);
   });
@@ -77,7 +77,7 @@ export class EventController {
     if (!userId) {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
     }
-    
+
     // Prepare event data from request body
     const eventData: EventCreateInput = {
       ...req.body,
@@ -85,10 +85,10 @@ export class EventController {
       // Include any relations we want in the response
       include: ['ticketCategories', 'categories', 'organizer']
     };
-    
+
     // Delegate to service with transaction handling
     const createdEvent = await eventService.createEvent(eventData);
-    
+
     // Return standardized response
     return ApiResponse.created(res, createdEvent);
   });
@@ -99,24 +99,24 @@ export class EventController {
    */
   static updateEvent = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    
+
     // Get the authenticated user's ID
     const userId = (req as any).user?.id;
 
     if (!userId) {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
     }
-    
+
     // Prepare update data from request body
     const updateData: EventUpdateInput = {
       ...req.body,
       // Include any relations we want in the response
       include: ['ticketCategories', 'categories']
     };
-    
+
     // Delegate to service
     const updatedEvent = await eventService.updateEvent(id, updateData);
-    
+
     // Return standardized response
     return ApiResponse.success(res, 200, 'Event updated successfully', updatedEvent);
   });
@@ -127,24 +127,24 @@ export class EventController {
    */
   static deleteEvent = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    
+
     // Get the authenticated user's ID
     const userId = (req as any).user?.id;
 
     if (!userId) {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
     }
-    
+
     // Use the dataloader to check if event exists before deletion
     const eventExists = await req.loaders.eventLoader.load(id);
-    
+
     if (!eventExists) {
       throw ApiError.notFound('Event not found', 'EVENT_NOT_FOUND');
     }
-    
+
     // Delegate to service for soft deletion
     await eventService.deleteEvent(id);
-    
+
     // Return standardized response
     return ApiResponse.success(res, 200, 'Event deleted successfully', null);
   });
@@ -156,27 +156,27 @@ export class EventController {
   static getPublishedEvents = asyncHandler(async (req: Request, res: Response) => {
     // Parse query parameters for filtering
     const filters = EventController.parseEventFilters(req);
-    
+
     // Ensure we only return published events
     filters.status = EventStatus.PUBLISHED;
-    
+
     // Support for cursor-based pagination
     if (req.query.cursor) {
       filters.cursor = req.query.cursor as string;
     }
-    
+
     // Optionally limit fields for better performance
     if (req.query.fields) {
       filters.fields = (req.query.fields as string).split(',');
     }
-    
+
     // Delegate to service
     const result = await eventService.getPublishedEvents(filters);
-    
+
     // Return standardized response
     return ApiResponse.success(
-      res, 
-      200, 
+      res,
+      200,
       'Published events fetched successfully',
       {
         events: result.events,
@@ -191,14 +191,14 @@ export class EventController {
    */
   static getFeaturedEvents = asyncHandler(async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 5;
-    
+
     // Delegate to service with optimized field selection
     const events = await eventService.getFeaturedEvents(limit);
-    
+
     // Return standardized response
     return ApiResponse.success(res, 200, 'Featured events fetched successfully', { events });
   });
-  
+
   /**
    * List all published events for public view
    * @route GET /api/public/events/list
@@ -212,7 +212,7 @@ export class EventController {
     if (req.method === 'OPTIONS') {
       return res.status(200).end();
     }
-    
+
     // Use the proper service with filters and optimized field selection
     const filters: EventFilters = {
       status: EventStatus.PUBLISHED,
@@ -225,15 +225,15 @@ export class EventController {
       // Only include relations needed for the listing
       include: ['ticketCategories', 'categories']
     };
-    
+
     // Support for cursor-based pagination
     if (req.query.cursor) {
       filters.cursor = req.query.cursor as string;
       delete filters.page; // Can't use both pagination methods
     }
-    
+
     const result = await eventService.getAllEvents(filters);
-    
+
     // Format events for backward compatibility
     const formattedEvents = result.events.map(event => ({
       id: event.id,
@@ -256,7 +256,7 @@ export class EventController {
       poster_image: event.imageUrl || 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea',
       category: event.categories && event.categories.length > 0 ? event.categories[0].name : 'General'
     }));
-    
+
     // Return successful response with pagination that supports cursor-based navigation
     const pagination = {
       ...(result.pagination.total !== undefined && { total: result.pagination.total }),
@@ -266,13 +266,10 @@ export class EventController {
       ...(result.pagination.nextCursor !== undefined && { nextCursor: result.pagination.nextCursor }),
       ...(result.pagination.hasMore !== undefined && { hasMore: result.pagination.hasMore })
     };
-    
-    return res.status(200).json({
-      status: 'success',
-      data: {
-        events: formattedEvents,
-        pagination
-      }
+
+    return ApiResponse.success(res, 200, 'Public events listed successfully', {
+      events: formattedEvents,
+      pagination
     });
   });
 
@@ -283,20 +280,20 @@ export class EventController {
   static getPublicEventById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const includeParams = ['ticketCategories', 'categories', 'organizer'];
-    
+
     // Use dataloader for optimized queries
-    const event = await req.loaders.eventWithIncludeLoader.load({ 
+    const event = await req.loaders.eventWithIncludeLoader.load({
       id,
       include: includeParams
     });
-    
+
     if (!event) {
       throw ApiError.notFound('Event not found', 'EVENT_NOT_FOUND');
     }
-    
+
     // Get the enhanced event with seat map from the service
     const enhancedEvent = await eventService.getEventById(id, includeParams);
-    
+
     // Format event for API response (compatibility format)
     const eventData = {
       id: event.id,
@@ -307,108 +304,89 @@ export class EventController {
       status: event.status,
       location: event.location,
       venue: event.location,
-      category: event.categories && event.categories.length > 0 
-        ? event.categories.map(c => c.name).join(', ') 
+      category: event.categories && event.categories.length > 0
+        ? event.categories.map(c => c.name).join(', ')
         : 'General',
-      images: event.imageUrl 
-        ? [{ id: 'img1', url: event.imageUrl, is_featured: true }] 
+      images: event.imageUrl
+        ? [{ id: 'img1', url: event.imageUrl, is_featured: true }]
         : [],
       poster_image: event.imageUrl || 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea',
-      ticket_types: event.ticketCategories 
+      ticket_types: event.ticketCategories
         ? event.ticketCategories.map(tc => ({
             id: tc.id,
             name: tc.name,
             price: parseFloat(tc.price.toString()),
             quantity: tc.totalSeats,
             available: tc.totalSeats - tc.bookedSeats
-          })) 
+        }))
         : [],
       created_at: event.createdAt.toISOString(),
       updated_at: event.updatedAt.toISOString(),
       seatMap: enhancedEvent.seatMap,
-      organizer: event.organizer 
+      organizer: event.organizer
         ? {
             id: event.organizer.id,
             name: event.organizer.name,
             email: event.organizer.email
-          } 
+        }
         : undefined
     };
-    
+
     // Return successful response
-    return res.status(200).json({
-      status: 'success',
-      data: eventData
-    });
+    return ApiResponse.success(res, 200, 'Event details fetched successfully', eventData);
   });
 
   /**
    * List IPL matches (cricket events with teams)
    * @route GET /api/public/events/ipl
    */
-  static listIPLMatches = asyncHandler(async (req: Request, res: Response) => {
-    try {
-      logger.info("IPL Matches API called");
-      
-      // Get cricket/sports events with "vs" in title
-      const filters: EventFilters = {
-        status: EventStatus.PUBLISHED,
-        search: "vs", // This will find events with "vs" in title or description
-        limit: 10
-      };
-      
-      const result = await eventService.getAllEvents(filters);
-      
-      // Transform to the expected format
-      const matches = result.events.map(event => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        start_date: event.startDate.toISOString(),
-        end_date: event.endDate.toISOString(),
-        status: event.status,
-        location: event.location,
-        venue: event.location,
-        category: 'Cricket, IPL',
-        teams: {
-          team1: {
-            name: event.title.split(' vs ')[0] || 'Team 1',
-            shortName: (event.title.split(' vs ')[0] || 'Team 1').substring(0, 3).toUpperCase(),
-            logo: '/teams/default.svg'
-          },
-          team2: {
-            name: event.title.split(' vs ')[1] || 'Team 2',
-            shortName: (event.title.split(' vs ')[1] || 'Team 2').substring(0, 3).toUpperCase(),
-            logo: '/teams/default.svg'
-          }
-        },
-        ticketTypes: event.ticketCategories ? event.ticketCategories.map(tc => ({
-          category: tc.name,
-          price: parseFloat(tc.price.toString()),
-          available: tc.totalSeats - tc.bookedSeats,
-          capacity: tc.totalSeats
-        })) : [],
-        organizer_id: event.organizerId,
-        created_at: event.createdAt.toISOString(),
-        updated_at: event.updatedAt.toISOString(),
-        time: event.startDate.toTimeString().substring(0, 5),
-        duration: '3 hours'
-      }));
+  /**
+   * List IPL matches (cricket events with teams)
+   * @route GET /api/public/events/ipl
+   */
+  static listIPLMatches = asyncHandler(async (_req: Request, res: Response) => {
+    logger.info("IPL Matches API called");
 
-      return res.json({
-        success: true,
-        data: {
-          matches
+
+    const result = await (filters);
+
+    // Transform to the expected format
+    const matches = result.events.map(event => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      start_date: event.startDate.toISOString(),
+      end_date: event.endDate.toISOString(),
+      status: event.status,
+      location: event.location,
+      venue: event.location,
+      category: 'Cricket, IPL',
+      teams: {
+        team1: {
+          name: event.title.split(' vs ')[0] || 'Team 1',
+          shortName: (event.title.split(' vs ')[0] || 'Team 1').substring(0, 3).toUpperCase(),
+          logo: '/teams/default.svg'
+        },
+        team2: {
+          name: event.title.split(' vs ')[1] || 'Team 2',
+          shortName: (event.title.split(' vs ')[1] || 'Team 2').substring(0, 3).toUpperCase(),
+          logo: '/teams/default.svg'
         }
-      });
-    } catch (error) {
-      logger.error('Error listing IPL matches:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch IPL matches',
-        error: (error as Error).message
-      });
-    }
+      },
+      ticketTypes: event.ticketCategories ? event.ticketCategories.map(tc => ({
+        category: tc.name,
+        price: parseFloat(tc.price.toString()),
+        available: tc.totalSeats - tc.bookedSeats,
+        capacity: tc.totalSeats
+      })) : [],
+      organizer_id: event.organizerId,
+      created_at: event.createdAt.toISOString(),
+      updated_at: event.updatedAt.toISOString(),
+      time: event.startDate.toTimeString().substring(0, 5),
+      duration: '3 hours'
+    }));
+
+    return ApiResponse.success(res, 200, 'IPL matches fetched successfully', { matches });
   });
 
   /**
@@ -425,29 +403,15 @@ export class EventController {
       return res.status(200).end();
     }
 
-    try {
-      // Get categories from database
-      const categories = await prisma.category.findMany({
-        select: {
-          id: true,
-          name: true
-        }
-      });
+    // Get categories from database
+    const categories = await prisma.category.findMany({
+      select: {
+        id: true,
+        name: true
+      }
+    });
 
-      return res.json({
-        success: true,
-        data: {
-          categories
-        }
-      });
-    } catch (error) {
-      logger.error('Error listing categories:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch categories',
-        error: (error as Error).message
-      });
-    }
+    return ApiResponse.success(res, 200, 'Categories fetched successfully', { categories });
   });
 
   /**
@@ -460,7 +424,7 @@ export class EventController {
     try {
       // Get event to ensure it exists
       const event = await eventService.getEventById(id);
-      
+
       if (!event) {
         return ApiResponse.error(
           res,
@@ -473,7 +437,7 @@ export class EventController {
       // In a real implementation, we'd call a seat service
       // For now, we'll use the seat map from the event service
       const seatMap = event.seatMap;
-      
+
       if (!seatMap) {
         return ApiResponse.error(
           res,
@@ -482,13 +446,13 @@ export class EventController {
           'SEAT_MAP_NOT_FOUND'
         );
       }
-      
+
       // Transform seat map to the expected format
       const seatsBySection: Record<string, any[]> = {};
-      
+
       seatMap.sections.forEach(section => {
         seatsBySection[section.name] = [];
-        
+
         section.rows.forEach(row => {
           row.seats.forEach(seat => {
             seatsBySection[section.name].push({
@@ -505,13 +469,10 @@ export class EventController {
         });
       });
 
-      return res.status(200).json({
-        success: true,
-        data: {
-          event_id: id,
-          sections: Object.keys(seatsBySection),
-          seats: seatsBySection
-        }
+      return ApiResponse.success(res, 200, 'Event seats fetched successfully', {
+        event_id: id,
+        sections: Object.keys(seatsBySection),
+        seats: seatsBySection
       });
     } catch (error) {
       logger.error('Error fetching event seats:', error);
@@ -541,7 +502,7 @@ export class EventController {
       // If event_id is provided, verify the event exists
       if (eventId) {
         const event = await eventService.getEventById(eventId);
-        
+
         if (!event) {
           throw ApiError.notFound('Event not found', 'EVENT_NOT_FOUND');
         }
@@ -571,9 +532,9 @@ export class EventController {
       }
 
       return ApiResponse.success(
-        res, 
-        201, 
-        'Image uploaded successfully', 
+        res,
+        201,
+        'Image uploaded successfully',
         {
           fileName,
           filePath,
@@ -596,7 +557,7 @@ export class EventController {
   private static parseEventFilters(req: Request): EventFilters {
     // We could destructure, but explicit is clearer
     const filters: EventFilters = {};
-    
+
     // Basic filters
     if (req.query.category) filters.category = req.query.category as string;
     if (req.query.date) filters.date = req.query.date as string;
@@ -605,30 +566,30 @@ export class EventController {
     if (req.query.search) filters.search = req.query.search as string;
     if (req.query.status) filters.status = req.query.status as EventStatus;
     if (req.query.organizerId) filters.organizerId = req.query.organizerId as string;
-    
+
     // Pagination options
     if (req.query.page) filters.page = parseInt(req.query.page as string);
     if (req.query.limit) filters.limit = parseInt(req.query.limit as string);
     if (req.query.cursor) filters.cursor = req.query.cursor as string;
-    
+
     // Sorting options
     if (req.query.sortBy) filters.sortBy = req.query.sortBy as string;
     if (req.query.sortOrder) filters.sortOrder = req.query.sortOrder as 'asc' | 'desc';
-    
+
     // Data loading options
     if (req.query.include) {
       filters.include = (req.query.include as string).split(',');
     }
-    
+
     if (req.query.fields) {
       filters.fields = (req.query.fields as string).split(',');
     }
-    
+
     // Additional filters
     if (req.query.ids) {
       filters.ids = (req.query.ids as string).split(',');
     }
-    
+
     return filters;
   }
 }
@@ -637,4 +598,4 @@ export class EventController {
 export const listPublicEvents = EventController.listPublicEvents;
 export const getPublicEventById = EventController.getPublicEventById;
 export const listIPLMatches = EventController.listIPLMatches;
-export const listCategories = EventController.listCategories; 
+export const listCategories = EventController.listCategories;

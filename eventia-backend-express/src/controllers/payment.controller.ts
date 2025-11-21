@@ -547,7 +547,7 @@ export class PaymentController {
         'Webhook processed successfully'
       );
     } catch (error) {
-      console.error('Error processing webhook:', error);
+      logger.error('Error processing webhook:', error);
       if (error instanceof ApiError) {
         return ApiResponse.error(
           res,

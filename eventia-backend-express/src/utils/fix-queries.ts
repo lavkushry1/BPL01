@@ -1,17 +1,17 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db/prisma';
 
 async function fixColumnQueries(): Promise<void> {
-  const prisma = new PrismaClient();
-  
+  // prisma is already instantiated
+
   try {
     console.log('Starting database fixes...');
 
     // Fix issue with seats table
     await prisma.$executeRaw`
-      DO $$ 
+      DO $$
       BEGIN
         IF EXISTS (
-          SELECT 1 FROM information_schema.columns 
+          SELECT 1 FROM information_schema.columns
           WHERE table_name = 'seats' AND column_name = 'lockedBy'
         ) THEN
           ALTER TABLE "seats" DROP COLUMN "lockedBy";
@@ -22,10 +22,10 @@ async function fixColumnQueries(): Promise<void> {
 
     // Fix issue with ticket_generation_queue table
     await prisma.$executeRaw`
-      DO $$ 
+      DO $$
       BEGIN
         IF EXISTS (
-          SELECT 1 FROM information_schema.columns 
+          SELECT 1 FROM information_schema.columns
           WHERE table_name = 'ticket_generation_queue' AND column_name = 'maxAttempts'
         ) THEN
           ALTER TABLE "ticket_generation_queue" DROP COLUMN "maxAttempts";
@@ -39,12 +39,12 @@ async function fixColumnQueries(): Promise<void> {
       CREATE INDEX IF NOT EXISTS "reservation_expiry_queue_processed_idx" ON "reservation_expiry_queue"("processed");
     `;
     console.log('Created reservation_expiry_queue_processed_idx index');
-    
+
     await prisma.$executeRaw`
       CREATE INDEX IF NOT EXISTS "reservation_expiry_queue_expires_at_idx" ON "reservation_expiry_queue"("expires_at");
     `;
     console.log('Created reservation_expiry_queue_expires_at_idx index');
-    
+
     await prisma.$executeRaw`
       CREATE INDEX IF NOT EXISTS "ticket_generation_queue_next_attempt_at_attempts_idx" ON "ticket_generation_queue"("next_attempt_at", "attempts");
     `;
@@ -60,4 +60,4 @@ async function fixColumnQueries(): Promise<void> {
   }
 }
 
-fixColumnQueries(); 
+fixColumnQueries();

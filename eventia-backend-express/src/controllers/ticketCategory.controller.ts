@@ -2,18 +2,19 @@ import { Request, Response } from 'express';
 import httpStatus from 'http-status';
 import { prisma } from '../db/prisma';
 import { ApiError } from '../utils/apiError';
+import { ApiResponse } from '../utils/apiResponse';
 import { catchAsync } from '../utils/catchAsync';
 
 /**
  * Create a new ticket category
  */
 const createTicketCategory = catchAsync(async (req: Request, res: Response) => {
-  const { 
-    name, 
-    description, 
-    price, 
+  const {
+    name,
+    description,
+    price,
     totalSeats,
-    eventId 
+    eventId
   } = req.body;
 
   // Check if event exists
@@ -36,7 +37,7 @@ const createTicketCategory = catchAsync(async (req: Request, res: Response) => {
     }
   });
 
-  res.status(httpStatus.CREATED).json(ticketCategory);
+  return ApiResponse.created(res, ticketCategory, 'Ticket category created successfully');
 });
 
 /**
@@ -49,7 +50,7 @@ const getTicketCategoriesByEventId = catchAsync(async (req: Request, res: Respon
     where: { eventId }
   });
 
-  res.status(httpStatus.OK).json(ticketCategories);
+  return ApiResponse.success(res, 200, 'Ticket categories fetched successfully', ticketCategories);
 });
 
 /**
@@ -66,7 +67,7 @@ const getTicketCategoryById = catchAsync(async (req: Request, res: Response) => 
     throw new ApiError(httpStatus.NOT_FOUND, 'Ticket category not found');
   }
 
-  res.status(httpStatus.OK).json(ticketCategory);
+  return ApiResponse.success(res, 200, 'Ticket category fetched successfully', ticketCategory);
 });
 
 /**
@@ -74,11 +75,11 @@ const getTicketCategoryById = catchAsync(async (req: Request, res: Response) => 
  */
 const updateTicketCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { 
-    name, 
-    description, 
-    price, 
-    totalSeats 
+  const {
+    name,
+    description,
+    price,
+    totalSeats
   } = req.body;
 
   // Check if ticket category exists
@@ -100,7 +101,7 @@ const updateTicketCategory = catchAsync(async (req: Request, res: Response) => {
     }
   });
 
-  res.status(httpStatus.OK).json(updatedTicketCategory);
+  return ApiResponse.success(res, 200, 'Ticket category updated successfully', updatedTicketCategory);
 });
 
 /**
@@ -122,7 +123,7 @@ const deleteTicketCategory = catchAsync(async (req: Request, res: Response) => {
     where: { id }
   });
 
-  res.status(httpStatus.NO_CONTENT).send();
+  return ApiResponse.success(res, 204, 'Ticket category deleted successfully');
 });
 
 /**
@@ -142,7 +143,7 @@ const updateBookedSeats = catchAsync(async (req: Request, res: Response) => {
 
   if (bookedSeats > ticketCategory.totalSeats) {
     throw new ApiError(
-      httpStatus.BAD_REQUEST, 
+      httpStatus.BAD_REQUEST,
       'Booked seats cannot exceed total seats'
     );
   }
@@ -152,7 +153,7 @@ const updateBookedSeats = catchAsync(async (req: Request, res: Response) => {
     data: { bookedSeats }
   });
 
-  res.status(httpStatus.OK).json(updatedTicketCategory);
+  return ApiResponse.success(res, 200, 'Booked seats updated successfully', updatedTicketCategory);
 });
 
 export const TicketCategoryController = {

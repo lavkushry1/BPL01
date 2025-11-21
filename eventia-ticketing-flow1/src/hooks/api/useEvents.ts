@@ -4,28 +4,23 @@
  * Provides typed React Query hooks for fetching and managing events
  */
 
-import { 
-  useQuery, 
-  useMutation, 
-  UseQueryOptions, 
-  UseMutationOptions,
-  QueryClient,
-  useQueryClient,
-  useInfiniteQuery,
+import apiClient from '@/lib/api-client';
+import {
+  Event,
+  EventFilters,
+  EventInput,
+  IPLMatch
+} from '@/types/events';
+import {
   keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  UseQueryOptions,
   useSuspenseQuery
 } from '@tanstack/react-query';
-import { eventService } from '@/services/api/eventService';
-import { 
-  Event, 
-  EventFilters, 
-  EventInput, 
-  IPLMatch,
-  Category
-} from '@/types/events';
-import { PaginatedResponse } from '@/types/api';
 import { AxiosError } from 'axios';
-import apiClient from '@/lib/api-client';
 
 /**
  * Constants for query keys
@@ -56,7 +51,7 @@ export const fetchEvents = async (filters?: EventFilters): Promise<Event[]> => {
     if (filters.limit) queryParams.append('limit', filters.limit.toString());
   }
 
-  const response = await apiClient.get(`/events?${queryParams.toString()}`);
+  const response = await defaultApiClient.get(`/events?${queryParams.toString()}`);
   return response.data.data.events || [];
 };
 
@@ -64,7 +59,7 @@ export const fetchEvents = async (filters?: EventFilters): Promise<Event[]> => {
  * Fetch a single event by ID
  */
 export const fetchEventById = async (eventId: string): Promise<Event> => {
-  const response = await apiClient.get(`/events/${eventId}`);
+  const response = await defaultApiClient.get(`/events/${eventId}`);
   return response.data.data;
 };
 
@@ -72,9 +67,9 @@ export const fetchEventById = async (eventId: string): Promise<Event> => {
  * Fetch IPL matches specifically
  */
 export const fetchIPLMatches = async (): Promise<IPLMatch[]> => {
-  const response = await apiClient.get('/events?category=Cricket,IPL&status=published');
+  const response = await defaultApiClient.get('/events?category=Cricket,IPL&status=published');
   return response.data.data.events
-    .filter((event: any) => event.teams || 
+    .filter((event: any) => event.teams ||
       (event.category && ['ipl', 'cricket'].includes(event.category.toLowerCase())) ||
       (event.title && event.title.toLowerCase().includes('ipl')));
 };
@@ -91,7 +86,7 @@ export const fetchEventCategories = async () => {
  * Hook for fetching events with filtering
  */
 export function useEvents(
-  filters?: EventFilters, 
+  filters?: EventFilters,
   options?: UseQueryOptions<Event[], Error, Event[], ReturnType<typeof EVENTS_QUERY_KEYS.list>>
 ) {
   return useQuery({
@@ -116,7 +111,7 @@ export function useEvents(
  * Hook for fetching events with Suspense support (React 18+)
  */
 export function useSuspenseEvents(
-  filters?: EventFilters, 
+  filters?: EventFilters,
   options?: Omit<UseQueryOptions<Event[], Error, Event[], ReturnType<typeof EVENTS_QUERY_KEYS.list>>, 'suspense'>
 ) {
   return useSuspenseQuery({
@@ -132,7 +127,7 @@ export function useSuspenseEvents(
  */
 export function usePrefetchEvents() {
   const queryClient = useQueryClient();
-  
+
   return {
     prefetchEvents: async (filters?: EventFilters) => {
       await queryClient.prefetchQuery({
@@ -204,10 +199,10 @@ export function useInfiniteEvents(
 ) {
   return useInfiniteQuery({
     queryKey: [...EVENTS_QUERY_KEYS.lists(), 'infinite', filters],
-    queryFn: ({ pageParam = 1 }) => fetchEvents({ 
-      ...filters, 
-      page: pageParam as number, 
-      limit: 10 
+    queryFn: ({ pageParam = 1 }) => fetchEvents({
+      ...filters,
+      page: pageParam as number,
+      limit: 10
     }),
     initialPageParam: 1,
     getNextPageParam: (lastPage: Event[], allPages) => {
@@ -224,7 +219,7 @@ export function useInfiniteEvents(
  */
 export function useCreateEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (eventData: EventInput) => {
       const response = await apiClient.post('/events', eventData);
@@ -233,10 +228,10 @@ export function useCreateEvent() {
     onMutate: async (newEvent) => {
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: EVENTS_QUERY_KEYS.lists() });
-      
+
       // Snapshot the previous value
       const previousEvents = queryClient.getQueryData(EVENTS_QUERY_KEYS.lists());
-      
+
       // Optimistically add the new event to the query cache
       queryClient.setQueryData(EVENTS_QUERY_KEYS.lists(), (old: any) => {
         // Create a fake ID for the optimistic event
@@ -248,16 +243,16 @@ export function useCreateEvent() {
           // Add other required fields for the UI
           isOptimistic: true
         };
-        
+
         // If the old data is an array, add the new event
         if (Array.isArray(old)) {
           return [optimisticEvent, ...old];
         }
-        
+
         // If it's not an array (possibly undefined), return a new array
         return [optimisticEvent];
       });
-      
+
       // Return a context object with the snapshot
       return { previousEvents };
     },
@@ -283,7 +278,7 @@ export function useCreateEvent() {
  */
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<EventInput> }) => {
       const response = await apiClient.put(`/events/${id}`, data);
@@ -292,32 +287,32 @@ export function useUpdateEvent() {
     onMutate: async ({ id, data }) => {
       // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: EVENTS_QUERY_KEYS.detail(id) });
-      
+
       // Snapshot the previous value
       const previousEvent = queryClient.getQueryData(EVENTS_QUERY_KEYS.detail(id));
-      
+
       // Optimistically update to the new value
       queryClient.setQueryData(EVENTS_QUERY_KEYS.detail(id), (old: any) => {
         return { ...old, ...data, updatedAt: new Date().toISOString() };
       });
-      
+
       // Also update in lists if present
       queryClient.setQueriesData({ queryKey: EVENTS_QUERY_KEYS.lists() }, (oldData: any) => {
         // Skip if no old data
         if (!oldData) return oldData;
-        
+
         // If it's an array, update the event in the list
         if (Array.isArray(oldData)) {
-          return oldData.map(event => 
-            event.id === id 
-              ? { ...event, ...data, updatedAt: new Date().toISOString() } 
+          return oldData.map(event =>
+            event.id === id
+              ? { ...event, ...data, updatedAt: new Date().toISOString() }
               : event
           );
         }
-        
+
         return oldData;
       });
-      
+
       // Return the snapshot
       return { previousEvent };
     },
@@ -348,7 +343,7 @@ export function useUpdateEvent() {
  */
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (eventId: string) => {
       const response = await apiClient.delete(`/events/${eventId}`);
@@ -358,11 +353,11 @@ export function useDeleteEvent() {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: EVENTS_QUERY_KEYS.detail(eventId) });
       await queryClient.cancelQueries({ queryKey: EVENTS_QUERY_KEYS.lists() });
-      
+
       // Snapshot the previous values
       const previousEvent = queryClient.getQueryData(EVENTS_QUERY_KEYS.detail(eventId));
       const previousEvents = queryClient.getQueryData(EVENTS_QUERY_KEYS.lists());
-      
+
       // Optimistically remove the event from any lists
       queryClient.setQueriesData({ queryKey: EVENTS_QUERY_KEYS.lists() }, (old: any) => {
         if (Array.isArray(old)) {
@@ -370,7 +365,7 @@ export function useDeleteEvent() {
         }
         return old;
       });
-      
+
       // Return the snapshots
       return { previousEvent, previousEvents };
     },
@@ -390,4 +385,4 @@ export function useDeleteEvent() {
       queryClient.invalidateQueries({ queryKey: EVENTS_QUERY_KEYS.lists() });
     },
   });
-} 
+}

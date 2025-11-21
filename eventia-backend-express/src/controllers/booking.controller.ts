@@ -11,6 +11,11 @@ import { logger } from '../utils/logger';
 /**
  * Create a new booking
  */
+import { ApiResponse } from '../utils/apiResponse';
+
+/**
+ * Create a new booking
+ */
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
   const { event_id, user_id, seat_ids, amount, payment_method } = req.body;
 
@@ -97,10 +102,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
     return booking;
   });
 
-  return res.status(201).json({
-    status: 'success',
-    data: newBooking
-  });
+  return ApiResponse.created(res, newBooking, 'Booking created successfully');
 });
 
 /**
@@ -128,10 +130,7 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
     throw ApiError.notFound('Booking not found');
   }
 
-  return res.status(200).json({
-    status: 'success',
-    data: booking
-  });
+  return ApiResponse.success(res, 200, 'Booking fetched successfully', booking);
 });
 
 /**
@@ -188,10 +187,7 @@ export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Respon
     }
   });
 
-  return res.status(201).json({
-    status: 'success',
-    data: deliveryDetails
-  });
+  return ApiResponse.created(res, deliveryDetails, 'Delivery details saved successfully');
 });
 
 /**
@@ -220,10 +216,7 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
     })
     .returning('*');
 
-  return res.status(200).json({
-    status: 'success',
-    data: updatedBooking
-  });
+  return ApiResponse.success(res, 200, 'Booking status updated successfully', updatedBooking);
 });
 
 /**
@@ -326,14 +319,10 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
     logger.error('WebSocket notification failed:', wsError);
   }
 
-  return res.status(200).json({
-    status: 'success',
-    message: 'Booking cancelled successfully',
-    data: {
-      booking_id: result.cancelledBooking.id,
-      status: result.cancelledBooking.status,
-      cancelled_at: result.cancelledBooking.cancelled_at,
-      refund_status: result.paymentRefunded ? 'initiated' : 'not_applicable'
-    }
+  return ApiResponse.success(res, 200, 'Booking cancelled successfully', {
+    booking_id: result.cancelledBooking.id,
+    status: result.cancelledBooking.status,
+    cancelled_at: result.cancelledBooking.cancelled_at,
+    refund_status: result.paymentRefunded ? 'initiated' : 'not_applicable'
   });
 });

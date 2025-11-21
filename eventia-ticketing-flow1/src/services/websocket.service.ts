@@ -1,3 +1,4 @@
+import config from '@/config';
 import { io, Socket } from 'socket.io-client';
 
 interface EventHandler {
@@ -8,6 +9,7 @@ interface EventHandler {
  * Service for handling WebSocket connections for real-time updates
  */
 class WebSocketService {
+  // ... (keep existing properties)
   private socket: Socket | null = null;
   private isConnected = false;
   private eventHandlers: Map<string, Set<EventHandler>> = new Map();
@@ -28,8 +30,8 @@ class WebSocketService {
       this.socket.disconnect();
     }
 
-    // Use the WEBSOCKET_URL from environment variables directly
-    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:4000';
+    // Use the WEBSOCKET_URL from config
+    const wsUrl = config.api.wsUrl;
 
     this.socket = io(wsUrl, {
       reconnection: true,
