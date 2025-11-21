@@ -203,7 +203,7 @@ export class UpiPaymentController {
             // Find the payment session
             const paymentSession = await prisma.paymentSession.findUnique({
                 where: { id: sessionId },
-                include: { seats: true }
+                include: { sessionSeats: true }
             });
 
             if (!paymentSession) {

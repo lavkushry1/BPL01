@@ -1,23 +1,17 @@
-import { PaymentStatus } from '@prisma/client';
+import { PaymentStatus, SeatStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import * as qrcode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
 import { prisma } from '../db/prisma';
 import * as bookingService from '../services/booking.service';
-import * as seatService from '../services/seat.service';
-import { TicketService } from '../services/ticket.service';
-import * as upiPaymentService from '../services/upiPayment.service';
-import { WebsocketService } from '../services/websocket.service';
 import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { logger } from '../utils/logger';
-import { withRetry } from '../utils/retry';
-
-// Define seat status enum values
-enum SeatStatus {
-  AVAILABLE = 'AVAILABLE',
+import TicketService from '../services/ticket.service';
+import { WebsocketService } from '../services/websocket.service';
+import { withRetry } from '../utils';
   RESERVED = 'RESERVED',
   LOCKED = 'LOCKED',
   BOOKED = 'BOOKED'
@@ -261,8 +255,6 @@ export class PaymentController {
         }
       }
 
-      // Get total count
-      const count = await prisma.bookingPayment.count({ where });
 
       // Map frontend sort field to Prisma field names
       const sortFieldMap: Record<string, string> = {
@@ -292,7 +284,6 @@ export class PaymentController {
         skip: offset
       });
 
-      const totalPages = Math.ceil(count / Number(limit));
 
       // Format payments for frontend
       const payments = rawPayments.map(payment => ({

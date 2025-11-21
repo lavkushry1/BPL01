@@ -34,11 +34,13 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { errors } from '@playwright/test';
 import { AlertCircle, Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
+import { defaultApiClient } from '../../services/api';
 
 interface TicketType {
   category: string;
@@ -117,7 +119,7 @@ const createBookingSchema = (ticketTypes: TicketType[]) => {
 
 type BookingFormValues = z.infer<ReturnType<typeof createBookingSchema>>;
 
-const BookingModal = ({ isOpen, onClose, eventId, eventTitle, ticketTypes }: BookingModalProps) => {
+const BookingModal = ({ onClose, eventId, eventTitle, ticketTypes }: BookingModalProps) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -125,10 +127,8 @@ const BookingModal = ({ isOpen, onClose, eventId, eventTitle, ticketTypes }: Boo
   const bookingSchema = createBookingSchema(ticketTypes);
 
   const {
-    handleSubmit,
     setValue,
     watch,
-    formState: { errors },
     setError,
     clearErrors,
   } = useForm<BookingFormValues>({
@@ -140,25 +140,9 @@ const BookingModal = ({ isOpen, onClose, eventId, eventTitle, ticketTypes }: Boo
 
   const ticketValues = watch('tickets');
 
-  const handleIncrement = (category: string) => {
-    const ticket = ticketTypes.find(t => t.category === category);
-    if (!ticket) return;
 
-    const currentValue = ticketValues[category] || 0;
-    if (currentValue < ticket.available) {
-      setValue(`tickets.${category}`, currentValue + 1, { shouldValidate: true });
-    }
-  };
-
-  const handleDecrement = (category: string) => {
-    const currentValue = ticketValues[category] || 0;
-    if (currentValue > 0) {
-      setValue(`tickets.${category}`, currentValue - 1, { shouldValidate: true });
-    }
-  };
 
   // Calculate totals for display
-  const totalTickets = Object.values(ticketValues).reduce((sum, count) => sum + (count || 0), 0);
   const totalAmount = ticketTypes.reduce((total, ticket) => {
     return total + ((ticketValues[ticket.category] || 0) * ticket.price);
   }, 0);
@@ -169,42 +153,14 @@ const BookingModal = ({ isOpen, onClose, eventId, eventTitle, ticketTypes }: Boo
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/reservations', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          eventId: eventId,
-          tickets: data.tickets,
-          totalAmount: totalAmount
-        })
+      // Use defaultApiClient instead of direct fetch
+      const response = await defaultApiClient.post('/reservations', {
+        event_id: eventId,
+        // selectedSeats: [], // Assuming selectedSeats should be an empty array or removed if not used
+        user_id: 'user_123' // TODO: Get from auth context
       });
 
-      if (!response.ok) {
-        const errorData: ApiError = await response.json();
-
-        // Handle validation errors from API
-        if (errorData.details) {
-          Object.entries(errorData.details).forEach(([field, messages]) => {
-            if (field.startsWith('tickets.')) {
-              const category = field.replace('tickets.', '');
-              setError(`tickets.${category}` as any, {
-                type: 'server',
-                message: messages[0]
-              });
-            } else {
-              setError('root', {
-                type: 'server',
-                message: messages[0]
-              });
-            }
-          });
-        } else {
-          throw new Error(errorData.message || 'Failed to create reservation');
-        }
-        return;
-      }
-
-      const { reservationId, paymentDeadline } = await response.json() as ReservationResponse;
+      const { reservationId, paymentDeadline } = response.data as ReservationResponse;
 
       // Store booking data in sessionStorage
       const bookingData = {
@@ -228,16 +184,6 @@ const BookingModal = ({ isOpen, onClose, eventId, eventTitle, ticketTypes }: Boo
 
       sessionStorage.setItem('bookingData', JSON.stringify(bookingData));
 
-      // Show success toast
-      toast({
-        title: 'Reservation created',
-        description: 'Your ticket reservation was successful!',
-        variant: 'default',
-      });
-
-      // Navigate to delivery address page
-      navigate(`/booking/delivery?reservationId=${reservationId}`);
-      onClose();
 
     } catch (error) {
       console.error('Checkout error:', error);

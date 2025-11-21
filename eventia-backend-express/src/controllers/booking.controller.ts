@@ -1,3 +1,4 @@
+
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../db';
@@ -5,6 +6,7 @@ import { SeatStatus } from '../models/seat';
 import { WebsocketService } from '../services/websocket.service';
 import { ApiError } from '../utils/apiError';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logger } from '../utils/logger';
 
 /**
  * Create a new booking
@@ -321,8 +323,7 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
   try {
     WebsocketService.notifyBookingUpdate(id, 'cancelled');
   } catch (wsError) {
-    // Log WebSocket error but don't fail the request
-    console.error('WebSocket notification failed:', wsError);
+    logger.error('WebSocket notification failed:', wsError);
   }
 
   return res.status(200).json({
