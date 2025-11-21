@@ -30,6 +30,7 @@ model User {
   profile           UserProfile?
 
   @@index([isDeleted])
+  @@index([role])
   @@map("users")
 }
 
@@ -82,6 +83,8 @@ model Event {
   @@index([status])
   @@index([startDate, endDate])
   @@index([isDeleted])
+  @@index([title])
+  @@index([location])
   @@map("events")
 }
 
@@ -114,6 +117,7 @@ model Booking {
   @@index([status])
   @@index([createdAt])
   @@index([isDeleted])
+  @@index([discountId])
   @@map("bookings")
 }
 
@@ -141,6 +145,7 @@ model Payment {
   updatedAt DateTime      @updatedAt
   booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
+  @@index([status])
   @@map("payments")
 }
 
@@ -157,6 +162,8 @@ model BookingPayment {
   booking     Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   admin       User?     @relation("VerifiedPayments", fields: [verifiedBy], references: [id])
 
+  @@index([status])
+  @@index([utrNumber])
   @@map("booking_payments")
 }
 
@@ -231,7 +238,7 @@ model TicketCategory {
   available    Int?         @default(0)
   eventId      String       @map("event_id")
   isDeleted    Boolean      @default(false) @map("is_deleted")
-  deletedAt    DateTime?    @map("deleted_at") 
+  deletedAt    DateTime?    @map("deleted_at")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -259,6 +266,8 @@ model PricingRule {
   ticketCategory    TicketCategory? @relation(fields: [ticketCategoryId], references: [id])
 
   @@index([eventId])
+  @@index([ticketCategoryId])
+  @@index([isActive])
   @@map("pricing_rules")
 }
 
@@ -291,7 +300,7 @@ model Seat {
   meta             Json?                @default("{}")
   eventId          String               @map("event_id")
   ticketCategoryId String?              @map("ticket_category_id")
-  paymentIntentId  String?              @map("payment_intent_id") 
+  paymentIntentId  String?              @map("payment_intent_id")
   isDeleted        Boolean              @default(false) @map("is_deleted")
   deletedAt        DateTime?            @map("deleted_at")
   createdAt        DateTime             @default(now())
@@ -307,6 +316,8 @@ model Seat {
   @@index([status])
   @@index([paymentIntentId])
   @@index([isDeleted])
+  @@index([ticketCategoryId])
+  @@index([section, row])
   @@map("seats")
 }
 
@@ -331,6 +342,7 @@ model PaymentSession {
   @@index([eventId])
   @@index([status])
   @@index([expiresAt])
+  @@index([referenceId])
   @@map("payment_sessions")
 }
 
@@ -412,7 +424,7 @@ model PerformanceMetric {
   url         String?
   userAgent   String?
   deviceType  String   @default("mobile") // mobile, tablet, desktop
-  
+
   // Key metrics for querying
   fcp          Float?  // First Contentful Paint (ms)
   lcp          Float?  // Largest Contentful Paint (ms)
@@ -420,13 +432,13 @@ model PerformanceMetric {
   fid          Float?  // First Input Delay (ms)
   memoryUsage  Float?  // Memory usage (MB)
   networkType  String? // Network connection type
-  
+
   // Full metrics data as JSON
   metricsData Json
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@index([sessionId])
   @@index([timestamp])
   @@index([deviceType])
@@ -483,6 +495,8 @@ model Ticket {
   @@index([userId])
   @@index([status])
   @@index([isDeleted])
+  @@index([ticketCategoryId])
+  @@index([seatId])
   @@map("tickets")
 }
 
