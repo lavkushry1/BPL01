@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { DiscountController } from '../controllers/discount.controller';
-import { validate } from '../middleware/validate';
 import { auth } from '../middleware/auth';
-import { z } from 'zod';
+import { validate } from '../middleware/validate';
+import * as discountValidation from '../validations/discount.validation';
 
 const router = Router();
 
@@ -53,7 +53,7 @@ const router = Router();
  *         updated_at:
  *           type: string
  *           format: date-time
- * 
+ *
  *     DiscountResponse:
  *       type: object
  *       properties:
@@ -77,68 +77,6 @@ const router = Router();
  *         discount_value:
  *           type: number
  */
-
-// Validation schemas
-const createDiscountSchema = z.object({
-  body: z.object({
-    code: z.string().min(3).max(30),
-    type: z.enum(['PERCENTAGE', 'FIXED']),
-    value: z.number().positive(),
-    max_uses: z.number().int().min(0).optional(),
-    min_amount: z.number().min(0).optional(),
-    start_date: z.string().datetime(),
-    end_date: z.string().datetime(),
-    is_active: z.boolean().optional(),
-    description: z.string().optional(),
-    event_ids: z.array(z.string().uuid()).optional(),
-  }),
-});
-
-const updateDiscountSchema = z.object({
-  params: z.object({
-    id: z.string().uuid(),
-  }),
-  body: z.object({
-    code: z.string().min(3).max(30).optional(),
-    type: z.enum(['PERCENTAGE', 'FIXED']).optional(),
-    value: z.number().positive().optional(),
-    max_uses: z.number().int().min(0).optional(),
-    min_amount: z.number().min(0).optional(),
-    start_date: z.string().datetime().optional(),
-    end_date: z.string().datetime().optional(),
-    is_active: z.boolean().optional(),
-    description: z.string().optional(),
-    event_ids: z.array(z.string().uuid()).optional(),
-  }),
-});
-
-const applyDiscountSchema = z.object({
-  body: z.object({
-    code: z.string().min(1),
-    amount: z.number().positive(),
-    event_id: z.string().uuid().optional(),
-  }),
-});
-
-const validateDiscountSchema = z.object({
-  body: z.object({
-    code: z.string().min(1),
-    booking_id: z.string().uuid(),
-    total_amount: z.number().positive(),
-  }),
-});
-
-const getByIdSchema = z.object({
-  params: z.object({
-    id: z.string().uuid(),
-  }),
-});
-
-const getByCodeSchema = z.object({
-  params: z.object({
-    code: z.string().min(1),
-  }),
-});
 
 /**
  * @swagger
@@ -271,7 +209,7 @@ router.get('/', auth('admin'), DiscountController.getAllDiscounts);
 router.get(
   '/:id',
   auth('admin'),
-  validate(getByIdSchema),
+  validate(discountValidation.getByIdSchema),
   DiscountController.getDiscountById
 );
 
@@ -319,7 +257,7 @@ router.get(
 router.get(
   '/code/:code',
   auth(),
-  validate(getByCodeSchema),
+  validate(discountValidation.getByCodeSchema),
   DiscountController.getDiscountByCode
 );
 
@@ -414,7 +352,7 @@ router.get(
 router.post(
   '/',
   auth('admin'),
-  validate(createDiscountSchema),
+  validate(discountValidation.createDiscountSchema),
   DiscountController.createDiscount
 );
 
@@ -502,7 +440,7 @@ router.post(
 router.put(
   '/:id',
   auth('admin'),
-  validate(updateDiscountSchema),
+  validate(discountValidation.updateDiscountSchema),
   DiscountController.updateDiscount
 );
 
@@ -551,7 +489,7 @@ router.put(
 router.delete(
   '/:id',
   auth('admin'),
-  validate(getByIdSchema),
+  validate(discountValidation.getByIdSchema),
   DiscountController.deleteDiscount
 );
 
@@ -624,7 +562,7 @@ router.delete(
  */
 router.post(
   '/apply',
-  validate(applyDiscountSchema),
+  validate(discountValidation.applyDiscountSchema),
   DiscountController.applyDiscount
 );
 
@@ -700,7 +638,7 @@ router.post(
  */
 router.post(
   '/validate',
-  validate(validateDiscountSchema),
+  validate(discountValidation.validateDiscountSchema),
   DiscountController.validateDiscountCode
 );
 
@@ -745,62 +683,10 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.get('/auto-apply', validate(z.object({
-  query: z.object({
-    eventId: z.string().uuid()
-  })
-})), DiscountController.getAutoApplyDiscount);
+router.get(
+  '/auto-apply',
+  validate(discountValidation.getAutoApplyDiscountSchema),
+  DiscountController.getAutoApplyDiscount
+);
 
-/**
- * @swagger
- * /api/discounts/validate:
- *   post:
- *     summary: Validate a discount code
- *     tags: [Discounts]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - code
- *               - amount
- *             properties:
- *               code:
- *                 type: string
- *               amount:
- *                 type: number
- *               eventId:
- *                 type: string
- *                 format: uuid
- *     responses:
- *       200:
- *         description: Discount validated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 data:
- *                   type: object
- *                   properties:
- *                     valid:
- *                       type: boolean
- *                     discount:
- *                       $ref: '#/components/schemas/Discount'
- *                     finalAmount:
- *                       type: number
- *                     message:
- *                       type: string
- *       400:
- *         description: Invalid discount code or validation error
- *       500:
- *         description: Server error
- */
-router.post('/validate', validate(applyDiscountSchema), DiscountController.validateDiscountCode);
-
-export default router; 
+export default router;

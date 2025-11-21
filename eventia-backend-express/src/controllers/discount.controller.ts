@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { discountService } from '../services/discount.service';
+import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
-import { ApiError } from '../utils/apiError';
 
 /**
  * Controller for handling discount operations
@@ -31,11 +31,11 @@ export class DiscountController {
       // Since there's no direct method, we'll get all and filter
       const discounts = await discountService.getAllActiveDiscounts();
       const discount = discounts.find((d: any) => d.id === id);
-      
+
       if (!discount) {
         throw new ApiError(404, 'Discount not found');
       }
-      
+
       return ApiResponse.success(res, 200, 'Discount fetched successfully', discount);
     } catch (error) {
       throw error instanceof ApiError ? error : new ApiError(500, 'Failed to get discount');
@@ -50,11 +50,11 @@ export class DiscountController {
     try {
       const { code } = req.params;
       const result = await discountService.validateDiscountCode(code);
-      
+
       if (!result || !result.valid) {
         throw new ApiError(404, 'Discount not found or invalid');
       }
-      
+
       return ApiResponse.success(res, 200, 'Discount fetched successfully', result.discount);
     } catch (error) {
       throw error instanceof ApiError ? error : new ApiError(500, 'Failed to get discount');
@@ -69,23 +69,23 @@ export class DiscountController {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
-    
+
     try {
       const discounts = await discountService.getAllActiveDiscounts();
-      
+
       // Apply search if provided
-      const filteredDiscounts = search 
-        ? discounts.filter((d: any) => 
+      const filteredDiscounts = search
+        ? discounts.filter((d: any) =>
             d.code.toLowerCase().includes(search.toLowerCase()) ||
             (d.description && d.description.toLowerCase().includes(search.toLowerCase()))
           )
         : discounts;
-        
+
       // Apply pagination
       const startIndex = (page - 1) * limit;
       const endIndex = page * limit;
       const paginatedDiscounts = filteredDiscounts.slice(startIndex, endIndex);
-      
+
       return ApiResponse.success(res, 200, 'Discounts fetched successfully', {
         discounts: paginatedDiscounts,
         total: filteredDiscounts.length,
@@ -133,28 +133,21 @@ export class DiscountController {
   static applyDiscount = asyncHandler(async (req: Request, res: Response) => {
     try {
       const { code, amount } = req.body;
-      
-      if (!code || !amount) {
-        throw new ApiError(400, 'Discount code and amount are required');
-      }
-      
+
       const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new ApiError(400, 'Amount must be a positive number');
-      }
-      
+
       const validation = await discountService.validateDiscountCode(code);
       if (!validation || !validation.valid) {
         throw new ApiError(400, validation?.message || 'Invalid discount code');
       }
-      
+
       // Apply the discount code by incrementing its usage
       await discountService.applyDiscountCode(validation.discount.id);
-      
+
       // Calculate the discounted amount
       const discountValue = validation.discount.value || 0;
       const finalAmount = Math.max(0, parsedAmount - discountValue);
-      
+
       return ApiResponse.success(res, 200, 'Discount applied successfully', {
         originalAmount: parsedAmount,
         discountAmount: discountValue,
@@ -173,18 +166,11 @@ export class DiscountController {
   static validateDiscountCode = asyncHandler(async (req: Request, res: Response) => {
     try {
       const { code, amount } = req.body;
-      
-      if (!code || !amount) {
-        throw new ApiError(400, 'Discount code and amount are required');
-      }
-      
+
       const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new ApiError(400, 'Amount must be a positive number');
-      }
-      
+
       const validation = await discountService.validateDiscountCode(code);
-      
+
       // If validation failed, return the error message
       if (!validation || !validation.valid) {
         return ApiResponse.success(res, 200, 'Discount validation result', {
@@ -192,11 +178,11 @@ export class DiscountController {
           message: validation?.message || 'Invalid discount code'
         });
       }
-      
+
       // Calculate the discounted amount
       const discountValue = validation.discount.value || 0;
       const finalAmount = Math.max(0, parsedAmount - discountValue);
-      
+
       return ApiResponse.success(res, 200, 'Discount validated successfully', {
         valid: true,
         discount: validation.discount,
@@ -216,21 +202,17 @@ export class DiscountController {
   static getAutoApplyDiscount = asyncHandler(async (req: Request, res: Response) => {
     try {
       const { eventId } = req.query;
-      
-      if (!eventId) {
-        throw new ApiError(400, 'Event ID is required');
-      }
-      
+
       const discount = await discountService.getAutoApplyDiscountForEvent(eventId as string);
-      
+
       if (!discount) {
-        return ApiResponse.success(res, 200, 'No auto-apply discount found', { 
-          discount: null 
+        return ApiResponse.success(res, 200, 'No auto-apply discount found', {
+          discount: null
         });
       }
-      
-      return ApiResponse.success(res, 200, 'Auto-apply discount fetched successfully', { 
-        discount 
+
+      return ApiResponse.success(res, 200, 'Auto-apply discount fetched successfully', {
+        discount
       });
     } catch (error: any) {
       throw error instanceof ApiError ? error : new ApiError(400, error.message || 'Failed to get auto-apply discount');
