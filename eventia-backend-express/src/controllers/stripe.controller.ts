@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { stripeService } from '../services/stripe.service';
-import { paymentService } from '../services/payment.service';
-import { transactionService } from '../services/transaction.service';
-import { Payment } from '../models/payment.model';
 import httpStatus from 'http-status';
+import { Payment } from '../models/payment.model';
+import { paymentService } from '../services/payment.service';
+import { stripeService } from '../services/stripe.service';
+import { transactionService } from '../services/transaction.service';
+import { logger } from '../utils/logger';
 
 export class StripeController {
   /**
@@ -41,7 +42,7 @@ export class StripeController {
       const paymentIntent = await stripeService.createPaymentIntent(amount, currency, metadata);
 
       // Start a transaction
-      await transactionService.executeInTransaction(async (trx) => {
+      await transactionService.executeInTransaction(async () => {
         // Create a payment record in our database
         const payment: Omit<Payment, 'id' | 'created_at'> = {
           booking_id: bookingId,
@@ -79,7 +80,7 @@ export class StripeController {
   async handleWebhook(req: Request, res: Response) {
     try {
       const signature = req.headers['stripe-signature'] as string;
-      
+
       if (!signature) {
         return res.status(httpStatus.BAD_REQUEST).json({
           success: false,
@@ -134,7 +135,7 @@ export class StripeController {
       }
 
       // Update payment status to verified
-      await transactionService.executeInTransaction(async (trx) => {
+      await transactionService.executeInTransaction(async () => {
         await paymentService.verifyPayment(payment.id, 'system');
       });
 
@@ -153,7 +154,7 @@ export class StripeController {
       const { bookingId } = paymentIntent.metadata;
 
       if (!bookingId) {
-        console.error('No booking ID found in payment intent metadata');
+        logger.error('No booking ID found in payment intent metadata');
         return;
       }
 
@@ -161,18 +162,18 @@ export class StripeController {
       const payment = await paymentService.getPaymentByBookingId(bookingId);
 
       if (!payment) {
-        console.error(`No payment found for booking ID: ${bookingId}`);
+        logger.error(`No payment found for booking ID: ${bookingId}`);
         return;
       }
 
       // Update payment status to rejected
-      await transactionService.executeInTransaction(async (trx) => {
+      await transactionService.executeInTransaction(async () => {
         await paymentService.rejectPayment(payment.id, 'system');
       });
 
-      console.log(`Payment for booking ${bookingId} marked as rejected due to failure`);
+      logger.info(`Payment for booking ${bookingId} marked as rejected due to failure`);
     } catch (error) {
-      console.error('Error handling payment intent failed:', error);
+      logger.error('Error handling payment intent failed:', error);
     }
   }
 

@@ -1,16 +1,11 @@
-import { Request, Response } from 'express';
 import { PaymentStatus as PrismaPaymentStatus, SeatStatus as PrismaSeatStatus } from '@prisma/client';
-import { ApiResponse } from '../utils/apiResponse';
-import { ApiError } from '../utils/apiError';
-import { generateQRCode } from '../utils/qrCode';
-import { WebsocketService } from '../services/websocket.service';
-import config from '../config';
-import * as upiPaymentService from '../services/upiPayment.service';
-import { v4 as uuidv4 } from 'uuid';
-import * as qrcode from 'qrcode';
-import { SeatStatus } from '../models/seat';
-import { PaymentStatus } from '../models/payment';
+import { Request, Response } from 'express';
 import { prisma } from '../db/prisma';
+import { WebsocketService } from '../services/websocket.service';
+import { logger } from '../utils';
+import { ApiError } from '../utils/apiError';
+import { ApiResponse } from '../utils/apiResponse';
+import { generateQRCode } from '../utils/qrCode';
 
 // UPI payment lock timeout in minutes
 const PAYMENT_TIMEOUT_MINUTES = 10;
@@ -167,7 +162,7 @@ export class UpiPaymentController {
         try {
             const paymentSession = await prisma.paymentSession.findUnique({
                 where: { id: sessionId },
-                include: { seats: true }
+                include: { sessionSeats: true }
             });
 
             if (!paymentSession) {
@@ -176,7 +171,7 @@ export class UpiPaymentController {
 
             return ApiResponse.success(res, 200, 'Payment status retrieved', paymentSession);
         } catch (error) {
-            console.error('Error checking payment status:', error);
+            logger.error('Error checking payment status:', error);
             if (error instanceof ApiError) {
                 return ApiResponse.error(
                     res,
@@ -359,7 +354,7 @@ export class UpiPaymentController {
                 }
             });
 
-            console.log(`Found ${expiredSessions.length} expired payment sessions`);
+            logger.info(`Found ${expiredSessions.length} expired payment sessions`);
 
             // Process each expired session
             for (const session of expiredSessions) {
@@ -368,7 +363,7 @@ export class UpiPaymentController {
 
             return expiredSessions.length;
         } catch (error) {
-            console.error('Error releasing expired payment sessions:', error);
+            logger.error('Error releasing expired payment sessions:', error);
             throw error;
         }
     };
@@ -436,4 +431,4 @@ export class UpiPaymentController {
     }
 }
 
-export default UpiPaymentController; 
+export default UpiPaymentController;
