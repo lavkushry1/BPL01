@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { Input } from '@/components/ui/input';
+import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { Lock } from 'lucide-react';
 import useAuth from '@/hooks/useAuth';
 import { login } from '@/services/api/authApi';
 import { useMutation } from '@tanstack/react-query';
+import { Lock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const { setUser, setAccessToken, setPersist, isAuthenticated, user } = useAuth();
+  const { setUser, setPersist, isAuthenticated, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberDevice, setRememberDevice] = useState(false);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';
@@ -32,23 +32,21 @@ const Login = () => {
 
   // Set up login mutation
   const loginMutation = useMutation({
-    mutationFn: (credentials: { email: string; password: string }) => 
+    mutationFn: (credentials: { email: string; password: string }) =>
       login(credentials.email, credentials.password),
     onSuccess: (data) => {
       // Extract data from the response
       const userData = data.user;
-      const token = data.token || ''; // Use token from the response
-      
+
       // Update auth context
       setUser(userData as any); // Use type assertion to bypass TypeScript error
-      setAccessToken(token);
       setPersist(rememberDevice);
-      
+
       toast({
         title: "Login successful",
         description: "Welcome back!",
       });
-      
+
       // Redirect based on role
       if (userData.role === 'admin') {
         navigate('/admin/settings', { replace: true });
@@ -68,7 +66,7 @@ const Login = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "All fields are required",
@@ -76,14 +74,14 @@ const Login = () => {
       });
       return;
     }
-    
+
     loginMutation.mutate({ email, password });
   };
 
   return (
     <div className="flex flex-col min-h-screen dark:bg-gray-900">
       <Navbar />
-      
+
       <main className="flex-grow pt-16 bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
           <div className="text-center mb-6">
@@ -93,7 +91,7 @@ const Login = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sign In</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account to continue</p>
           </div>
-          
+
           <form onSubmit={handleLogin}>
             <div className="space-y-4">
               <div>
@@ -108,7 +106,7 @@ const Login = () => {
                   className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Password
@@ -121,29 +119,29 @@ const Login = () => {
                   className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 />
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="remember" 
+                  <Checkbox
+                    id="remember"
                     checked={rememberDevice}
                     onCheckedChange={(checked) => setRememberDevice(checked as boolean)}
                   />
-                  <label 
-                    htmlFor="remember" 
+                  <label
+                    htmlFor="remember"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
                     Remember me
                   </label>
                 </div>
-                
+
                 <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                   Forgot password?
                 </Link>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
+
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? (
@@ -157,7 +155,7 @@ const Login = () => {
               </Button>
             </div>
           </form>
-          
+
           <div className="mt-6 text-center text-sm">
             <p className="text-gray-600 dark:text-gray-400">
               Don't have an account?{" "}
@@ -165,16 +163,13 @@ const Login = () => {
                 Sign up
               </Link>
             </p>
-            <p className="mt-2 text-gray-500 dark:text-gray-500">
-              <strong>Test credentials:</strong> admin@example.com / password123
-            </p>
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
 };
 
-export default Login; 
+export default Login;

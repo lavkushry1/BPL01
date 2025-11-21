@@ -1,121 +1,89 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgres:14-alpine
-    container_name: eventia_db
-    environment:
-      POSTGRES_USER: eventia
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-securepass}
-      POSTGRES_DB: eventia
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    image: postgres:15-alpine
+    container_name: eventia-postgres
     ports:
       - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-eventia_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - eventia-net
+      - eventia-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eventia"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
   redis:
-    image: redis:alpine
-    container_name: eventia_redis
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redispassword}
-    volumes:
-      - redis_data:/data
+    image: redis:7-alpine
+    container_name: eventia-redis
     ports:
       - "6379:6379"
     networks:
-      - eventia-net
+      - eventia-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
-    restart: unless-stopped
-
-  adminer:
-    image: adminer:latest
-    container_name: eventia_adminer
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8080:8080"
-    networks:
-      - eventia-net
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
     restart: unless-stopped
 
   backend:
     build:
       context: ./eventia-backend-express
-      dockerfile: Dockerfile.prod
-    container_name: eventia_backend
+      dockerfile: Dockerfile.dev
+    container_name: eventia-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/eventia_db
+      - REDIS_URL=redis://redis:6379
+      - PORT=4000
+      - NODE_ENV=development
+      - JWT_SECRET=${JWT_SECRET:-supersecretkey}
+      - JWT_ACCESS_EXPIRATION=15m
+      - JWT_REFRESH_EXPIRATION=7d
+      - FRONTEND_URL=http://localhost:8080
+    volumes:
+      - ./eventia-backend-express:/app
+      - /app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://eventia:${DB_PASSWORD:-securepass}@postgres:5432/eventia
-      PORT: 4000
-      NODE_ENV: ${NODE_ENV:-production}
-      JWT_SECRET: ${JWT_SECRET:-eventia_jwt_secret_key_2024}
-      JWT_EXPIRY: ${JWT_EXPIRY:-7d}
-      CORS_ORIGIN: ${FRONTEND_URL:-http://localhost:5173}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
-      SMTP_HOST: ${SMTP_HOST:-smtp.mailtrap.io}
-      SMTP_PORT: ${SMTP_PORT:-2525}
-      SMTP_USER: ${SMTP_USER:-your_mailtrap_user}
-      SMTP_PASS: ${SMTP_PASS:-your_mailtrap_password}
-      SMTP_FROM: ${SMTP_FROM:-Eventia <noreply@eventia.com>}
-      TICKET_STORAGE_PATH: ./public/tickets
-      QRCODE_STORAGE_PATH: ./public/qrcodes
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
-      TZ: ${TZ:-UTC}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-    ports:
-      - "4000:4000"
     networks:
-      - eventia-net
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/v1/health"]
-      interval: 60s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      - eventia-network
     restart: unless-stopped
 
   frontend:
     build:
       context: ./eventia-ticketing-flow1
-      dockerfile: Dockerfile.prod
-    container_name: eventia_frontend
-    depends_on:
-      backend:
-        condition: service_healthy
-    environment:
-      VITE_API_URL: http://backend:4000
-      NODE_ENV: production
+      dockerfile: Dockerfile.dev
+    container_name: eventia-frontend
     ports:
-      - "8081:80"
+      - "8080:8080"
+    environment:
+      - VITE_API_URL=http://localhost:4000/api/v1
+    volumes:
+      - ./eventia-ticketing-flow1:/app
+      - /app/node_modules
+    depends_on:
+      - backend
     networks:
-      - eventia-net
+      - eventia-network
     restart: unless-stopped
+
+networks:
+  eventia-network:
+    driver: bridge
 
 volumes:
   postgres_data:
-  redis_data:
-  backend_data:
-  backend_logs:
-
-networks:
-  eventia-net:
-    driver: bridge

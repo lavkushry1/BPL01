@@ -59,3 +59,10 @@ export const unlockSeatsSchema = z.object({
   params: z.object({}),
   query: z.object({})
 });
+
+export const getSeatsSchema = z.object({
+  params: z.object({
+    venueId: z.string().min(1, 'Venue ID is required'),
+    sectionId: z.string().min(1, 'Section ID is required')
+  })
+});

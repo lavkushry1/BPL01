@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { SeatController } from '../controllers/seat.controller';
-import { validate } from '../middleware/validate';
 import { auth } from '../middleware/auth';
-import { SeatReservationSchema } from '../models/seat';
+import { validate } from '../middleware/validate';
 import * as seatValidation from '../validations/seat.validation';
 
 const router = Router();
@@ -39,6 +38,7 @@ const router = Router();
  */
 router.get(
   '/venues/:venueId/sections/:sectionId/seats',
+  validate(seatValidation.getSeatsSchema),
   SeatController.getSeats
 );
 
@@ -79,7 +79,7 @@ router.get(
 router.post(
   '/seats/reserve',
   auth(),
-  validate(SeatReservationSchema),
+  validate(seatValidation.seatReservationSchema),
   SeatController.reserveSeats
 );
 
@@ -113,6 +113,7 @@ router.post(
 router.delete(
   '/seats/reserve',
   auth(),
+  validate(seatValidation.releaseReservationSchema),
   SeatController.releaseReservation
 );
 
@@ -151,6 +152,7 @@ router.delete(
 router.put(
   '/seats/:id/status',
   auth('admin'),
+  validate(seatValidation.updateSeatStatusSchema),
   SeatController.updateSeatStatus
 );
 
@@ -185,4 +187,4 @@ router.post(
   SeatController.bulkCheckAvailability
 );
 
-export default router; 
+export default router;

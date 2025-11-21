@@ -1,8 +1,9 @@
 import { PaymentStatus } from '@prisma/client';
 import { Omit } from '@prisma/client/runtime/library';
+import { prisma } from '../db/prisma';
 import { Payment } from '../models/payment.model';
 import { ApiError } from '../utils/apiError';
-import { prisma } from '../db/prisma';
+import { logger } from '../utils/logger';
 
 export const paymentService = {
   /**
@@ -42,7 +43,7 @@ export const paymentService = {
         }
       });
     } catch (error) {
-      console.error('Error creating UTR payment:', error);
+      logger.error('Error creating UTR payment:', error);
       throw new ApiError(500, 'Failed to create UTR payment record');
     }
   },
@@ -74,7 +75,7 @@ export const paymentService = {
         }
       });
     } catch (error) {
-      console.error('Error creating payment:', error);
+      logger.error('Error creating payment:', error);
       throw new ApiError(500, 'Failed to create payment record');
     }
   },
@@ -129,7 +130,7 @@ export const paymentService = {
         return payment;
       });
     } catch (error) {
-      console.error('Error verifying payment:', error);
+      logger.error('Error verifying payment:', error);
       throw new ApiError(500, 'Failed to verify payment');
     }
   },

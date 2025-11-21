@@ -8,7 +8,6 @@ import * as bookingService from '../services/booking.service';
 import * as seatService from '../services/seat.service';
 import { TicketService } from '../services/ticket.service';
 import * as upiPaymentService from '../services/upiPayment.service';
-import * as socketService from '../services/websocket.service';
 import { WebsocketService } from '../services/websocket.service';
 import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
@@ -239,13 +238,8 @@ export class PaymentController {
    * Get all payments with pagination and filters
    * @route GET /api/payments
    */
-  /**
-   * Get all payments with pagination and filters
-   * @route GET /api/payments
-   */
   static getAllPayments = asyncHandler(async (req: Request, res: Response) => {
     try {
-      console.log('getAllPayments called with query:', req.query);
       const { page = 1, limit = 10, status, startDate, endDate, sort = 'createdAt', order = 'desc' } = req.query;
 
       const offset = (Number(page) - 1) * Number(limit);
@@ -267,10 +261,8 @@ export class PaymentController {
         }
       }
 
-      console.log('Counting payments with where:', JSON.stringify(where));
       // Get total count
       const count = await prisma.bookingPayment.count({ where });
-      console.log('Payment count:', count);
 
       // Map frontend sort field to Prisma field names
       const sortFieldMap: Record<string, string> = {
@@ -282,7 +274,6 @@ export class PaymentController {
 
       const prismaSort = sortFieldMap[sort as string] || 'createdAt';
 
-      console.log('Fetching payments with:', { where, sort: prismaSort, order, take: Number(limit), skip: offset });
       // Get payments with related data
       const rawPayments = await prisma.bookingPayment.findMany({
         where,
@@ -301,8 +292,6 @@ export class PaymentController {
         skip: offset
       });
 
-      console.log('Fetched', rawPayments.length, 'payments');
-
       const totalPages = Math.ceil(count / Number(limit));
 
       // Format payments for frontend
@@ -320,10 +309,9 @@ export class PaymentController {
         timestamp: payment.createdAt
       }));
 
-      console.log('Returning', payments.length, 'formatted payments');
       return ApiResponse.success(res, 200, 'Payments fetched successfully', payments);
     } catch (error) {
-      console.error('Error in getAllPayments:', error);
+      logger.error('Error in getAllPayments:', error);
       throw error;
     }
   });
@@ -800,194 +788,20 @@ export const initiatePayment = async (req: Request, res: Response) => {
       await tx.seat.updateMany({
         where: { id: { in: seatIds } },
         data: {
-          status: SeatStatus.LOCKED.toString()
+          status: SeatStatus.LOCKED,
+          lockedAt: new Date()
         }
       });
 
       return paymentSession;
     });
 
-    // Notify seat lock via websocket
-    seatIds.forEach((seatId: string) => {
-      socketService.WebsocketService.notifySeatStatusChange([seatId], SeatStatus.LOCKED.toString(), eventId);
-    });
-
-    return ApiResponse.success(
-      res,
-      200,
-      'Payment initiated successfully',
-      result
-    );
+    return ApiResponse.success(res, 200, 'Payment initiated successfully', result);
   } catch (error) {
-    console.error('Error initiating payment:', error);
+    logger.error('Error initiating payment:', error);
     if (error instanceof ApiError) {
-      return ApiResponse.error(
-        res,
-        error.statusCode,
-        error.message,
-        error.code
-      );
+      return ApiResponse.error(res, error.statusCode, error.message, error.code);
     }
-    return ApiResponse.error(
-      res,
-      500,
-      'Failed to initiate payment',
-      'PAYMENT_INITIATION_FAILED'
-    );
+    return ApiResponse.error(res, 500, 'Failed to initiate payment', 'PAYMENT_INITIATION_FAILED');
   }
-};
-
-/**
- * Checks payment status
- */
-export const getPaymentStatus = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const anyPrisma = prisma as any;
-
-  try {
-    const paymentSession = await anyPrisma.paymentSession.findUnique({
-      where: { id },
-      include: {
-        seats: true
-      }
-    });
-
-    if (!paymentSession) {
-      return ApiResponse.error(
-        res,
-        404,
-        'Payment session not found',
-        'PAYMENT_SESSION_NOT_FOUND'
-      );
-    }
-
-    // Check if it's expired and update status if needed
-    if (paymentSession.status === PaymentStatus.PENDING && new Date() > paymentSession.expiresAt) {
-      const updatedSession = await anyPrisma.paymentSession.update({
-        where: { id },
-        data: { status: PaymentStatus.FAILED },
-        include: { seats: true }
-      });
-
-      return ApiResponse.success(
-        res,
-        200,
-        'Payment status retrieved',
-        updatedSession
-      );
-    }
-
-    return ApiResponse.success(
-      res,
-      200,
-      'Payment status retrieved',
-      paymentSession
-    );
-  } catch (error) {
-    console.error('Error checking payment status:', error);
-    if (error instanceof ApiError) {
-      return ApiResponse.error(
-        res,
-        error.statusCode,
-        error.message,
-        error.code
-      );
-    }
-    return ApiResponse.error(
-      res,
-      500,
-      'Failed to check payment status',
-      'PAYMENT_STATUS_CHECK_FAILED'
-    );
-  }
-};
-
-/**
- * Releases expired seat locks
- */
-export const releaseExpiredSeatLocks = async () => {
-  try {
-    const anyPrisma = prisma as any;
-    const expiredSessions = await anyPrisma.paymentSession.findMany({
-      where: {
-        status: PaymentStatus.PENDING,
-        expiresAt: { lt: new Date() }
-      },
-      include: { seats: true }
-    });
-
-    for (const session of expiredSessions) {
-      // Update payment session status to FAILED (for expiry)
-      await updatePaymentStatus(session.id, PaymentStatus.FAILED);
-    }
-
-    return expiredSessions.length;
-  } catch (error) {
-    console.error('Error releasing expired seat locks:', error);
-    throw error;
-  }
-};
-
-/**
- * Updates payment status and performs necessary actions based on status
- */
-export const updatePaymentStatus = async (sessionId: string, status: PaymentStatus, paymentId?: string) => {
-  return await prisma.$transaction(async (tx: any) => {
-    // Find payment session
-    const paymentSession = await tx.paymentSession.findUnique({
-      where: { id: sessionId },
-      include: { seats: true }
-    });
-
-    if (!paymentSession) {
-      throw new ApiError(404, 'Payment session not found', 'PAYMENT_SESSION_NOT_FOUND');
-    }
-
-    // Update payment session status
-    const updatedSession = await tx.paymentSession.update({
-      where: { id: sessionId },
-      data: {
-        status,
-        ...(paymentId && { utrNumber: paymentId })
-      },
-      include: { seats: true }
-    });
-
-    if (status === PaymentStatus.COMPLETED) {
-      // Create booking from payment session
-      await tx.seat.updateMany({
-        where: {
-          id: { in: paymentSession.seats.map((seat: { id: string }) => seat.id) }
-        },
-        data: {
-          status: SeatStatus.BOOKED.toString()
-        }
-      });
-
-      // Create actual booking record
-      await bookingService.createBookingFromPaymentSession(tx, sessionId);
-
-      // Notify seat status change via websocket
-      paymentSession.seats.forEach((seat: { id: string }) => {
-        socketService.WebsocketService.notifySeatStatusChange([seat.id], SeatStatus.BOOKED.toString(), paymentSession.eventId);
-      });
-    } else if (status === PaymentStatus.FAILED) {
-      // Release seats
-      await tx.seat.updateMany({
-        where: {
-          id: { in: paymentSession.seats.map((seat: { id: string }) => seat.id) }
-        },
-        data: {
-          status: SeatStatus.AVAILABLE.toString()
-        }
-      });
-
-      // Notify seat status change via websocket
-      paymentSession.seats.forEach((seat: { id: string }) => {
-        socketService.WebsocketService.notifySeatStatusChange([seat.id], SeatStatus.AVAILABLE.toString(), paymentSession.eventId);
-      });
-    }
-
-    return updatedSession;
-  });
 };

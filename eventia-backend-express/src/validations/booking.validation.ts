@@ -2,53 +2,45 @@ import { z } from 'zod';
 
 export const createBookingSchema = z.object({
   body: z.object({
-    event_id: z.string().min(1, 'Event ID is required'),
-    user_id: z.string().min(1, 'User ID is required'),
-    seat_ids: z.array(z.string().min(1)).optional(),
-    amount: z.number().positive('Amount must be greater than zero'),
-    payment_method: z.string().min(1, 'Payment method is required')
+    event_id: z.string().uuid('Invalid event ID format'),
+    user_id: z.string().uuid('Invalid user ID format'),
+    seat_ids: z.array(z.string().uuid('Invalid seat ID format')).optional(),
+    amount: z.number().positive('Amount must be positive'),
+    payment_method: z.enum(['STRIPE', 'UPI', 'CASH', 'CARD']).optional().default('STRIPE'),
   }),
-  params: z.object({}),
-  query: z.object({})
 });
 
-export const getBookingSchema = z.object({
+export const updateBookingStatusSchema = z.object({
   params: z.object({
-    id: z.string().min(1, 'Booking ID is required')
+    id: z.string().uuid('Invalid booking ID format'),
   }),
-  body: z.object({}),
-  query: z.object({})
+  body: z.object({
+    status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'FAILED', 'REFUNDED']),
+  }),
 });
 
 export const saveDeliveryDetailsSchema = z.object({
   body: z.object({
-    booking_id: z.string().min(1, 'Booking ID is required'),
-    name: z.string().min(1, 'Name is required'),
-    phone: z.string().min(8, 'Phone number is required'),
-    address: z.string().min(1, 'Address is required'),
-    city: z.string().min(1, 'City is required'),
-    pincode: z.string().min(4, 'Pincode is required')
+    booking_id: z.string().uuid('Invalid booking ID format'),
+    name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+    phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
+    address: z.string().min(5, 'Address must be at least 5 characters'),
+    city: z.string().min(2, 'City must be at least 2 characters'),
+    pincode: z.string().regex(/^\d{4,10}$/, 'Invalid pincode format'),
   }),
-  params: z.object({}),
-  query: z.object({})
-});
-
-export const updateBookingStatusSchema = z.object({
-  body: z.object({
-    status: z.string().min(1, 'Status is required')
-  }),
-  params: z.object({
-    id: z.string().min(1, 'Booking ID is required')
-  }),
-  query: z.object({})
 });
 
 export const cancelBookingSchema = z.object({
-  body: z.object({
-    cancellation_reason: z.string().optional()
-  }),
   params: z.object({
-    id: z.string().min(1, 'Booking ID is required')
+    id: z.string().uuid('Invalid booking ID format'),
   }),
-  query: z.object({})
-}); 
+  body: z.object({
+    cancellation_reason: z.string().optional(),
+  }),
+});
+
+export const getBookingSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('Invalid booking ID format'),
+  }),
+});

@@ -1,11 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/apiError';
-import { db } from '../db';
+import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { asyncHandler } from '../utils/asyncHandler';
-import { ApiResponse } from '../utils/apiResponse';
-import { WebsocketService } from '../services/websocket.service';
+import { db } from '../db';
 import { SeatStatus } from '../models/seat';
+import { WebsocketService } from '../services/websocket.service';
+import { ApiError } from '../utils/apiError';
+import { asyncHandler } from '../utils/asyncHandler';
 
 /**
  * Create a new booking
@@ -13,19 +12,29 @@ import { SeatStatus } from '../models/seat';
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
   const { event_id, user_id, seat_ids, amount, payment_method } = req.body;
 
-  // Check if event exists and has enough capacity
-  const event = await db('events')
-    .select('id', 'capacity', 'booked_count')
-    .where('id', event_id)
-    .first();
-
-  if (!event) {
-    throw ApiError.notFound('Event not found');
-  }
-
   // Process booking with transaction to ensure data integrity
   const newBooking = await db.transaction(async trx => {
-    // Create booking record
+    // 1. Lock and fetch event to check capacity safely
+    const event = await trx('events')
+      .select('id', 'capacity', 'booked_count')
+      .where('id', event_id)
+      .forUpdate() // Lock the event row
+      .first();
+
+    if (!event) {
+      throw ApiError.notFound('Event not found');
+    }
+
+    // 2. Check capacity
+    // If seats are selected, capacity is implicitly checked by seat availability
+    // But for general admission (no seats), we must check booked_count
+    const requestedCount = seat_ids && seat_ids.length > 0 ? seat_ids.length : 1; // Default to 1 ticket if no seats specified (general admission)
+
+    if (event.capacity && (event.booked_count + requestedCount > event.capacity)) {
+      throw ApiError.badRequest('Event is sold out or not enough capacity');
+    }
+
+    // 3. Create booking record
     const booking_id = uuidv4();
     const [booking] = await trx('bookings')
       .insert({
@@ -40,7 +49,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
       })
       .returning('*');
 
-    // If seat_ids are provided, reserve those seats
+    // 4. Handle Seats or General Admission
     if (seat_ids && seat_ids.length > 0) {
       // Pessimistically lock requested seats to prevent double booking
       const seats = await trx('seats')
@@ -60,7 +69,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           unavailableSeats.map(seat => seat.id)
         );
       }
-      
+
       // Update seat status to booked
       await trx('seats')
         .update({
@@ -69,14 +78,20 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           updated_at: trx.fn.now()
         })
         .whereIn('id', seat_ids);
-      
+
       // Notify other clients that seats have been booked
       WebsocketService.notifySeatStatusChange(
-        seat_ids, 
+        seat_ids,
         SeatStatus.BOOKED
       );
     }
-    
+
+    // 5. Update event booked_count
+    await trx('events')
+      .where('id', event_id)
+      .increment('booked_count', requestedCount)
+      .update({ updated_at: trx.fn.now() });
+
     return booking;
   });
 
@@ -91,11 +106,6 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
  */
 export const getBookingById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-
-  // Validate booking ID
-  if (!id) {
-    throw ApiError.badRequest('Booking ID is required');
-  }
 
   // Get booking details
   const booking = await db('bookings')
@@ -128,11 +138,6 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
 export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Response) => {
   const { booking_id, name, phone, address, city, pincode } = req.body;
 
-  // Validate required fields
-  if (!booking_id || !name || !phone || !address || !city || !pincode) {
-    throw ApiError.badRequest('Missing required delivery details');
-  }
-
   // Check if booking exists
   const booking = await db('bookings')
     .select('id')
@@ -149,7 +154,7 @@ export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Respon
     const existingDetails = await trx('delivery_details')
       .where('booking_id', booking_id)
       .first();
-      
+
     if (existingDetails) {
       // Update existing details
       return await trx('delivery_details')
@@ -194,11 +199,6 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
   const { id } = req.params;
   const { status } = req.body;
 
-  // Validate required fields
-  if (!id || !status) {
-    throw ApiError.badRequest('Booking ID and status are required');
-  }
-
   // Check if booking exists
   const booking = await db('bookings')
     .select('id')
@@ -212,9 +212,9 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
   // Update booking status
   const [updatedBooking] = await db('bookings')
     .where('id', id)
-    .update({ 
-      status, 
-      updated_at: db.fn.now() 
+    .update({
+      status,
+      updated_at: db.fn.now()
     })
     .returning('*');
 
@@ -230,22 +230,22 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
 export const cancelBooking = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const { cancellation_reason } = req.body;
-  
+
   // Check if booking exists
   const booking = await db('bookings')
     .select('*')
     .where('id', id)
     .first();
-  
+
   if (!booking) {
     throw ApiError.notFound('Booking not found', 'BOOKING_NOT_FOUND');
   }
-  
+
   // Validate cancellation is allowed
   if (booking.status === 'CANCELLED') {
     throw ApiError.badRequest('Booking already cancelled', 'ALREADY_CANCELLED');
   }
-  
+
   // Check if event date is within cancellation period
   // This would need to be adapted based on your schema
   let eventCanBeCancelled = true;
@@ -254,22 +254,22 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
       .select('start_date')
       .where('id', booking.event_id)
       .first();
-    
+
     if (event && event.start_date) {
       const now = new Date();
       const eventDate = new Date(event.start_date);
       const hoursTillEvent = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-      
+
       if (hoursTillEvent < 24) {
         eventCanBeCancelled = false;
       }
     }
   }
-  
+
   if (!eventCanBeCancelled) {
     throw new ApiError(400, 'Cannot cancel bookings less than 24 hours before event', 'CANCELLATION_PERIOD_EXPIRED');
   }
-  
+
   // Use transaction for all related updates
   const result = await db.transaction(async trx => {
     // Update booking status
@@ -282,22 +282,22 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
         updated_at: trx.fn.now()
       })
       .returning('*');
-    
+
     // Update seats to available
     await trx('seats')
       .where('booking_id', id)
-      .update({ 
+      .update({
         status: 'available',
         booking_id: null,
-        updated_at: trx.fn.now() 
+        updated_at: trx.fn.now()
       });
-    
+
     // If payment exists, mark for refund if it was verified
     const payment = await trx('booking_payments')
       .where('booking_id', id)
       .where('status', 'verified')
       .first();
-    
+
     let paymentUpdate = null;
     if (payment) {
       [paymentUpdate] = await trx('booking_payments')
@@ -310,13 +310,13 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
         })
         .returning('*');
     }
-    
-    return { 
-      cancelledBooking, 
-      paymentRefunded: !!paymentUpdate 
+
+    return {
+      cancelledBooking,
+      paymentRefunded: !!paymentUpdate
     };
   });
-  
+
   // Notify through WebSocket if available
   try {
     WebsocketService.notifyBookingUpdate(id, 'cancelled');
@@ -324,7 +324,7 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
     // Log WebSocket error but don't fail the request
     console.error('WebSocket notification failed:', wsError);
   }
-  
+
   return res.status(200).json({
     status: 'success',
     message: 'Booking cancelled successfully',

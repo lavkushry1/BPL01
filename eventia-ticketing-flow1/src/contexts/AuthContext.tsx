@@ -5,7 +5,7 @@ type AdminUser = {
   id: string;
   email: string;
   name: string;
-  role: 'admin';
+  role: 'admin' | 'user';
 } | null;
 
 interface AuthContextType {
@@ -18,7 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
-  setAccessToken: (token: string) => void; // Add this
+  setAccessToken: (token: string) => void; // Deprecated but kept for compatibility
 }
 
 const defaultValue: AuthContextType = {
@@ -31,7 +31,7 @@ const defaultValue: AuthContextType = {
   login: async () => ({ user: { id: '', email: '', name: '', role: 'admin' } }),
   logout: async () => {},
   refreshSession: async () => false,
-  setAccessToken: () => { } // Add this
+  setAccessToken: () => { }
 };
 
 const AuthContext = createContext<AuthContextType>(defaultValue);
@@ -54,20 +54,18 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         // Use the getCurrentUser endpoint to validate session
         const userData = await getCurrentUser();
 
-        // Check if the user is an admin
-        if (userData.role?.toLowerCase() === 'admin') {
+        if (userData) {
           setUser({
             id: userData.id,
             email: userData.email,
             name: userData.name,
-            role: 'admin'
+            role: userData.role as 'admin' | 'user'
           });
         } else {
-          // If user is not an admin, set user to null
           setUser(null);
         }
       } catch (error) {
-        console.error('Session validation error:', error);
+        // Silent fail on session validation - just means not logged in
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -86,9 +84,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const login = async (email: string, password: string): Promise<AuthResponse> => {
     const response = await apiLogin(email, password);
 
-    // Only set user if the user is an admin
-    if (response.user.role?.toLowerCase() === 'admin') {
-      setUser(response.user as AdminUser);
+    // Update user state directly from login response
+    if (response.user) {
+      setUser({
+        id: response.user.id,
+        email: response.user.email,
+        name: response.user.name,
+        role: response.user.role as 'admin' | 'user'
+      });
     }
 
     return response;
@@ -113,22 +116,19 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       // Get current user data
       const userData = await getCurrentUser();
 
-      // Check if the user is an admin
-      if (userData.role?.toLowerCase() === 'admin') {
+      if (userData) {
         setUser({
           id: userData.id,
           email: userData.email,
           name: userData.name,
-          role: 'admin'
+          role: userData.role as 'admin' | 'user'
         });
         return true;
       } else {
-        // If user is not an admin, set user to null
         setUser(null);
         return false;
       }
     } catch (error) {
-      console.error('Session refresh error:', error);
       setUser(null);
       return false;
     }
@@ -136,11 +136,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   const isAuthenticated = !!user;
 
-  // Add setAccessToken to match the interface expected by useRefreshToken
+  // Deprecated: No-op for cookie auth
   const setAccessToken = (token: string) => {
-    // This is a placeholder as we are using HTTP-only cookies
-    // But we need it to satisfy the interface
-    console.log('setAccessToken called with:', token ? 'token' : 'empty');
+    // No-op
   };
 
   return (
@@ -154,7 +152,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       login,
       logout,
       refreshSession,
-      setAccessToken // Add this
+      setAccessToken
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,10 +1,9 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { refreshToken } from './authApi';
 
 // Get the API URL from environment variables - ensure correct port for backend
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-// Create a default API client instance with common configuration
 // Create a default API client instance with common configuration
 const baseURL = API_URL.endsWith('/api/v1') ? API_URL : `${API_URL}/api/v1`;
 
@@ -44,7 +43,10 @@ defaultApiClient.interceptors.request.use(request => {
 defaultApiClient.interceptors.request.use(request => {
   const method = request.method?.toUpperCase() || 'UNKNOWN';
   const url = request.baseURL && request.url ? `${request.baseURL}${request.url}` : request.url || 'UNKNOWN';
-  console.log(`API Request: [${method}] ${url}`, request.data ? 'with payload' : '');
+  // Only log in development
+  if (import.meta.env.DEV) {
+    console.log(`API Request: [${method}] ${url}`);
+  }
 
   return request;
 });
@@ -54,7 +56,9 @@ defaultApiClient.interceptors.response.use(
   response => {
     const status = response.status;
     const url = response.config.url || 'UNKNOWN';
-    console.log(`API Response: [${status}] ${url}`, response.data ? 'with data' : '');
+    if (import.meta.env.DEV) {
+      console.log(`API Response: [${status}] ${url}`);
+    }
 
     return response;
   },
@@ -65,7 +69,6 @@ defaultApiClient.interceptors.response.use(
 
       // Only try to refresh once to prevent infinite loops
       if (!originalRequest || (originalRequest as any)._retry) {
-        // Don't need to clear tokens from localStorage since we're using cookies
         // Redirect to login if already tried refreshing
         if (window.location.pathname !== '/login' &&
             window.location.pathname !== '/admin-login') {
@@ -96,7 +99,6 @@ defaultApiClient.interceptors.response.use(
     // Network errors handling (offline mode)
     if (!error.response && error.code === 'ERR_NETWORK') {
       console.error('Network error - offline mode activated');
-      // Could dispatch to a store to show offline mode UI
     }
 
     // Log errors for debugging
@@ -110,16 +112,13 @@ defaultApiClient.interceptors.response.use(
 export const WS_URL = (import.meta.env.VITE_WS_URL || API_URL.replace(/^http/, 'ws'));
 
 // Helper function to create authenticated API request headers
+// DEPRECATED: Cookies are handled automatically
 export const createAuthHeaders = (token: string) => ({
-  Authorization: `Bearer ${token}`
+  // Authorization: `Bearer ${token}` // No longer needed with cookies
 });
 
 // Define the API base URL using the environment variable - ensure it's the same as API_URL
 export const API_BASE_URL = API_URL;
-
-// Storage keys for auth tokens - use the same keys as in authApi.ts
-export const ACCESS_TOKEN_KEY = 'eventia_access_token';
-export const REFRESH_TOKEN_KEY = 'eventia_refresh_token';
 
 // Standard response interface
 export interface ApiResponse<T> {
@@ -149,72 +148,12 @@ export interface ApiErrorResponse {
 }
 
 /**
- * Create a configured Axios instance with standard headers and interceptors
- * @param config Additional axios configuration
- * @returns Axios instance
- */
-export const createApiClient = (config?: AxiosRequestConfig): AxiosInstance => {
-  const apiClient = axios.create({
-    baseURL: API_URL,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    timeout: 30000, // 30 seconds
-    ...config,
-  });
-
-  // Request interceptor to add auth token
-  apiClient.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem(ACCESS_TOKEN_KEY);
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
-
-  // Response interceptor for standard error handling
-  apiClient.interceptors.response.use(
-    (response) => response,
-    (error: AxiosError<ApiErrorResponse>) => {
-      // Handle authentication errors
-      if (error.response?.status === 401) {
-        // Clear token and redirect to login if not already there
-        localStorage.removeItem(ACCESS_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-
-        // Redirect to home page instead of login
-        if (window.location.pathname !== '/') {
-          window.location.href = '/';
-        }
-      }
-
-      // Network errors handling (offline mode)
-      if (!error.response && error.code === 'ERR_NETWORK') {
-        console.error('Network error - offline mode activated');
-        // Could dispatch to a store to show offline mode UI
-      }
-
-      // Log errors for debugging
-      logApiError(error);
-
-      return Promise.reject(error);
-    }
-  );
-
-  return apiClient;
-};
-
-/**
  * Standardized error logging for API errors
  * @param error AxiosError object
  */
 export const logApiError = (error: AxiosError<ApiErrorResponse>): void => {
+  if (import.meta.env.PROD) return; // Don't log detailed errors in production
+
   if (error.response) {
     // Server responded with error
     console.error('API Error:', {
@@ -225,11 +164,7 @@ export const logApiError = (error: AxiosError<ApiErrorResponse>): void => {
     });
   } else if (error.request) {
     // Request made but no response
-    console.error('API Error: No response received', {
-      request: error.request,
-      endpoint: error.config?.url,
-      method: error.config?.method?.toUpperCase(),
-    });
+    console.error('API Error: No response received');
   } else {
     // Error setting up the request
     console.error('API Error:', error.message);
@@ -284,60 +219,9 @@ export const formatUrlWithParams = (baseUrl: string, params?: Record<string, any
  * @returns Boolean indicating if user has a token
  */
 export const isAuthenticated = (): boolean => {
-  return !!localStorage.getItem(ACCESS_TOKEN_KEY);
-};
-
-/**
- * Get authentication token
- * @returns Token string or null
- */
-export const getAuthToken = (): string | null => {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
-};
-
-/**
- * Set authentication token
- * @param token JWT token
- */
-export const setAuthToken = (token: string): void => {
-  localStorage.setItem(ACCESS_TOKEN_KEY, token);
-};
-
-/**
- * Clear authentication token (logout)
- */
-export const clearAuthToken = (): void => {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-};
-
-/**
- * Generate an API URL with the correct API prefix
- * @param endpoint The endpoint path (without leading slash)
- * @param params Optional URL parameters to replace in the path (e.g., :id)
- * @returns Full API URL
- */
-export const getApiUrl = (endpoint: string, params?: Record<string, string>): string => {
-  // Replace path parameters if provided
-  let url = endpoint;
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      url = url.replace(`:${key}`, encodeURIComponent(value));
-    });
-  }
-
-  // Make sure the endpoint doesn't already include the API URL or base path
-  if (url.startsWith(API_URL) || url.startsWith('http://') || url.startsWith('https://')) {
-    return url; // Already includes full URL
-  }
-
-  // Remove any leading slash and any duplicate /api/v1 prefixes
-  url = url.replace(/^\//, '');
-  if (url.startsWith('api/v1/')) {
-    url = url.substring(7); // Remove 'api/v1/'
-  }
-
-  return url;
+  // With HttpOnly cookies, we can't check client-side
+  // We rely on the AuthContext state which is verified via API
+  return false; // Should use AuthContext instead
 };
 
 /**
@@ -358,28 +242,21 @@ export const fetchCsrfToken = async (): Promise<string> => {
       return csrfToken.toString();
     }
 
-    // Fallback for testing/when CSRF is disabled on backend
-    console.warn('No CSRF token received, using dummy token for testing');
-    return 'dummy-token';
+    return '';
   } catch (error) {
     console.error('Failed to fetch CSRF token:', error);
-    return 'dummy-token';
+    return '';
   }
 };
 
 export default {
   API_BASE_URL,
   API_URL,
-  createApiClient,
   defaultApiClient,
   handleApiError,
   logApiError,
   formatUrlWithParams,
   isAuthenticated,
-  getAuthToken,
-  setAuthToken,
-  clearAuthToken,
-  getApiUrl,
   WS_URL,
   createAuthHeaders,
   fetchCsrfToken,

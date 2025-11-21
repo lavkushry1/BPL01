@@ -3,8 +3,6 @@
  * @description Service for handling payment-related API calls to the Express backend.
  */
 import { defaultApiClient } from './apiUtils';
-import axios from 'axios';
-import { API_BASE_URL } from './apiUtils';
 import { unwrapApiResponse } from './responseUtils';
 
 export interface UpiPaymentRequest {
@@ -93,7 +91,7 @@ export interface PaymentSession {
 }
 
 // Environment check for API calls
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = import.meta.env.MODE === 'production';
 
 /**
  * Initialize a Stripe payment

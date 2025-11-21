@@ -10,16 +10,16 @@ export const ErrorCodes = {
   INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
   SESSION_EXPIRED: 'SESSION_EXPIRED',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
-  
+
   // Request errors
   BAD_REQUEST: 'BAD_REQUEST',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
-  
+
   // Server errors
   SERVER_ERROR: 'SERVER_ERROR',
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-  
+
   // Business logic errors
   PAYMENT_FAILED: 'PAYMENT_FAILED',
   BOOKING_FAILED: 'BOOKING_FAILED',
@@ -70,13 +70,13 @@ export const handleApiError = (error: unknown): ApiError => {
  * Log API error for debugging
  */
 export const logApiError = (error: unknown): void => {
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.MODE !== 'production') {
     console.error('API Error:', error);
   }
-  
+
   // In production, you might want to send errors to a monitoring service
-  if (process.env.NODE_ENV === 'production') {
+  if (import.meta.env.MODE === 'production') {
     // Example: Send to error monitoring service
     // errorMonitoringService.captureException(error);
   }
-}; 
+};

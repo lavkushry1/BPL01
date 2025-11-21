@@ -1,7 +1,7 @@
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
+import { initReactI18next } from 'react-i18next';
 import enTranslation from './locales/en.json';
 import hiTranslation from './locales/hi.json';
 
@@ -40,7 +40,7 @@ i18n
       escapeValue: false // Not needed for React as it escapes by default
     },
     // Enable debugging in development
-    debug: process.env.NODE_ENV === 'development',
+    debug: import.meta.env.DEV,
     // Other options
     react: {
       useSuspense: true,
