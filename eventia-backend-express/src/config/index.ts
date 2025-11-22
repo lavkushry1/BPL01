@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
 // Define environment-specific .env file paths
 const envFiles = {
@@ -237,18 +237,18 @@ const validateConfig = (cfg: AppConfig): void => {
   // Only enforce validation in production
   if (cfg.isProduction) {
     const missingVars = requiredVars.filter(v => !v.key);
-    
+
     if (missingVars.length > 0) {
       const errorMsg = `Missing required environment variables: ${missingVars.map(v => v.path).join(', ')}`;
       console.error(errorMsg);
       throw new Error(errorMsg);
     }
-    
+
     // Additional security validation for production
     if (cfg.jwt.secret.length < 32) {
       throw new Error('JWT_SECRET is too short for production. Use at least 32 characters.');
     }
-    
+
     if (cfg.jwt.refreshSecret.length < 32) {
       throw new Error('JWT_REFRESH_SECRET is too short for production. Use at least 32 characters.');
     }
@@ -259,7 +259,7 @@ const validateConfig = (cfg: AppConfig): void => {
     if (cfg.jwt.secret.includes('dev') || cfg.jwt.refreshSecret.includes('dev')) {
       throw new Error('Production environment contains development JWT secrets.');
     }
-    
+
     // Verify SSL is enabled for production database
     if (!cfg.db.ssl) {
       console.warn('WARNING: Database SSL is disabled in production environment.');
@@ -270,59 +270,59 @@ const validateConfig = (cfg: AppConfig): void => {
 // Helper to redact sensitive information for logging
 const redactSensitiveInfo = (cfg: AppConfig): Record<string, any> => {
   const redacted = { ...cfg };
-  
+
   // Redact database credentials
   if (redacted.db && redacted.db.password) {
     redacted.db = { ...redacted.db, password: '***REDACTED***' };
   }
-  
+
   // Redact JWT secrets
   if (redacted.jwt) {
-    redacted.jwt = { 
-      ...redacted.jwt, 
+    redacted.jwt = {
+      ...redacted.jwt,
       secret: '***REDACTED***',
       refreshSecret: '***REDACTED***'
     };
   }
-  
+
   // Redact email password
   if (redacted.email && redacted.email.password) {
     redacted.email = { ...redacted.email, password: '***REDACTED***' };
   }
-  
+
   // Redact Redis password
   if (redacted.redis && redacted.redis.password) {
     redacted.redis = { ...redacted.redis, password: '***REDACTED***' };
   }
-  
+
   // Redact webhook secret
   if (redacted.upiPayment) {
     redacted.upiPayment = { ...redacted.upiPayment, webhookSecret: '***REDACTED***' };
   }
-  
+
   // Redact Stripe secrets
   if (redacted.stripe) {
-    redacted.stripe = { 
-      ...redacted.stripe, 
+    redacted.stripe = {
+      ...redacted.stripe,
       secretKey: '***REDACTED***',
       webhookSecret: '***REDACTED***'
     };
   }
-  
+
   return redacted;
 };
 
 // Run validation
 try {
   validateConfig(config);
-  
-  // Log configuration in non-production environments
-  if (!config.isProduction) {
+
+  // Log configuration in non-production and non-test environments
+  if (!config.isProduction && !config.isTest) {
     console.log('App configuration:', JSON.stringify(redactSensitiveInfo(config), null, 2));
   }
 } catch (error) {
   console.error('Configuration error:', (error as Error).message);
-  
+
   // Exit in production, only warn in development
   if (config.isProduction) {
     process.exit(1);
