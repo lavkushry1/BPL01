@@ -1,6 +1,7 @@
 import { EventStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import fs from 'fs';
+import httpStatus from 'http-status';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../db/prisma';
@@ -81,7 +82,12 @@ export class EventController {
     }
 
     // Validate request body
-    const validatedData = createEventSchema.parse(req.body);
+    // Validate request body
+    const { error, value: validatedData } = createEventSchema.validate(req.body);
+
+    if (error) {
+      throw new ApiError(httpStatus.BAD_REQUEST, error.details[0].message);
+    }
 
     // Prepare event data from request body
     const eventData: EventCreateInput = {
@@ -113,7 +119,12 @@ export class EventController {
     }
 
     // Validate request body
-    const validatedData = updateEventSchema.parse(req.body);
+    // Validate request body
+    const { error, value: validatedData } = updateEventSchema.validate(req.body);
+
+    if (error) {
+      throw new ApiError(httpStatus.BAD_REQUEST, error.details[0].message);
+    }
 
     // Prepare update data from request body
     const updateData: EventUpdateInput = {
@@ -352,7 +363,7 @@ export class EventController {
    * List IPL matches (cricket events with teams)
    * @route GET /api/public/events/ipl
    */
-  static listIPLMatches = asyncHandler(async (_req: Request, res: Response) => {
+  static listIPLMatches = asyncHandler(async (req: Request, res: Response) => {
     logger.info("IPL Matches API called");
 
 

@@ -13,7 +13,7 @@ export class UserController {
     const limit = Number(req.query.limit) || 10;
     const role = req.query.role as string | undefined;
 
-    const where = role ? { role } : {};
+    const where = role ? { role: role as any } : {};
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({

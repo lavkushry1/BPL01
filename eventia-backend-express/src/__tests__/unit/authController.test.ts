@@ -1,14 +1,13 @@
-import { describe, expect, test, jest, beforeEach } from '@jest/globals';
-import { Request, Response, NextFunction } from 'express';
-import { register, login, refreshToken, logout, me } from '../../controllers/authController';
-import { ApiResponse } from '../../utils/apiResponse';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import bcrypt from 'bcryptjs';
+import { NextFunction, Request, Response } from 'express';
+import { login, logout, me, refreshToken, register } from '../../controllers/authController';
+import userModel from '../../models/user';
 import { ApiError } from '../../utils/apiError';
-import * as userModel from '../../models/user';
-import bcrypt from 'bcrypt';
-import { generateToken, verifyToken } from '../../utils/jwt';
-import { config } from '../../config';
 
 // Mock modules
+jest.mock('../../services/job.service');
+
 describe('Auth Controller', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
@@ -17,12 +16,12 @@ describe('Auth Controller', () => {
   beforeEach(() => {
     mockRequest = {};
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      cookie: jest.fn().mockReturnThis(),
-      clearCookie: jest.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis() as any,
+      json: jest.fn().mockReturnThis() as any,
+      cookie: jest.fn().mockReturnThis() as any,
+      clearCookie: jest.fn().mockReturnThis() as any,
     };
-    mockNext = jest.fn();
+    mockNext = jest.fn() as unknown as jest.Mocked<NextFunction>;
     jest.clearAllMocks();
   });
 
@@ -30,8 +29,16 @@ describe('Auth Controller', () => {
     test('should register new user successfully', async () => {
       mockRequest.body = { email: 'test@example.com', password: 'password123', name: 'Test User' };
       jest.spyOn(userModel, 'findByEmail').mockResolvedValue(null);
-      jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashedPassword');
-      jest.spyOn(userModel, 'create').mockResolvedValue({ id: '1', email: 'test@example.com', name: 'Test User', role: 'USER', password: 'hashedPassword' });
+      (jest.spyOn(bcrypt, 'hash') as any).mockResolvedValue('hashedPassword');
+      jest.spyOn(userModel, 'create').mockResolvedValue({
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'USER',
+        password: 'hashedPassword',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
 
       await register(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -41,7 +48,15 @@ describe('Auth Controller', () => {
 
     test('should throw error if email already exists', async () => {
       mockRequest.body = { email: 'existing@example.com', password: 'password123', name: 'Test User' };
-      jest.spyOn(userModel, 'findByEmail').mockResolvedValue({ id: '1', email: 'existing@example.com', name: 'Existing', role: 'USER', password: 'hash' });
+      jest.spyOn(userModel, 'findByEmail').mockResolvedValue({
+        id: '1',
+        email: 'existing@example.com',
+        name: 'Existing',
+        role: 'USER',
+        password: 'hash',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
 
       await register(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -52,9 +67,17 @@ describe('Auth Controller', () => {
   describe('login', () => {
     test('should login successfully and set cookies', async () => {
       mockRequest.body = { email: 'test@example.com', password: 'password123' };
-      const mockUser = { id: '1', email: 'test@example.com', password: 'hashedPassword', role: 'USER' };
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        password: 'hashedPassword',
+        role: 'USER' as const,
+        name: 'Test User',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
       jest.spyOn(userModel, 'findByEmail').mockResolvedValue(mockUser);
-      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      (jest.spyOn(bcrypt, 'compare') as any).mockResolvedValue(true);
       jest.spyOn(require('../../utils/jwt'), 'generateToken').mockReturnValueOnce('accessToken').mockReturnValueOnce('refreshToken');
 
       await login(mockRequest as Request, mockResponse as Response, mockNext);
@@ -67,6 +90,7 @@ describe('Auth Controller', () => {
     test('should throw error for invalid credentials', async () => {
       mockRequest.body = { email: 'test@example.com', password: 'wrong' };
       jest.spyOn(userModel, 'findByEmail').mockResolvedValue(null);
+      (jest.spyOn(bcrypt, 'compare') as any).mockResolvedValue(false);
 
       await login(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -78,9 +102,17 @@ describe('Auth Controller', () => {
 
   describe('refreshToken', () => {
     test('should refresh token successfully', async () => {
-      mockRequest.cookies = { refresh_token: 'validRefreshToken' };
+      mockRequest.cookies = { refresh_token: 'valid.refresh.token' };
       jest.spyOn(require('../../utils/jwt'), 'verifyToken').mockReturnValue({ id: '1' });
-      const mockUser = { id: '1', email: 'test@example.com', role: 'USER' };
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        role: 'USER' as const,
+        name: 'Test User',
+        password: 'hashedPassword',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
       jest.spyOn(userModel, 'findById').mockResolvedValue(mockUser);
       jest.spyOn(require('../../utils/jwt'), 'generateToken').mockReturnValueOnce('newAccess').mockReturnValueOnce('newRefresh');
 
@@ -105,7 +137,15 @@ describe('Auth Controller', () => {
   describe('me', () => {
     test('should return user data', async () => {
       mockRequest.user = { id: '1', email: 'test@example.com', role: 'USER' };
-      const mockUser = { id: '1', email: 'test@example.com', role: 'USER', password: 'hash' };
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        role: 'USER' as const,
+        password: 'hash',
+        name: 'Test User',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
       jest.spyOn(userModel, 'findById').mockResolvedValue(mockUser);
 
       await me(mockRequest as Request, mockResponse as Response, mockNext);

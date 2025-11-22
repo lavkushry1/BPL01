@@ -719,6 +719,14 @@ export class PaymentController {
       throw new ApiError(500, 'Failed to generate QR code', 'QR_GENERATION_ERROR');
     }
   });
+  /**
+   * Release expired seat locks
+   * @route POST /api/payments/release-locks
+   */
+  static releaseExpiredSeatLocks = asyncHandler(async (req: Request, res: Response) => {
+    const count = await SeatService.releaseExpiredLocks();
+    return ApiResponse.success(res, 200, 'Expired seat locks released successfully', { count });
+  });
 }
 
 /**

@@ -1,4 +1,3 @@
-import { config } from '../config';
 import { Application } from 'express';
 import supertest from 'supertest';
 import { createApp } from '../app';
@@ -24,6 +23,14 @@ jest.mock('../middleware/rateLimit', () => ({
   loginLimiter: jest.fn((req, res, next) => next()), // Add this line
 }));
 
+// Mock JobService to prevent cron jobs from starting
+jest.mock('../services/job.service', () => ({
+  JobService: {
+    initialize: jest.fn(),
+    startAllJobs: jest.fn(),
+  },
+}));
+
 let app: Application;
 // Change the type to any to avoid complex typings issue with supertest
 let request: any;
@@ -32,12 +39,12 @@ let request: any;
 beforeAll(async () => {
   // Ensure we're using test environment
   process.env.NODE_ENV = 'test';
-  
+
   // Initialize the app
   const { app: createdApp } = await createApp();
   app = createdApp;
   request = supertest(app);
-  
+
   // Run migrations to setup test database
   await db.migrate.latest();
 });
@@ -46,7 +53,7 @@ beforeAll(async () => {
 afterAll(async () => {
   // Rollback migrations
   await db.migrate.rollback(undefined, true);
-  
+
   // Close database connection
   await db.destroy();
 });
