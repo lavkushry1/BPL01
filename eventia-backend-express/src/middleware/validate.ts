@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
-import { ApiError } from '../utils/apiError';
+import { NextFunction, Request, Response } from 'express';
 import NodeCache from 'node-cache';
+import { ZodError, ZodSchema } from 'zod';
+import { ApiError } from '../utils/apiError';
 
 // Cache for validation schemas (with 10 min TTL)
 const validationCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
@@ -11,24 +11,24 @@ const validationCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
  */
 const sanitizeData = <T>(data: T): T => {
   if (!data) return data;
-  
+
   // Handle objects recursively
   if (typeof data === 'object' && data !== null) {
     // Handle arrays specifically
     if (Array.isArray(data)) {
       return data.map(item => sanitizeData(item)) as unknown as T;
     }
-    
+
     // For non-array objects
     const result: Record<string, any> = {};
-    
+
     Object.entries(data as Record<string, any>).forEach(([key, value]) => {
       // Skip null values
       if (value === null) {
         result[key] = null;
         return;
       }
-      
+
       if (typeof value === 'string') {
         // Trim strings
         result[key] = value.trim();
@@ -39,23 +39,23 @@ const sanitizeData = <T>(data: T): T => {
         result[key] = value;
       }
     });
-    
+
     return result as T;
   }
-  
+
   // Handle string values
   if (typeof data === 'string') {
     return data.trim() as unknown as T;
   }
-  
+
   return data;
 };
 
 /**
  * Enhanced validation middleware with sanitization and caching
  */
-export const validate = (schema: AnyZodObject, cacheKey?: string) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const validate = (schema: ZodSchema, cacheKey?: string) => {
+  return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
       // Check cache for this request if cacheKey is provided
       if (cacheKey) {
@@ -64,29 +64,29 @@ export const validate = (schema: AnyZodObject, cacheKey?: string) => {
           query: req.query,
           params: req.params
         })}`;
-        
+
         const cachedResult = validationCache.get(cacheKeyWithParams);
         if (cachedResult) {
           next();
           return;
         }
       }
-      
+
       // Sanitize request data
       const sanitizedData = {
         body: sanitizeData(req.body),
         query: sanitizeData(req.query),
         params: sanitizeData(req.params),
       };
-      
+
       // Apply sanitized data back to request
       req.body = sanitizedData.body;
       req.query = sanitizedData.query;
       req.params = sanitizedData.params;
-      
+
       // Validate with Zod
       await schema.parseAsync(sanitizedData);
-      
+
       // Cache successful validation result if cacheKey is provided
       if (cacheKey) {
         const cacheKeyWithParams = `${cacheKey}:${JSON.stringify({
@@ -96,7 +96,7 @@ export const validate = (schema: AnyZodObject, cacheKey?: string) => {
         })}`;
         validationCache.set(cacheKeyWithParams, true);
       }
-      
+
       next();
     } catch (error) {
       if (error instanceof ZodError) {
@@ -105,7 +105,7 @@ export const validate = (schema: AnyZodObject, cacheKey?: string) => {
           message: err.message,
           code: err.code,
         }));
-        
+
         next(ApiError.badRequest('Validation failed', 'VALIDATION_ERROR', errors));
       } else {
         next(error);

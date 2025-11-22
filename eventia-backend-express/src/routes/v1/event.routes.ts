@@ -1,10 +1,12 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { z } from 'zod';
 import { EventControllerV1 } from '../../controllers/v1/event.controller';
+import { authenticate, authorize } from '../../middleware/auth';
 import { standardLimiter } from '../../middleware/rateLimit';
 import { validate } from '../../middleware/validate';
 import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
+import { createEventSchema } from '../../validators/event.validator';
 
 /**
  * Event routes
@@ -63,11 +65,36 @@ const eventQuerySchema = z.object({
  *                             type: string
  *                           title:
  *                             type: string
+ *   post:
+ *     summary: Create a new event
+ *     tags: [Events]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateEvent'
+ *     responses:
+ *       201:
+ *         description: Event created successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.get('/',
   standardLimiter,
   validate(eventQuerySchema),
   asyncHandler(EventControllerV1.getAllEvents)
+);
+
+router.post('/',
+  authenticate,
+  authorize(['ADMIN', 'ORGANIZER']),
+  validate(createEventSchema),
+  asyncHandler(EventControllerV1.createEvent)
 );
 
 /**
