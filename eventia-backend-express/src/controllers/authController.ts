@@ -1,12 +1,12 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import { config } from '../config';
 import userModel, { loginSchema, registerSchema } from '../models/user';
 import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
+import { asyncHandler } from '../utils/asyncHandler';
 import { generateToken, verifyToken } from '../utils/jwt';
 import { logger } from '../utils/logger';
-import { asyncHandler } from '../utils/asyncHandler';
 
 export const register = asyncHandler(async (
   req: Request,

@@ -7,15 +7,15 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_USER: ${DB_USER:-eventia}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
       POSTGRES_DB: ${DB_NAME:-eventia_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - eventia-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-eventia}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -43,7 +43,7 @@ services:
     ports:
       - "4000:4000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/eventia_db
+      - DATABASE_URL=postgresql://${DB_USER:-eventia}:${DB_PASSWORD:-password123}@postgres:5432/${DB_NAME:-eventia_db}
       - REDIS_URL=redis://redis:6379
       - PORT=4000
       - NODE_ENV=development

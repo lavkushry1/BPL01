@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt';
-import { UserRepository, User } from '../repositories/userRepository';
+import bcrypt from 'bcryptjs';
+import { User, UserRepository } from '../repositories/userRepository';
 import { ApiError } from '../utils/apiError';
 import { generateToken } from '../utils/jwt';
 
