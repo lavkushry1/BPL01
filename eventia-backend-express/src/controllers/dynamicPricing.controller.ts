@@ -3,25 +3,23 @@ import { DynamicPricingService } from '../services/dynamicPricing.service';
 import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
 import { catchAsync } from '../utils/catchAsync';
+import { calculatePriceSchema, createPricingRuleSchema, updatePricingRuleSchema } from '../validators/dynamicPricing.validator';
 
 const calculatePrice = catchAsync(async (req: Request, res: Response) => {
-  const { eventId, ticketCategoryId, quantity } = req.query;
-
-  if (!eventId || !ticketCategoryId) {
-    throw ApiError.badRequest('eventId and ticketCategoryId are required');
-  }
+  const { eventId, ticketCategoryId, quantity } = calculatePriceSchema.parse(req.query);
 
   const calculatedPrice = await DynamicPricingService.calculatePrice(
-    eventId as string,
-    ticketCategoryId as string,
-    quantity ? Number(quantity) : 1
+    eventId,
+    ticketCategoryId,
+    quantity
   );
 
   return ApiResponse.success(res, 200, 'Price calculated successfully', calculatedPrice);
 });
 
 const createPricingRule = catchAsync(async (req: Request, res: Response) => {
-  const rule = await DynamicPricingService.savePricingRule(req.body);
+  const validatedData = createPricingRuleSchema.parse(req.body);
+  const rule = await DynamicPricingService.savePricingRule(validatedData);
   return ApiResponse.created(res, rule, 'Pricing rule created successfully');
 });
 
@@ -43,9 +41,10 @@ const getPricingRule = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updatePricingRule = catchAsync(async (req: Request, res: Response) => {
+  const validatedData = updatePricingRuleSchema.parse(req.body);
   const rule = await DynamicPricingService.savePricingRule({
     id: req.params.ruleId,
-    ...req.body
+    ...validatedData
   });
   return ApiResponse.success(res, 200, 'Pricing rule updated successfully', rule);
 });

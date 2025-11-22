@@ -4,18 +4,20 @@ import { prisma } from '../db/prisma';
 import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
 import { catchAsync } from '../utils/catchAsync';
+import { createTicketCategorySchema, updateTicketCategorySchema } from '../validations/ticketCategory.validation';
 
 /**
  * Create a new ticket category
  */
 const createTicketCategory = catchAsync(async (req: Request, res: Response) => {
+  const validatedData = createTicketCategorySchema.parse(req.body);
   const {
     name,
     description,
     price,
     totalSeats,
     eventId
-  } = req.body;
+  } = validatedData;
 
   // Check if event exists
   const eventExists = await prisma.event.findUnique({
@@ -75,12 +77,13 @@ const getTicketCategoryById = catchAsync(async (req: Request, res: Response) => 
  */
 const updateTicketCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
+  const validatedData = updateTicketCategorySchema.parse(req.body);
   const {
     name,
     description,
     price,
     totalSeats
-  } = req.body;
+  } = validatedData;
 
   // Check if ticket category exists
   const ticketCategoryExists = await prisma.ticketCategory.findUnique({
@@ -131,7 +134,7 @@ const deleteTicketCategory = catchAsync(async (req: Request, res: Response) => {
  */
 const updateBookedSeats = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { bookedSeats } = req.body;
+  const { bookedSeats } = updateBookedSeatsSchema.parse(req.body);
 
   const ticketCategory = await prisma.ticketCategory.findUnique({
     where: { id }

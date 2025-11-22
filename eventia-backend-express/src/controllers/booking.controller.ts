@@ -11,13 +11,15 @@ import { logger } from '../utils/logger';
 /**
  * Create a new booking
  */
+import { cancelBookingSchema, createBookingSchema, saveDeliveryDetailsSchema, updateBookingStatusSchema } from '@/validations/booking.validation';
 import { ApiResponse } from '../utils/apiResponse';
 
 /**
  * Create a new booking
  */
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
-  const { event_id, user_id, seat_ids, amount, payment_method } = req.body;
+  const validatedData = createBookingSchema.parse(req.body);
+  const { event_id, user_id, seat_ids, amount, payment_method } = validatedData;
 
   // Process booking with transaction to ensure data integrity
   const newBooking = await db.transaction(async trx => {
@@ -137,7 +139,8 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
  * Save delivery details
  */
 export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Response) => {
-  const { booking_id, name, phone, address, city, pincode } = req.body;
+  const validatedData = saveDeliveryDetailsSchema.parse(req.body);
+  const { booking_id, name, phone, address, city, pincode } = validatedData;
 
   // Check if booking exists
   const booking = await db('bookings')
@@ -195,7 +198,7 @@ export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Respon
  */
 export const updateBookingStatus = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status } = updateBookingStatusSchema.parse(req.body);
 
   // Check if booking exists
   const booking = await db('bookings')
@@ -224,7 +227,7 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
  */
 export const cancelBooking = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { cancellation_reason } = req.body;
+  const { cancellation_reason } = cancelBookingSchema.parse(req.body);
 
   // Check if booking exists
   const booking = await db('bookings')
