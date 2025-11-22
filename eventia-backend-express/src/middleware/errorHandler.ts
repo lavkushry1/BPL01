@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/apiError';
-import { logger } from '../utils/logger';
-import { ErrorCode } from '../utils/errorCodes';
 import { Prisma } from '@prisma/client';
+import { NextFunction, Request, Response } from 'express';
+import { ApiError } from '../utils/apiError';
+import { ErrorCode } from '../utils/errorCodes';
+import { logger } from '../utils/logger';
 
 /**
  * Global error handler middleware
@@ -28,7 +28,8 @@ export const errorHandler = (
       success: false,
       error: {
         code: err.code,
-        message: err.message
+        message: err.message,
+        details: err.details
       },
       data: null
     });
@@ -111,8 +112,8 @@ export const errorHandler = (
     success: false,
     error: {
       code: ErrorCode.INTERNAL_ERROR,
-      message: process.env.NODE_ENV === 'production' 
-        ? 'An unexpected error occurred' 
+      message: process.env.NODE_ENV === 'production'
+        ? 'An unexpected error occurred'
         : err.message || 'Unknown error'
     },
     data: null

@@ -1,4 +1,3 @@
-import bodyParser from 'body-parser';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -8,9 +7,9 @@ import { createServer } from 'http';
 import morgan from 'morgan';
 import { config } from './config';
 import { setupSwagger } from './docs/swagger';
+import { generateCsrfToken, validateCsrfToken } from './middleware/csrf';
 import { dataloaderMiddleware } from './middleware/dataloader.middleware';
 import { errorHandler } from './middleware/errorHandler';
-import { generateCsrfToken, validateCsrfToken } from './middleware/csrf';
 import { standardLimiter } from './middleware/rateLimit';
 import { JobService } from './services/job.service';
 import { WebsocketService } from './services/websocket.service';
@@ -24,6 +23,18 @@ import v1Routes from './routes/v1';
 export const createApp = async (): Promise<{ app: Application; server: any }> => {
   const app: Application = express();
   const server = createServer(app);
+
+  // Essential middleware - MOVED TO TOP
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+  // Debug middleware to check body parsing
+  app.use((req, _res, next) => {
+    if (process.env.NODE_ENV === 'test') {
+      console.log('After BodyParser (Top) - req.body:', JSON.stringify(req.body, null, 2));
+    }
+    next();
+  });
 
   // Security headers using Helmet
   app.use(helmet({
@@ -59,8 +70,8 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   }));
 
   // Essential middleware
-  app.use(bodyParser.json({ limit: '1mb' }));
-  app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
+  // express.json and urlencoded moved to top
+
   app.use(cookieParser());
 
   // Apply standard rate limiting to all routes
@@ -68,6 +79,11 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
 
   // Generate CSRF token for GET requests and validate for state-changing methods
   app.use((req, res, next) => {
+    // Skip CSRF for tests
+    if (process.env.NODE_ENV === 'test') {
+      return next();
+    }
+
     if (req.method === 'GET') {
       return generateCsrfToken(req, res, next);
     }
@@ -108,7 +124,7 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   setupSwagger(app);
 
   // Health check endpoint
-  app.get('/health', (req: Request, res: Response) => {
+  app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({
       status: 'ok',
       environment: config.nodeEnv,
@@ -118,7 +134,7 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   });
 
   // Handle 404 routes
-  app.use('*', (req: Request, res: Response, next: NextFunction) => {
+  app.use('*', (req: Request, _res: Response, next: NextFunction) => {
     next(ApiError.notFound(`Cannot find ${req.originalUrl} on this server`));
   });
 

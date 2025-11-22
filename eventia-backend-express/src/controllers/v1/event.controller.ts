@@ -1,12 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
-import { ApiResponse } from '../../utils/apiResponse';
+import { EventStatus, Prisma } from '@prisma/client';
+import { NextFunction, Request, Response } from 'express';
+import { eventService } from '../../services/event.service';
+import { EventCreateInput, EventFilters, EventUpdateInput } from '../../types/event.types';
 import { ApiError } from '../../utils/apiError';
+import { ApiResponse } from '../../utils/apiResponse';
 import { asyncHandler } from '../../utils/asyncHandler';
 import { logger } from '../../utils/logger';
-import { EventStatus } from '@prisma/client';
-import { eventService } from '../../services/event.service';
-import { EventFilters, EventCreateInput, EventUpdateInput } from '../../types/event.types';
-import { Prisma } from '@prisma/client';
 
 /**
  * Controller for handling event operations in the v1 API
@@ -36,7 +35,8 @@ export class EventControllerV1 {
         category: category as string,
         date: date as string,
         sortBy: sort_by as string,
-        sortOrder: sort_order as 'asc' | 'desc'
+        sortOrder: sort_order as 'asc' | 'desc',
+        status: 'PUBLISHED' // Enforce published status for public listing
       };
 
       // Handle pagination - use cursor-based if provided, otherwise offset-based
@@ -76,7 +76,7 @@ export class EventControllerV1 {
           };
 
       return ApiResponse.success(
-        res, 
+        res,
         200,
         'Events fetched successfully',
         {
@@ -90,7 +90,7 @@ export class EventControllerV1 {
         logger.error('Database schema error: Missing column in events table', {
           error: error.message
         });
-        
+
         // Return empty events array as fallback
         return ApiResponse.success(
           res,
@@ -107,7 +107,7 @@ export class EventControllerV1 {
           }
         );
       }
-      
+
       // For other errors, pass to the error handler
       next(error);
     }
@@ -119,7 +119,7 @@ export class EventControllerV1 {
   static getEventById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const includeParams = req.query.include 
+      const includeParams = req.query.include
         ? (req.query.include as string).split(',')
         : ['ticketCategories', 'categories'];
 
@@ -149,7 +149,7 @@ export class EventControllerV1 {
           error: error.message,
           eventId: req.params.id
         });
-        
+
         // Since this is for a specific event and we couldn't get data, return a more
         // descriptive error rather than empty data
         return ApiResponse.error(
@@ -160,7 +160,7 @@ export class EventControllerV1 {
           null
         );
       }
-      
+
       // For other errors, pass to the error handler
       next(error);
     }
@@ -239,7 +239,7 @@ export class EventControllerV1 {
 
     // Check if event exists using dataloader
     const existingEvent = await req.loaders.eventLoader.load(id);
-    
+
     if (!existingEvent) {
       throw new ApiError(404, 'Event not found', 'EVENT_NOT_FOUND');
     }
@@ -283,7 +283,7 @@ export class EventControllerV1 {
 
     // Check if event exists using dataloader
     const existingEvent = await req.loaders.eventLoader.load(id);
-    
+
     if (!existingEvent) {
       throw new ApiError(404, 'Event not found', 'EVENT_NOT_FOUND');
     }
@@ -307,7 +307,7 @@ export class EventControllerV1 {
 
     // Check if event exists using dataloader
     const existingEvent = await req.loaders.eventLoader.load(id);
-    
+
     if (!existingEvent) {
       throw new ApiError(404, 'Event not found', 'EVENT_NOT_FOUND');
     }
@@ -336,4 +336,4 @@ export class EventControllerV1 {
       mockStats
     );
   });
-} 
+}
