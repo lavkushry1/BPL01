@@ -1,7 +1,8 @@
+import { fail } from 'assert';
 import { Request, Response } from 'express';
+import { beforeEach, describe, it } from 'node:test';
 import { PaymentController } from '../../controllers/payment.controller';
 import { db } from '../../db';
-import { WebsocketService } from '../../services/websocket.service';
 
 // Mock dependencies
 jest.mock('../../db');
@@ -18,18 +19,18 @@ describe('Payment Controller', () => {
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
-    
+
     // Setup mock request and response
     mockRequest = {
       body: {},
       params: {}
     };
-    
+
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis()
     };
-    
+
     mockNext = jest.fn();
 
     // Mock db.fn.now()
@@ -47,8 +48,8 @@ describe('Payment Controller', () => {
         currency: 'INR'
       };
 
-      // Mock database responses
-      (db as jest.Mocked<typeof db>).mockImplementation(() => ({
+      // Mock database query builder
+      const mockQueryBuilder = {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         first: jest.fn().mockResolvedValueOnce({
@@ -66,10 +67,13 @@ describe('Payment Controller', () => {
           status: 'pending'
         }]),
         update: jest.fn().mockReturnThis()
-      }));
+      };
+
+      (db as any) = jest.fn().mockReturnValue(mockQueryBuilder);
+      Object.assign(db as any, mockQueryBuilder);
 
       // Mock transaction
-      (db.transaction as jest.Mock) = jest.fn().mockImplementation(async (callback) => {
+      (db.transaction as any) = jest.fn().mockImplementation(async (callback) => {
         return await callback(db);
       });
     });
@@ -113,11 +117,13 @@ describe('Payment Controller', () => {
 
     it('should throw an error if booking does not exist', async () => {
       // Mock booking not found
-      (db as jest.Mocked<typeof db>).mockImplementation(() => ({
+      const mockQueryBuilder = {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         first: jest.fn().mockResolvedValue(null)
-      }));
+      };
+      (db as any) = jest.fn().mockReturnValue(mockQueryBuilder);
+      Object.assign(db as any, mockQueryBuilder);
 
       // Execute and catch error
       try {
@@ -131,7 +137,7 @@ describe('Payment Controller', () => {
 
     it('should throw an error if booking is not in pending state', async () => {
       // Mock booking in non-pending state
-      (db as jest.Mocked<typeof db>).mockImplementation(() => ({
+      const mockQueryBuilder = {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         first: jest.fn().mockResolvedValue({
@@ -139,7 +145,9 @@ describe('Payment Controller', () => {
           status: 'confirmed', // Not pending
           final_amount: 1000
         })
-      }));
+      };
+      (db as any) = jest.fn().mockReturnValue(mockQueryBuilder);
+      Object.assign(db as any, mockQueryBuilder);
 
       // Execute and catch error
       try {
@@ -153,7 +161,7 @@ describe('Payment Controller', () => {
 
     it('should re-initialize payment if existing payment was rejected', async () => {
       // Mock existing payment with rejected status
-      (db as jest.Mocked<typeof db>).mockImplementation(() => ({
+      const mockQueryBuilder = {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         first: jest.fn()
@@ -168,7 +176,9 @@ describe('Payment Controller', () => {
             booking_id: 'booking-123'
           }),
         update: jest.fn().mockReturnThis()
-      }));
+      };
+      (db as any) = jest.fn().mockReturnValue(mockQueryBuilder);
+      Object.assign(db as any, mockQueryBuilder);
 
       // Execute the controller function
       await PaymentController.initializePayment(mockRequest as Request, mockResponse as Response, mockNext);
@@ -192,7 +202,7 @@ describe('Payment Controller', () => {
 
     it('should throw an error if payment already exists and is not rejected', async () => {
       // Mock existing payment with non-rejected status
-      (db as jest.Mocked<typeof db>).mockImplementation(() => ({
+      const mockQueryBuilder = {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         first: jest.fn()
@@ -206,7 +216,9 @@ describe('Payment Controller', () => {
             status: 'processing', // Not rejected
             booking_id: 'booking-123'
           })
-      }));
+      };
+      (db as any) = jest.fn().mockReturnValue(mockQueryBuilder);
+      Object.assign(db as any, mockQueryBuilder);
 
       // Execute and catch error
       try {
