@@ -75,13 +75,6 @@ describe('Event Routes', () => {
     it('should return a list of published events', async () => {
       const response = await request.get('/api/v1/events');
 
-      console.log('GET /events response body:', JSON.stringify(response.body, null, 2));
-
-      if (response.status !== 200 || !response.body.success) {
-        console.log('GET /events failed:', JSON.stringify(response.body, null, 2));
-        console.log('Status:', response.status);
-      }
-
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(Array.isArray(response.body.data.events)).toBe(true);
@@ -129,12 +122,9 @@ describe('Event Routes', () => {
 
       const response = await request
         .post('/api/v1/events')
+        .type('json')  // Supertest method to set Content-Type and send JSON
         .set('Authorization', `Bearer ${authToken}`)
         .send(newEvent);
-
-      if (response.status !== 201) {
-        console.log(`POST /events failed: ${JSON.stringify(response.body, null, 2)}`);
-      }
 
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);

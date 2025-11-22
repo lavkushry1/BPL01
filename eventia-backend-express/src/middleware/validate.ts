@@ -73,13 +73,11 @@ export const validate = (schema: ZodSchema, cacheKey?: string) => {
       }
 
       // Sanitize request data
-      console.log('Validate Middleware - req.body:', JSON.stringify(req.body, null, 2));
       const sanitizedData = {
         body: sanitizeData(req.body),
         query: sanitizeData(req.query),
         params: sanitizeData(req.params),
       };
-      console.log('Validate Middleware - sanitizedData.body:', JSON.stringify(sanitizedData.body, null, 2));
 
       // Apply sanitized data back to request
       req.body = sanitizedData.body;
