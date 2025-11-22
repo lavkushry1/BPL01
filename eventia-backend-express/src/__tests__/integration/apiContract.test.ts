@@ -39,21 +39,31 @@ describe('API Contract Validation', () => {
       swaggerSpec = swaggerJsdoc(swaggerOptions);
 
       // Initialize Ajv for JSON Schema validation
-      ajv = new Ajv({ allErrors: true });
+      ajv = new Ajv({
+        allErrors: true,
+        strict: false // Disable strict mode to allow OpenAPI keywords like 'example'
+      });
       addFormats(ajv);
+
+      console.log('NODE_ENV:', process.env.NODE_ENV);
 
       // Create a test user directly in the database
       // Or better, use the repository if available, or direct prisma access if we can get it.
       // Since we don't have direct access to prisma client here easily without importing,
       // let's try to register a user via the API first.
 
-      await agent
-        .post('/api/v1/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'Password123',
-          name: 'Test User'
-        });
+      // Try to register, ignore if already exists
+      try {
+        await agent
+          .post('/api/v1/auth/register')
+          .send({
+            email: 'test@example.com',
+            password: 'Password123',
+            name: 'Test User'
+          });
+      } catch (e) {
+        // Ignore error
+      }
 
       // Login to get auth token for protected endpoints
       // Use agent instead of request(server)
@@ -67,10 +77,36 @@ describe('API Contract Validation', () => {
       if (loginResponse.status === 200) {
         authToken = loginResponse.body.data.token;
 
+        // Get CSRF token
+        const csrfResponse = await agent.get('/api/v1/auth/csrf');
+
+        console.log('CSRF Response Headers:', JSON.stringify(csrfResponse.headers, null, 2));
+
+        // Extract token from cookies
+        const cookies = csrfResponse.headers['set-cookie'];
+        let csrfToken = '';
+
+        if (cookies) {
+          const csrfCookie = cookies.find((c: string) => c.startsWith('csrf_token='));
+          if (csrfCookie) {
+            csrfToken = csrfCookie.split(';')[0].split('=')[1];
+            // Decode URL encoded characters if any (though hex shouldn't have them)
+            csrfToken = decodeURIComponent(csrfToken);
+          }
+        }
+
+        // Fallback to header if available (though middleware sets it as X-CSRF-Token)
+        if (!csrfToken) {
+          csrfToken = csrfResponse.headers['x-csrf-token'];
+        }
+
+        console.log('Fetched CSRF Token:', csrfToken);
+
         // Create a test event
         const eventResponse = await agent
           .post('/api/v1/events')
           .set('Authorization', `Bearer ${authToken}`)
+          .set('x-csrf-token', csrfToken)
           .send({
             title: 'Test Event',
             description: 'This is a test event',
@@ -101,17 +137,24 @@ describe('API Contract Validation', () => {
   const validateResponseSchema = (endpoint: string, method: string, statusCode: number, response: any): boolean => {
     try {
       // Debug paths if not found
-      if (!swaggerSpec.paths[endpoint]) {
-        // console.log('Available paths:', Object.keys(swaggerSpec.paths));
+      if (!swaggerSpec.paths || !swaggerSpec.paths[endpoint]) {
+        console.log(`Path ${endpoint} not found.`);
+        if (swaggerSpec.paths) {
+          console.log('Available paths:', Object.keys(swaggerSpec.paths));
+        } else {
+          console.log('swaggerSpec.paths is undefined');
+          // console.log('swaggerSpec:', JSON.stringify(swaggerSpec, null, 2));
+        }
+
         // Try adding/removing /api/v1 prefix
         const altEndpoint = endpoint.startsWith('/api/v1') ? endpoint.replace('/api/v1', '') : `/api/v1${endpoint}`;
-        if (swaggerSpec.paths[altEndpoint]) {
+        if (swaggerSpec.paths && swaggerSpec.paths[altEndpoint]) {
           endpoint = altEndpoint;
         }
       }
 
       // Find the path spec
-      const pathSpec = swaggerSpec.paths[endpoint]?.[method.toLowerCase()];
+      const pathSpec = swaggerSpec.paths?.[endpoint]?.[method.toLowerCase()];
       if (!pathSpec) {
         console.warn(`No path spec found for ${method} ${endpoint}`);
         return false;
