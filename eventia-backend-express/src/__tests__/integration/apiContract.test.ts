@@ -8,7 +8,7 @@ import addFormats from 'ajv-formats';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerOptions from '../../config/swagger';
 
-console.log('Loading apiContract.test.ts');
+
 
 describe('API Contract Validation', () => {
   let app: Application;
@@ -20,7 +20,6 @@ describe('API Contract Validation', () => {
 
   beforeAll(async () => {
     try {
-      console.log('Starting beforeAll');
       // Use global app and server initialized in setup.ts
       app = (global as any).app;
       server = (global as any).server;
@@ -31,10 +30,6 @@ describe('API Contract Validation', () => {
 
       agent = request(server);
 
-      console.log('App initialized:', !!app);
-      console.log('Server initialized:', !!server);
-      console.log('Agent initialized:', !!agent);
-
       // Generate Swagger spec from JSDoc annotations
       swaggerSpec = swaggerJsdoc(swaggerOptions);
 
@@ -44,8 +39,6 @@ describe('API Contract Validation', () => {
         strict: false // Disable strict mode to allow OpenAPI keywords like 'example'
       });
       addFormats(ajv);
-
-      console.log('NODE_ENV:', process.env.NODE_ENV);
 
       // Create a test user directly in the database
       // Or better, use the repository if available, or direct prisma access if we can get it.
@@ -80,8 +73,6 @@ describe('API Contract Validation', () => {
         // Get CSRF token
         const csrfResponse = await agent.get('/api/v1/auth/csrf');
 
-        console.log('CSRF Response Headers:', JSON.stringify(csrfResponse.headers, null, 2));
-
         // Extract token from cookies
         const cookies = csrfResponse.headers['set-cookie'];
         let csrfToken = '';
@@ -99,8 +90,6 @@ describe('API Contract Validation', () => {
         if (!csrfToken) {
           csrfToken = csrfResponse.headers['x-csrf-token'];
         }
-
-        console.log('Fetched CSRF Token:', csrfToken);
 
         // Create a test event
         const eventResponse = await agent
@@ -138,11 +127,10 @@ describe('API Contract Validation', () => {
     try {
       // Debug paths if not found
       if (!swaggerSpec.paths || !swaggerSpec.paths[endpoint]) {
-        console.log(`Path ${endpoint} not found.`);
         if (swaggerSpec.paths) {
-          console.log('Available paths:', Object.keys(swaggerSpec.paths));
+          // console.log('Available paths:', Object.keys(swaggerSpec.paths));
         } else {
-          console.log('swaggerSpec.paths is undefined');
+          // console.log('swaggerSpec.paths is undefined');
           // console.log('swaggerSpec:', JSON.stringify(swaggerSpec, null, 2));
         }
 
@@ -302,7 +290,7 @@ describe('API Contract Validation', () => {
       expect(response.body).toHaveProperty('success', false);
 
       if (response.status === 401) {
-        console.log('Unauthorized response body:', JSON.stringify(response.body, null, 2));
+        // console.log('Unauthorized response body:', JSON.stringify(response.body, null, 2));
       }
 
       // Validate against OpenAPI schema
