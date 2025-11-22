@@ -15,7 +15,7 @@ describe('User Routes', () => {
 
     // Create a test user with hashed password
     const hashedPassword = await bcrypt.hash('password123', 10);
-    [userId] = await db('users').insert({
+    const [{ id: userId }] = await db('users').insert({
       name: 'Test User',
       email: 'testuser@example.com',
       password: hashedPassword,

@@ -23,7 +23,7 @@ describe('Payment Routes', () => {
     await db('users').del();
 
     // Create a test user
-    [userId] = await db('users').insert({
+    const [{ id: userId }] = await db('users').insert({
       name: 'Test User',
       email: 'testuser@example.com',
       password: '$2b$10$hashedpassword',
@@ -31,7 +31,7 @@ describe('Payment Routes', () => {
     }).returning('id');
 
     // Create an admin user
-    [adminId] = await db('users').insert({
+    const [{ id: adminId }] = await db('users').insert({
       name: 'Admin User',
       email: 'admin@example.com',
       password: '$2b$10$hashedpassword',

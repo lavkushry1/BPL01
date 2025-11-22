@@ -16,7 +16,7 @@ describe('Event Routes', () => {
     await db('users').del();
 
     // Create a test user
-    const [userId] = await db('users').insert({
+    const [{ id: userId }] = await db('users').insert({
       name: 'Test User',
       email: 'testuser@example.com',
       password: '$2b$10$hashedpassword',
@@ -24,7 +24,7 @@ describe('Event Routes', () => {
     }).returning('id');
 
     // Generate auth token for the test user
-    authToken = generateToken({ id: userId, role: 'organizer' });
+    authToken = generateToken({ id: userId, role: 'ORGANIZER' });
 
     // Create test events
     await db('events').insert([
