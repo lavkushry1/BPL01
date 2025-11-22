@@ -16,11 +16,11 @@ jest.mock('../services/cacheService', () => ({
 }));
 
 jest.mock('../middleware/rateLimit', () => ({
-  standardLimiter: jest.fn((req, res, next) => next()),
-  apiKeyLimiter: jest.fn((req, res, next) => next()),
-  strictLimiter: jest.fn((req, res, next) => next()),
-  authLimiter: jest.fn((req, res, next) => next()),
-  loginLimiter: jest.fn((req, res, next) => next()), // Add this line
+  standardLimiter: jest.fn((_req, _res, next) => next()),
+  apiKeyLimiter: jest.fn((_req, _res, next) => next()),
+  strictLimiter: jest.fn((_req, _res, next) => next()),
+  authLimiter: jest.fn((_req, _res, next) => next()),
+  loginLimiter: jest.fn((_req, _res, next) => next()), // Add this line
 }));
 
 // Mock JobService to prevent cron jobs from starting
@@ -37,16 +37,25 @@ let request: any;
 
 // Setup before tests
 beforeAll(async () => {
-  // Ensure we're using test environment
-  process.env.NODE_ENV = 'test';
+  console.log('setup.ts: Starting beforeAll');
+  try {
+    // Ensure we're using test environment
+    process.env.NODE_ENV = 'test';
 
-  // Initialize the app
-  const { app: createdApp } = await createApp();
-  app = createdApp;
-  request = supertest(app);
+    // Initialize the app
+    console.log('setup.ts: Creating app');
+    const { app: createdApp } = await createApp();
+    app = createdApp;
+    request = supertest(app);
 
-  // Run migrations to setup test database
-  await db.migrate.latest();
+    // Run migrations to setup test database
+    console.log('setup.ts: Running migrations');
+    await db.migrate.latest();
+    console.log('setup.ts: Migrations complete');
+  } catch (error) {
+    console.error('setup.ts: Error in beforeAll:', error);
+    throw error;
+  }
 });
 
 // Clean up after tests

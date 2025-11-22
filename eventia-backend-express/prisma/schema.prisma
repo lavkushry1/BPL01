@@ -253,21 +253,26 @@ model TicketCategory {
 
 model PricingRule {
   id                String          @id @default(uuid())
-  eventId           String          @map("event_id")
+  name              String
+  description       String?
+  eventId           String?         @map("event_id") // Made optional to support global rules
   ticketCategoryId  String?         @map("ticket_category_id")
-  type              String
-  value             Decimal         @db.Decimal(10, 2)
-  startTime         DateTime?       @map("start_time")
-  endTime           DateTime?       @map("end_time")
+  type              String          // TIME_BASED, INVENTORY_BASED, DEMAND_BASED, CUSTOM
+  conditions        Json            // Store complex conditions
+  adjustmentType    String          @map("adjustment_type") // PERCENTAGE, FIXED
+  adjustmentValue   Decimal         @map("adjustment_value") @db.Decimal(10, 2)
+  priority          Int             @default(0)
+  isGlobal          Boolean         @default(false) @map("is_global")
   isActive          Boolean         @default(true) @map("is_active")
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
-  event             Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event             Event?          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   ticketCategory    TicketCategory? @relation(fields: [ticketCategoryId], references: [id])
 
   @@index([eventId])
   @@index([ticketCategoryId])
   @@index([isActive])
+  @@index([priority])
   @@map("pricing_rules")
 }
 
@@ -275,9 +280,11 @@ model PricingLog {
   id               String        @id @default(uuid())
   eventId          String        @map("event_id")
   ticketCategoryId String        @map("ticket_category_id")
-  oldPrice         Decimal       @map("old_price") @db.Decimal(10, 2)
-  newPrice         Decimal       @map("new_price") @db.Decimal(10, 2)
-  reason           String?
+  basePrice        Decimal       @map("base_price") @db.Decimal(10, 2)
+  finalPrice       Decimal       @map("final_price") @db.Decimal(10, 2)
+  adjustments      Json
+  quantity         Int           @default(1)
+  calculatedAt     DateTime      @default(now()) @map("calculated_at")
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   event            Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)

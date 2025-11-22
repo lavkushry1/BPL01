@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../db/prisma';
 import { ApiError } from '../utils/apiError';
 
@@ -5,9 +6,9 @@ import { ApiError } from '../utils/apiError';
  * Dynamic Pricing Rules
  */
 interface PricingRule {
-  id: string;
+  id?: string;
   name: string;
-  description: string;
+  description?: string;
   type: 'TIME_BASED' | 'INVENTORY_BASED' | 'DEMAND_BASED' | 'CUSTOM';
   conditions: {
     daysBeforeEvent?: number;
@@ -25,7 +26,7 @@ interface PricingRule {
 
 /**
  * Dynamic Pricing Engine
- * 
+ *
  * This service calculates ticket prices dynamically based on various factors:
  * - Time to event (early bird, last minute)
  * - Remaining inventory (scarcity pricing)
@@ -63,7 +64,7 @@ export class DynamicPricingService {
         throw new ApiError(404, 'Ticket category not found', 'NOT_FOUND');
       }
 
-      const basePrice = ticketCategory.price;
+      const basePrice = Number(ticketCategory.price);
       let finalPrice = basePrice;
       const adjustments = [];
 
@@ -83,84 +84,96 @@ export class DynamicPricingService {
       const now = new Date();
       const eventDate = new Date(ticketCategory.event.startDate);
       const daysUntilEvent = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       // Apply each applicable rule
       for (const rule of activePricingRules) {
         let isApplicable = false;
-        
+        const conditions = rule.conditions as unknown as PricingRule['conditions'];
+
         switch (rule.type) {
           case 'TIME_BASED':
             // Example: If rule says "30 days before event, 15% off"
-            isApplicable = daysUntilEvent <= rule.conditions.daysBeforeEvent;
+            if (conditions.daysBeforeEvent !== undefined) {
+              isApplicable = daysUntilEvent <= conditions.daysBeforeEvent;
+            }
             break;
-            
+
           case 'INVENTORY_BASED':
             // Example: If less than 20% of tickets remain, increase price
-            const soldTickets = await prisma.ticketSale.count({
+            const soldTickets = await prisma.ticket.count({
               where: { ticketCategoryId }
             });
-            const remainingPercentage = (ticketCategory.capacity - soldTickets) / ticketCategory.capacity * 100;
-            isApplicable = remainingPercentage <= rule.conditions.remainingPercentageThreshold;
+            // Assuming capacity is available on ticketCategory, defaulting to 100 if null for safety
+            const capacity = ticketCategory.capacity || 100;
+            const remainingPercentage = (capacity - soldTickets) / capacity * 100;
+
+            if (conditions.remainingPercentageThreshold !== undefined) {
+              isApplicable = remainingPercentage <= conditions.remainingPercentageThreshold;
+            }
             break;
-            
+
           case 'DEMAND_BASED':
             // Example: If more than 10 purchases in the last hour, increase price
-            const recentSalesTimeWindow = new Date();
-            recentSalesTimeWindow.setHours(recentSalesTimeWindow.getHours() - rule.conditions.timeWindowHours);
-            
-            const recentSales = await prisma.ticketSale.count({
-              where: {
-                ticketCategoryId,
-                createdAt: { gte: recentSalesTimeWindow }
-              }
-            });
-            
-            isApplicable = recentSales >= rule.conditions.salesThreshold;
+            if (conditions.timeWindowHours !== undefined && conditions.salesThreshold !== undefined) {
+              const recentSalesTimeWindow = new Date();
+              recentSalesTimeWindow.setHours(recentSalesTimeWindow.getHours() - conditions.timeWindowHours);
+
+              const recentSales = await prisma.ticket.count({
+                where: {
+                  ticketCategoryId,
+                  createdAt: { gte: recentSalesTimeWindow }
+                }
+              });
+
+              isApplicable = recentSales >= conditions.salesThreshold;
+            }
             break;
-            
+
           case 'CUSTOM':
             // Custom rules can have special logic
-            if (rule.conditions.specificDates && rule.conditions.specificDates.includes(now.toISOString().split('T')[0])) {
+            if (conditions.specificDates && conditions.specificDates.includes(now.toISOString().split('T')[0])) {
               isApplicable = true;
             }
             break;
         }
-        
+
         // Apply the rule if applicable
         if (isApplicable) {
+          const ruleAdjustmentValue = Number(rule.adjustmentValue);
           const adjustment = {
             ruleId: rule.id,
             ruleName: rule.name,
             type: rule.adjustmentType,
-            value: rule.adjustmentValue
+            value: ruleAdjustmentValue,
+            amount: 0
           };
-          
+
           if (rule.adjustmentType === 'PERCENTAGE') {
-            const amount = finalPrice * (rule.adjustmentValue / 100);
+            const amount = finalPrice * (ruleAdjustmentValue / 100);
             finalPrice += amount; // This could be negative for discounts
             adjustment.amount = amount;
           } else {
-            finalPrice += rule.adjustmentValue; // This could be negative for discounts
-            adjustment.amount = rule.adjustmentValue;
+            finalPrice += ruleAdjustmentValue; // This could be negative for discounts
+            adjustment.amount = ruleAdjustmentValue;
           }
-          
+
           adjustments.push(adjustment);
         }
       }
-      
-      // Ensure price doesn't go below minimum (if specified)
-      if (ticketCategory.minimumPrice && finalPrice < ticketCategory.minimumPrice) {
-        finalPrice = ticketCategory.minimumPrice;
+
+      // Ensure price doesn't go below 0 (minimumPrice not in schema, assuming 0 floor)
+      if (finalPrice < 0) {
+        finalPrice = 0;
       }
-      
+
       // Calculate total discount
       const discount = basePrice - finalPrice;
-      const discountPercentage = (discount / basePrice) * 100;
-      
+      const discountPercentage = basePrice > 0 ? (discount / basePrice) * 100 : 0;
+
       // Calculate total for all tickets
       const perTicketPrice = finalPrice;
       const totalPrice = perTicketPrice * quantity;
-      
+
       // Log this pricing calculation for analytics
       await this.logPricingCalculation(
         eventId,
@@ -170,7 +183,7 @@ export class DynamicPricingService {
         adjustments,
         quantity
       );
-      
+
       return {
         basePrice,
         finalPrice,
@@ -185,42 +198,37 @@ export class DynamicPricingService {
       throw error instanceof ApiError ? error : new ApiError(500, 'Error calculating price', 'PRICING_ERROR');
     }
   }
-  
+
   /**
    * Update or create a pricing rule
    * @param rule Pricing rule data
    */
   static async savePricingRule(rule: PricingRule): Promise<any> {
     try {
+      const ruleData = {
+        name: rule.name,
+        description: rule.description,
+        type: rule.type,
+        conditions: rule.conditions as unknown as Prisma.InputJsonValue,
+        adjustmentType: rule.adjustmentType,
+        adjustmentValue: new Prisma.Decimal(rule.adjustmentValue),
+        priority: rule.priority,
+        isActive: rule.isActive
+      };
+
       if (rule.id) {
         // Update existing rule
         return prisma.pricingRule.update({
           where: { id: rule.id },
           data: {
-            name: rule.name,
-            description: rule.description,
-            type: rule.type,
-            conditions: rule.conditions,
-            adjustmentType: rule.adjustmentType,
-            adjustmentValue: rule.adjustmentValue,
-            priority: rule.priority,
-            isActive: rule.isActive,
+            ...ruleData,
             updatedAt: new Date()
           }
         });
       } else {
         // Create new rule
         return prisma.pricingRule.create({
-          data: {
-            name: rule.name,
-            description: rule.description,
-            type: rule.type,
-            conditions: rule.conditions,
-            adjustmentType: rule.adjustmentType,
-            adjustmentValue: rule.adjustmentValue,
-            priority: rule.priority,
-            isActive: rule.isActive
-          }
+          data: ruleData
         });
       }
     } catch (error) {
@@ -228,7 +236,7 @@ export class DynamicPricingService {
       throw new ApiError(500, 'Error saving pricing rule', 'DATABASE_ERROR');
     }
   }
-  
+
   /**
    * Delete a pricing rule
    * @param ruleId Rule ID
@@ -243,7 +251,7 @@ export class DynamicPricingService {
       throw new ApiError(500, 'Error deleting pricing rule', 'DATABASE_ERROR');
     }
   }
-  
+
   /**
    * Get all pricing rules for an event
    * @param eventId Event ID (optional, if not provided return global rules)
@@ -251,7 +259,7 @@ export class DynamicPricingService {
   static async getPricingRules(eventId?: string): Promise<any[]> {
     try {
       const where: any = {};
-      
+
       if (eventId) {
         where.OR = [
           { eventId },
@@ -260,7 +268,7 @@ export class DynamicPricingService {
       } else {
         where.isGlobal = true;
       }
-      
+
       return prisma.pricingRule.findMany({
         where,
         orderBy: { priority: 'desc' }
@@ -270,7 +278,7 @@ export class DynamicPricingService {
       throw new ApiError(500, 'Error fetching pricing rules', 'DATABASE_ERROR');
     }
   }
-  
+
   /**
    * Log pricing calculation for auditing and analytics
    */
@@ -287,8 +295,8 @@ export class DynamicPricingService {
         data: {
           eventId,
           ticketCategoryId,
-          basePrice,
-          finalPrice,
+          basePrice: new Prisma.Decimal(basePrice),
+          finalPrice: new Prisma.Decimal(finalPrice),
           adjustments: JSON.stringify(adjustments),
           quantity,
           calculatedAt: new Date()
@@ -299,4 +307,4 @@ export class DynamicPricingService {
       // Non-critical, just log the error
     }
   }
-} 
+}
