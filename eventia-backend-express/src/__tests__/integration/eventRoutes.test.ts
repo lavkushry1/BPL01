@@ -20,7 +20,7 @@ describe('Event Routes', () => {
       name: 'Test User',
       email: 'testuser@example.com',
       password: '$2b$10$hashedpassword',
-      role: 'organizer'
+      role: 'ORGANIZER'
     }).returning('id');
 
     // Generate auth token for the test user
@@ -35,7 +35,7 @@ describe('Event Routes', () => {
         end_date: new Date('2023-12-02'),
         location: 'Test Location 1',
         organizer_id: userId,
-        status: 'published'
+        status: 'PUBLISHED'
       },
       {
         title: 'Test Event 2',
@@ -44,7 +44,7 @@ describe('Event Routes', () => {
         end_date: new Date('2024-01-02'),
         location: 'Test Location 2',
         organizer_id: userId,
-        status: 'draft'
+        status: 'DRAFT'
       }
     ]);
   });
@@ -86,7 +86,7 @@ describe('Event Routes', () => {
         startDate: '2024-02-01',
         endDate: '2024-02-02',
         location: 'New Test Location',
-        status: 'published'
+        status: 'PUBLISHED'
       };
 
       const response = await request
