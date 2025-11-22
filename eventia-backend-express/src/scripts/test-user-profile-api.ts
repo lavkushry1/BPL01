@@ -5,14 +5,14 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function testUserProfileAPI() {
   try {
     console.log('Testing UserProfile API functionality...');
-    
+
     // Create a test user
     const password = await bcrypt.hash('password123', 10);
     const user = await prisma.user.create({
@@ -23,9 +23,9 @@ async function testUserProfileAPI() {
         role: 'USER'
       }
     });
-    
+
     console.log('Created user:', user.id);
-    
+
     // Create a user profile
     const profile = await prisma.userProfile.create({
       data: {
@@ -37,17 +37,17 @@ async function testUserProfileAPI() {
         country: 'Country'
       }
     });
-    
+
     console.log('Created profile:', profile.id);
-    
+
     // Fetch the user with profile
     const userWithProfile = await prisma.user.findUnique({
       where: { id: user.id },
       include: { profile: true }
     });
-    
+
     console.log('User with profile:', JSON.stringify(userWithProfile, null, 2));
-    
+
     console.log('UserProfile API functionality test completed successfully!');
   } catch (error) {
     console.error('Error testing UserProfile API functionality:', error);

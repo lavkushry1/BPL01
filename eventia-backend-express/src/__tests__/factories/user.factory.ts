@@ -12,7 +12,7 @@ export class UserFactory {
   static createBasic(overrides: Record<string, any> = {}) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
-    
+
     return {
       id: faker.string.uuid(),
       email: faker.internet.email({ firstName, lastName }),
@@ -34,7 +34,7 @@ export class UserFactory {
     const password = user.password;
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    
+
     return {
       ...user,
       password: hashedPassword,
@@ -98,11 +98,11 @@ export class UserFactory {
    * Create an array of users
    */
   static createMany(count = 5, factory = this.createBasic, overrides: Record<string, any> = {}) {
-    return Array.from({ length: count }, () => 
+    return Array.from({ length: count }, () =>
       factory({
         id: faker.string.uuid(),
         ...overrides
       })
     );
   }
-} 
+}
