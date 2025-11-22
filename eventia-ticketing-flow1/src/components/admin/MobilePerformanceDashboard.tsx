@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { api } from '../../services/api';
+import { apiClient as api } from '../../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
