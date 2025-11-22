@@ -4,20 +4,13 @@ import { prisma } from '../db/prisma';
 import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
 import { catchAsync } from '../utils/catchAsync';
-import { createTicketCategorySchema, updateTicketCategorySchema } from '../validations/ticketCategory.validation';
+import { createTicketCategorySchema, updateBookedSeatsSchema, updateTicketCategorySchema } from '../validations/ticketCategory.validation';
 
 /**
  * Create a new ticket category
  */
 const createTicketCategory = catchAsync(async (req: Request, res: Response) => {
-  const validatedData = createTicketCategorySchema.parse(req.body);
-  const {
-    name,
-    description,
-    price,
-    totalSeats,
-    eventId
-  } = validatedData;
+  const { body: { name, description, price, totalSeats, eventId, minimumPrice } } = createTicketCategorySchema.parse({ body: req.body });
 
   // Check if event exists
   const eventExists = await prisma.event.findUnique({
@@ -77,13 +70,7 @@ const getTicketCategoryById = catchAsync(async (req: Request, res: Response) => 
  */
 const updateTicketCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const validatedData = updateTicketCategorySchema.parse(req.body);
-  const {
-    name,
-    description,
-    price,
-    totalSeats
-  } = validatedData;
+  const { body: { name, description, price, totalSeats } } = updateTicketCategorySchema.parse({ params: req.params, body: req.body });
 
   // Check if ticket category exists
   const ticketCategoryExists = await prisma.ticketCategory.findUnique({
@@ -134,7 +121,7 @@ const deleteTicketCategory = catchAsync(async (req: Request, res: Response) => {
  */
 const updateBookedSeats = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { bookedSeats } = updateBookedSeatsSchema.parse(req.body);
+  const { body: { bookedSeats } } = updateBookedSeatsSchema.parse({ params: req.params, body: req.body });
 
   const ticketCategory = await prisma.ticketCategory.findUnique({
     where: { id }

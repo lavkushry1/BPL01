@@ -18,7 +18,7 @@ import { ApiResponse } from '../utils/apiResponse';
  * Create a new booking
  */
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
-  const validatedData = createBookingSchema.parse(req.body);
+  const { body: validatedData } = createBookingSchema.parse({ body: req.body });
   const { event_id, user_id, seat_ids, amount, payment_method } = validatedData;
 
   // Process booking with transaction to ensure data integrity
@@ -139,7 +139,7 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
  * Save delivery details
  */
 export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Response) => {
-  const validatedData = saveDeliveryDetailsSchema.parse(req.body);
+  const { body: validatedData } = saveDeliveryDetailsSchema.parse({ body: req.body });
   const { booking_id, name, phone, address, city, pincode } = validatedData;
 
   // Check if booking exists
@@ -198,7 +198,7 @@ export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Respon
  */
 export const updateBookingStatus = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { status } = updateBookingStatusSchema.parse(req.body);
+  const { body: { status } } = updateBookingStatusSchema.parse({ params: req.params, body: req.body });
 
   // Check if booking exists
   const booking = await db('bookings')
@@ -227,7 +227,7 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
  */
 export const cancelBooking = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { cancellation_reason } = cancelBookingSchema.parse(req.body);
+  const { body: { cancellation_reason } } = cancelBookingSchema.parse({ params: req.params, body: req.body });
 
   // Check if booking exists
   const booking = await db('bookings')
