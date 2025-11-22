@@ -1,10 +1,9 @@
-import { PrismaClient, EventStatus } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { EventStatus } from '@prisma/client';
+import { prisma } from '../db/prisma';
 
 async function addIplEvents() {
   console.log('Starting to add IPL events');
-  
+
   // First, ensure we have cricket and IPL categories
   const categories = await Promise.all([
     prisma.category.upsert({
@@ -18,9 +17,9 @@ async function addIplEvents() {
       create: { name: 'IPL' }
     })
   ]);
-  
+
   console.log('Categories created/verified:', categories.map(c => c.name));
-  
+
   // Get valid admin user ID first
   console.log('Looking for admin user...');
   const adminUser = await prisma.user.findFirst({
@@ -28,13 +27,13 @@ async function addIplEvents() {
       role: 'ADMIN'
     }
   });
-  
+
   if (!adminUser) {
     throw new Error('No admin user found. Please create an admin user first.');
   }
-  
+
   console.log(`Found admin user: ${adminUser.name} (${adminUser.id})`);
-  
+
   // Create sample IPL matches
   const iplMatches = [
     {
@@ -46,25 +45,25 @@ async function addIplEvents() {
       status: EventStatus.PUBLISHED,
       categories: ['Cricket', 'IPL'],
       ticketCategories: [
-        { 
-          name: 'General Stand', 
+        {
+          name: 'General Stand',
           description: 'Standard seating with good view',
-          price: 1000, 
-          totalSeats: 5000, 
+          price: 1000,
+          totalSeats: 5000,
           bookedSeats: 0
         },
-        { 
-          name: 'Premium Stand', 
+        {
+          name: 'Premium Stand',
           description: 'Better viewing angle with comfortable seating',
-          price: 3000, 
-          totalSeats: 2000, 
+          price: 3000,
+          totalSeats: 2000,
           bookedSeats: 0
         },
-        { 
-          name: 'VIP Box', 
+        {
+          name: 'VIP Box',
           description: 'Exclusive experience with the best views',
-          price: 8000, 
-          totalSeats: 500, 
+          price: 8000,
+          totalSeats: 500,
           bookedSeats: 0
         }
       ]
@@ -78,25 +77,25 @@ async function addIplEvents() {
       status: EventStatus.PUBLISHED,
       categories: ['Cricket', 'IPL'],
       ticketCategories: [
-        { 
-          name: 'General Stand', 
+        {
+          name: 'General Stand',
           description: 'Standard seating with good view',
-          price: 1200, 
-          totalSeats: 6000, 
+          price: 1200,
+          totalSeats: 6000,
           bookedSeats: 0
         },
-        { 
-          name: 'Premium Stand', 
+        {
+          name: 'Premium Stand',
           description: 'Better viewing angle with comfortable seating',
-          price: 3500, 
-          totalSeats: 2500, 
+          price: 3500,
+          totalSeats: 2500,
           bookedSeats: 0
         },
-        { 
-          name: 'VIP Box', 
+        {
+          name: 'VIP Box',
           description: 'Exclusive experience with the best views',
-          price: 7500, 
-          totalSeats: 400, 
+          price: 7500,
+          totalSeats: 400,
           bookedSeats: 0
         }
       ]
@@ -110,25 +109,25 @@ async function addIplEvents() {
       status: EventStatus.PUBLISHED,
       categories: ['Cricket', 'IPL'],
       ticketCategories: [
-        { 
-          name: 'General Stand', 
+        {
+          name: 'General Stand',
           description: 'Standard seating with good view',
-          price: 900, 
-          totalSeats: 7000, 
+          price: 900,
+          totalSeats: 7000,
           bookedSeats: 0
         },
-        { 
-          name: 'Premium Stand', 
+        {
+          name: 'Premium Stand',
           description: 'Better viewing angle with comfortable seating',
-          price: 2800, 
-          totalSeats: 3000, 
+          price: 2800,
+          totalSeats: 3000,
           bookedSeats: 0
         },
-        { 
-          name: 'VIP Box', 
+        {
+          name: 'VIP Box',
           description: 'Exclusive experience with the best views',
-          price: 6500, 
-          totalSeats: 600, 
+          price: 6500,
+          totalSeats: 600,
           bookedSeats: 0
         }
       ]
@@ -142,43 +141,43 @@ async function addIplEvents() {
       status: EventStatus.PUBLISHED,
       categories: ['Cricket', 'IPL'],
       ticketCategories: [
-        { 
-          name: 'General Stand', 
+        {
+          name: 'General Stand',
           description: 'Standard seating with good view',
-          price: 800, 
-          totalSeats: 4500, 
+          price: 800,
+          totalSeats: 4500,
           bookedSeats: 0
         },
-        { 
-          name: 'Premium Stand', 
+        {
+          name: 'Premium Stand',
           description: 'Better viewing angle with comfortable seating',
-          price: 2500, 
-          totalSeats: 2000, 
+          price: 2500,
+          totalSeats: 2000,
           bookedSeats: 0
         },
-        { 
-          name: 'VIP Box', 
+        {
+          name: 'VIP Box',
           description: 'Exclusive experience with the best views',
-          price: 6000, 
-          totalSeats: 300, 
+          price: 6000,
+          totalSeats: 300,
           bookedSeats: 0
         }
       ]
     }
   ];
-  
+
   // Add them to the database
   for (const match of iplMatches) {
     // Find category IDs
     const categoryIds = await Promise.all(
-      match.categories.map(name => 
+      match.categories.map(name =>
         prisma.category.findUnique({ where: { name } })
           .then(cat => cat?.id)
       )
     );
-    
+
     const validCategoryIds = categoryIds.filter(Boolean);
-    
+
     // Create event with categories
     const event = await prisma.event.create({
       data: {
@@ -195,9 +194,9 @@ async function addIplEvents() {
         }
       }
     });
-    
+
     console.log(`Created event: ${event.title}`);
-    
+
     // Add ticket categories
     for (const tc of match.ticketCategories) {
       await prisma.ticketCategory.create({
@@ -211,10 +210,10 @@ async function addIplEvents() {
         }
       });
     }
-    
+
     console.log(`Added ${match.ticketCategories.length} ticket categories to event: ${event.title}`);
   }
-  
+
   console.log('Finished adding IPL events');
 }
 
@@ -225,4 +224,4 @@ addIplEvents()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

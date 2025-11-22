@@ -1,6 +1,5 @@
-import { PrismaClient, UserRole, EventStatus, BookingStatus, PaymentStatus } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { BookingStatus, EventStatus, PaymentStatus, UserRole } from '@prisma/client';
+import { prisma } from '../src/db/prisma';
 
 async function main() {
   console.log('Starting database seed...');
@@ -206,9 +205,9 @@ async function main() {
     const sections = ['Main Floor', 'Balcony'];
     const rows = ['A', 'B', 'C', 'D', 'E'];
     const seatsPerRow = 10;
-    
+
     let seatPromises = [];
-    
+
     // Main Floor seats (General)
     for (let r = 0; r < 2; r++) {
       for (let i = 1; i <= seatsPerRow; i++) {
@@ -226,7 +225,7 @@ async function main() {
         );
       }
     }
-    
+
     // Balcony seats (VIP)
     for (let r = 0; r < 1; r++) {
       for (let i = 1; i <= seatsPerRow; i++) {
@@ -322,4 +321,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

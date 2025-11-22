@@ -10,6 +10,8 @@ import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { logger } from '../utils/logger';
+import { createEventSchema, updateEventSchema } from '../validations/event.validation';
+import { eventFilterSchema } from '../validators/event.validator';
 
 /**
  * Controller for handling event operations
@@ -78,9 +80,12 @@ export class EventController {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
     }
 
+    // Validate request body
+    const validatedData = createEventSchema.parse(req.body);
+
     // Prepare event data from request body
     const eventData: EventCreateInput = {
-      ...req.body,
+      ...validatedData,
       organizerId: userId,
       // Include any relations we want in the response
       include: ['ticketCategories', 'categories', 'organizer']
@@ -107,9 +112,12 @@ export class EventController {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
     }
 
+    // Validate request body
+    const validatedData = updateEventSchema.parse(req.body);
+
     // Prepare update data from request body
     const updateData: EventUpdateInput = {
-      ...req.body,
+      ...validatedData,
       // Include any relations we want in the response
       include: ['ticketCategories', 'categories']
     };
@@ -348,10 +356,16 @@ export class EventController {
     logger.info("IPL Matches API called");
 
 
-    const result = await (filters);
+    // Parse query parameters for filtering
+    const filters = EventController.parseEventFilters(req);
+
+    // Ensure we only return published events
+    filters.status = EventStatus.PUBLISHED;
+
+    const result = await eventService.getPublishedEvents(filters);
 
     // Transform to the expected format
-    const matches = result.events.map(event => ({
+    const matches = result.events.map((event: any) => ({
       id: event.id,
       title: event.title,
       description: event.description,
@@ -373,7 +387,7 @@ export class EventController {
           logo: '/teams/default.svg'
         }
       },
-      ticketTypes: event.ticketCategories ? event.ticketCategories.map(tc => ({
+      ticketTypes: event.ticketCategories ? event.ticketCategories.map((tc: any) => ({
         category: tc.name,
         price: parseFloat(tc.price.toString()),
         available: tc.totalSeats - tc.bookedSeats,
@@ -555,39 +569,41 @@ export class EventController {
    * Parse event filters from request query parameters
    */
   private static parseEventFilters(req: Request): EventFilters {
-    // We could destructure, but explicit is clearer
+    // Validate and parse query parameters using Zod
+    const validatedQuery = eventFilterSchema.parse(req.query);
+
     const filters: EventFilters = {};
 
     // Basic filters
-    if (req.query.category) filters.category = req.query.category as string;
-    if (req.query.date) filters.date = req.query.date as string;
-    if (req.query.startDate) filters.startDate = req.query.startDate as string;
-    if (req.query.endDate) filters.endDate = req.query.endDate as string;
-    if (req.query.search) filters.search = req.query.search as string;
-    if (req.query.status) filters.status = req.query.status as EventStatus;
-    if (req.query.organizerId) filters.organizerId = req.query.organizerId as string;
+    if (validatedQuery.category) filters.category = validatedQuery.category;
+    if (validatedQuery.date) filters.date = validatedQuery.date;
+    if (validatedQuery.startDate) filters.startDate = validatedQuery.startDate;
+    if (validatedQuery.endDate) filters.endDate = validatedQuery.endDate;
+    if (validatedQuery.search) filters.search = validatedQuery.search;
+    if (validatedQuery.status) filters.status = validatedQuery.status;
+    if (validatedQuery.organizerId) filters.organizerId = validatedQuery.organizerId;
 
     // Pagination options
-    if (req.query.page) filters.page = parseInt(req.query.page as string);
-    if (req.query.limit) filters.limit = parseInt(req.query.limit as string);
-    if (req.query.cursor) filters.cursor = req.query.cursor as string;
+    if (validatedQuery.page) filters.page = validatedQuery.page;
+    if (validatedQuery.limit) filters.limit = validatedQuery.limit;
+    if (validatedQuery.cursor) filters.cursor = validatedQuery.cursor;
 
     // Sorting options
-    if (req.query.sortBy) filters.sortBy = req.query.sortBy as string;
-    if (req.query.sortOrder) filters.sortOrder = req.query.sortOrder as 'asc' | 'desc';
+    if (validatedQuery.sortBy) filters.sortBy = validatedQuery.sortBy;
+    if (validatedQuery.sortOrder) filters.sortOrder = validatedQuery.sortOrder;
 
     // Data loading options
-    if (req.query.include) {
-      filters.include = (req.query.include as string).split(',');
+    if (validatedQuery.include) {
+      filters.include = validatedQuery.include.split(',');
     }
 
-    if (req.query.fields) {
-      filters.fields = (req.query.fields as string).split(',');
+    if (validatedQuery.fields) {
+      filters.fields = validatedQuery.fields.split(',');
     }
 
     // Additional filters
-    if (req.query.ids) {
-      filters.ids = (req.query.ids as string).split(',');
+    if (validatedQuery.ids) {
+      filters.ids = validatedQuery.ids.split(',');
     }
 
     return filters;

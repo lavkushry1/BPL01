@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { LineChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Loader2 } from 'lucide-react';
-import { api } from '../../api';
+import React, { useEffect, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { api } from '../../services/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface MetricsData {
   timeframe: string;
@@ -102,7 +102,7 @@ const MobilePerformanceDashboard: React.FC = () => {
     if (!value) return 'unknown';
 
     const threshold = getMetricThreshold(metricKey);
-    
+
     if (metricKey === 'cls') {
       // For CLS, lower is better
       if (value <= threshold.good) return 'good';
@@ -176,7 +176,7 @@ const MobilePerformanceDashboard: React.FC = () => {
               <SelectItem value="30d">Last 30 days</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={metric} onValueChange={setMetric}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select metric" />
@@ -210,7 +210,7 @@ const MobilePerformanceDashboard: React.FC = () => {
               const metricKey = metricInfo.key as keyof typeof data.aggregatedData;
               const avgValue = data.aggregatedData[`avg${metricKey.charAt(0).toUpperCase() + metricKey.slice(1)}` as keyof typeof data.aggregatedData];
               const status = getMetricStatus(Number(avgValue), metricKey);
-              
+
               return (
                 <Card key={metricKey} className={`border-l-4 ${status === 'good' ? 'border-l-green-500' : status === 'needs-improvement' ? 'border-l-amber-500' : 'border-l-red-500'}`}>
                   <CardHeader className="pb-2">
@@ -288,7 +288,7 @@ const MobilePerformanceDashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value) => [formatMetricValue(Number(value), metric), getMetricName(metric)]}
                     />
                     <Bar dataKey="value" fill="#8884d8" />

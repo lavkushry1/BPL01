@@ -1,14 +1,12 @@
 /**
  * UPI Settings Seeder
- * 
+ *
  * This script creates an active UPI setting in the database.
  * Run with: npx ts-node src/scripts/seed-upi-settings.ts
  */
 
-import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-
-const prisma = new PrismaClient();
+import { prisma } from '../db/prisma';
 
 async function seedUpiSettings() {
     try {
@@ -72,4 +70,4 @@ seedUpiSettings()
     .catch((error) => {
         console.error('Error in seeding process:', error);
         process.exit(1);
-    }); 
+    });

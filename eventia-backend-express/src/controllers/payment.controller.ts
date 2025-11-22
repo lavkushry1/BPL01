@@ -2,20 +2,16 @@ import { PaymentStatus, SeatStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import * as qrcode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db';
 import { prisma } from '../db/prisma';
 import * as bookingService from '../services/booking.service';
+import { upiPaymentService } from '../services/payment.service';
+import TicketService from '../services/ticket.service';
+import { WebsocketService } from '../services/websocket.service';
+import { withRetry } from '../utils';
 import { ApiError } from '../utils/apiError';
 import { ApiResponse } from '../utils/apiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 import { logger } from '../utils/logger';
-import TicketService from '../services/ticket.service';
-import { WebsocketService } from '../services/websocket.service';
-import { withRetry } from '../utils';
-  RESERVED = 'RESERVED',
-  LOCKED = 'LOCKED',
-  BOOKED = 'BOOKED'
-}
 
 // Lock timeout in minutes
 const SEAT_LOCK_TIMEOUT_MINUTES = 10;
@@ -742,7 +738,7 @@ export const initiatePayment = async (req: Request, res: Response) => {
   try {
     const result = await prisma.$transaction(async (tx: any) => {
       // Check if seats are available
-      const unavailableSeats = await seatService.SeatService.getUnavailableSeats(tx, seatIds);
+      const unavailableSeats = await SeatService.getUnavailableSeats(tx, seatIds);
 
       if (unavailableSeats.length > 0) {
         throw new ApiError(
