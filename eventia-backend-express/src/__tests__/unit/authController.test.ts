@@ -14,7 +14,10 @@ describe('Auth Controller', () => {
   let mockNext: jest.Mocked<NextFunction>;
 
   beforeEach(() => {
-    mockRequest = {};
+    mockRequest = {
+      body: {},
+      cookies: {},
+    };
     mockResponse = {
       status: jest.fn().mockReturnThis() as any,
       json: jest.fn().mockReturnThis() as any,
@@ -27,7 +30,7 @@ describe('Auth Controller', () => {
 
   describe('register', () => {
     test('should register new user successfully', async () => {
-      mockRequest.body = { email: 'test@example.com', password: 'password123', name: 'Test User' };
+      mockRequest.body = { email: 'test@example.com', password: 'Password123', name: 'Test User' };
       jest.spyOn(userModel, 'findByEmail').mockResolvedValue(null);
       (jest.spyOn(bcrypt, 'hash') as any).mockResolvedValue('hashedPassword');
       jest.spyOn(userModel, 'create').mockResolvedValue({
@@ -47,7 +50,7 @@ describe('Auth Controller', () => {
     });
 
     test('should throw error if email already exists', async () => {
-      mockRequest.body = { email: 'existing@example.com', password: 'password123', name: 'Test User' };
+      mockRequest.body = { email: 'existing@example.com', password: 'Password123', name: 'Test User' };
       jest.spyOn(userModel, 'findByEmail').mockResolvedValue({
         id: '1',
         email: 'existing@example.com',
@@ -136,7 +139,7 @@ describe('Auth Controller', () => {
 
   describe('me', () => {
     test('should return user data', async () => {
-      mockRequest.user = { id: '1', email: 'test@example.com', role: 'USER' };
+      (mockRequest as any).user = { id: '1', email: 'test@example.com', role: 'USER' };
       const mockUser = {
         id: '1',
         email: 'test@example.com',
