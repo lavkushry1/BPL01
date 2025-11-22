@@ -18,7 +18,7 @@ describe('Booking Routes', () => {
     await db('users').del();
 
     // Create a test user
-    const [{ id: userId }] = await db('users').insert({
+    [{ id: userId }] = await db('users').insert({
       name: 'Test User',
       email: 'testuser@example.com',
       password: '$2b$10$hashedpassword',

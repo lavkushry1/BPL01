@@ -5,8 +5,8 @@ import { generateToken } from '../../utils/jwt';
 import { request } from '../setup';
 
 describe('User Routes', () => {
-  let authToken: string;
   let userId: string;
+  let authToken: string;
 
   // Seed test data before each test
   beforeEach(async () => {
@@ -15,7 +15,7 @@ describe('User Routes', () => {
 
     // Create a test user with hashed password
     const hashedPassword = await bcrypt.hash('password123', 10);
-    const [{ id: userId }] = await db('users').insert({
+    [{ id: userId }] = await db('users').insert({
       name: 'Test User',
       email: 'testuser@example.com',
       password: hashedPassword,
