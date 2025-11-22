@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Request, Response } from 'express';
-import { createBooking, getBookingById, saveDeliveryDetails, updateBookingStatus } from '../../controllers/booking.controller';
-import { db } from '../../db';
 import { SeatStatus } from '../../models/seat';
-import { WebsocketService } from '../../services/websocket.service';
 
 // Mock dependencies
 jest.mock('../../db');
@@ -12,32 +9,37 @@ jest.mock('uuid', () => ({
   v4: jest.fn(() => 'test-uuid')
 }));
 
-// Mock validation schemas
-jest.mock('../../validations/booking.validation', () => ({
-  createBookingSchema: {
-    parse: jest.fn((data) => data)
-  },
-  saveDeliveryDetailsSchema: {
-    parse: jest.fn((data) => data)
-  },
-  updateBookingStatusSchema: {
-    parse: jest.fn((data) => data)
-  },
-  cancelBookingSchema: {
-    parse: jest.fn((data) => data)
-  }
-}));
-
-import { createBookingSchema, saveDeliveryDetailsSchema, updateBookingStatusSchema } from '../../validations/booking.validation';
-
-
 describe('Booking Controller', () => {
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let mockNext: jest.Mock;
   let mockDbInstance: any;
 
-  beforeEach(() => {
+  // Controller functions and dependencies
+  let createBooking: any;
+  let getBookingById: any;
+  let saveDeliveryDetails: any;
+  let updateBookingStatus: any;
+  let db: any;
+  let WebsocketService: any;
+
+  beforeEach(async () => {
+    // Reset modules to ensure fresh imports with mocks
+    jest.resetModules();
+
+    // Require dependencies after reset
+    const dbModule = require('../../db');
+    db = dbModule.db;
+
+    const websocketModule = require('../../services/websocket.service');
+    WebsocketService = websocketModule.WebsocketService;
+
+    const bookingController = require('../../controllers/booking.controller');
+    createBooking = bookingController.createBooking;
+    getBookingById = bookingController.getBookingById;
+    saveDeliveryDetails = bookingController.saveDeliveryDetails;
+    updateBookingStatus = bookingController.updateBookingStatus;
+
     // Reset mocks
     jest.clearAllMocks();
 
@@ -60,7 +62,7 @@ describe('Booking Controller', () => {
       where: jest.fn().mockReturnThis(),
       whereIn: jest.fn().mockReturnThis(),
       first: (jest.fn() as any).mockResolvedValue({
-        id: 'event-123',
+        id: '11111111-1111-1111-1111-111111111111',
         capacity: 100,
         booked_count: 50
       }),
@@ -70,8 +72,8 @@ describe('Booking Controller', () => {
       forUpdate: jest.fn().mockReturnThis(),
       returning: (jest.fn() as any).mockResolvedValue([{
         id: 'test-uuid',
-        event_id: 'event-123',
-        user_id: 'user-123',
+        event_id: '11111111-1111-1111-1111-111111111111',
+        user_id: '22222222-2222-2222-2222-222222222222',
         amount: 1000,
         payment_method: 'upi',
         status: 'PENDING'
@@ -95,7 +97,7 @@ describe('Booking Controller', () => {
 
     // Mock db.fn
     (db as any).fn = {
-      now: jest.fn()
+      now: jest.fn().mockReturnValue(new Date('2023-01-01T00:00:00.000Z'))
     };
   });
 
@@ -103,8 +105,8 @@ describe('Booking Controller', () => {
     beforeEach(() => {
       // Setup request body for booking creation
       mockRequest.body = {
-        event_id: 'event-123',
-        user_id: 'user-123',
+        event_id: '11111111-1111-1111-1111-111111111111',
+        user_id: '22222222-2222-2222-2222-222222222222',
         seat_ids: ['seat-1', 'seat-2'],
         amount: 1000,
         payment_method: 'upi'
@@ -115,29 +117,35 @@ describe('Booking Controller', () => {
       // Execute the controller function
       await createBooking(mockRequest as Request, mockResponse as Response, mockNext);
 
+      // Verify no error occurred
+      expect(mockNext).not.toHaveBeenCalled();
+
       // Assertions
       expect(db).toHaveBeenCalledWith('events');
       expect(db.transaction).toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'success',
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        message: 'Booking created successfully',
         data: expect.objectContaining({
           id: 'test-uuid',
-          event_id: 'event-123',
+          event_id: '11111111-1111-1111-1111-111111111111',
           status: 'PENDING'
         })
-      });
+      }));
     });
 
     it('should update seat status when seat_ids are provided', async () => {
       // Execute the controller function
       await createBooking(mockRequest as Request, mockResponse as Response, mockNext);
 
+      expect(mockNext).not.toHaveBeenCalled();
+
       // Assertions for seat updates
       expect(mockDbInstance.update).toHaveBeenCalledWith({
         status: SeatStatus.BOOKED,
         booking_id: 'test-uuid',
-        updated_at: expect.any(Function)
+        updated_at: expect.any(Date)
       });
       expect(mockDbInstance.whereIn).toHaveBeenCalledWith('id', ['seat-1', 'seat-2']);
       expect(WebsocketService.notifySeatStatusChange).toHaveBeenCalledWith(
@@ -146,31 +154,31 @@ describe('Booking Controller', () => {
       );
     });
 
-    it('should throw an error if required fields are missing', async () => {
-      // Mock validation error
-      (createBookingSchema.parse as jest.Mock).mockImplementationOnce(() => {
-        throw new Error('Validation failed');
-      });
+    it('should call next with error if required fields are missing', async () => {
+      // Missing required fields
+      mockRequest.body = {
+        event_id: '11111111-1111-1111-1111-111111111111',
+        // Missing user_id, amount, payment_method
+      };
 
-      // Execute and catch error
-      try {
-        await createBooking(mockRequest as Request, mockResponse as Response, mockNext);
-      } catch (error: any) {
-        expect(error.message).toBe('Validation failed');
-      }
+      await createBooking(mockRequest as Request, mockResponse as Response, mockNext);
+
+      // Expect ZodError (validation failed)
+      expect(mockNext).toHaveBeenCalled();
+      const error = mockNext.mock.calls[0][0] as any;
+      expect(error.name).toBe('ZodError');
     });
 
-    it('should throw an error if event does not exist', async () => {
+    it('should call next with error if event does not exist', async () => {
       // Mock event not found
       mockDbInstance.first.mockResolvedValue(null);
 
-      // Execute and catch error
-      try {
-        await createBooking(mockRequest as Request, mockResponse as Response, mockNext);
-      } catch (error: any) {
-        expect(error.statusCode).toBe(404);
-        expect(error.message).toContain('Event not found');
-      }
+      await createBooking(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 404,
+        message: expect.stringContaining('Event not found')
+      }));
     });
   });
 
@@ -178,14 +186,14 @@ describe('Booking Controller', () => {
     beforeEach(() => {
       // Setup request params
       mockRequest.params = {
-        id: 'booking-123'
+        id: '33333333-3333-3333-3333-333333333333'
       };
 
       // Mock database response
       mockDbInstance.first.mockResolvedValue({
-        id: 'booking-123',
-        event_id: 'event-123',
-        user_id: 'user-123',
+        id: '33333333-3333-3333-3333-333333333333',
+        event_id: '11111111-1111-1111-1111-111111111111',
+        user_id: '22222222-2222-2222-2222-222222222222',
         amount: 1000,
         payment_method: 'upi',
         status: 'CONFIRMED'
@@ -196,44 +204,31 @@ describe('Booking Controller', () => {
       // Execute the controller function
       await getBookingById(mockRequest as Request, mockResponse as Response, mockNext);
 
+      expect(mockNext).not.toHaveBeenCalled();
+
       // Assertions
       expect(db).toHaveBeenCalledWith('bookings');
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'success',
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        message: 'Booking fetched successfully',
         data: expect.objectContaining({
-          id: 'booking-123',
+          id: '33333333-3333-3333-3333-333333333333',
           status: 'CONFIRMED'
         })
-      });
+      }));
     });
 
-    it('should throw an error if booking ID is missing', async () => {
-      // Missing ID parameter
-      mockRequest.params = {};
-
-      // Execute and catch error
-      try {
-        await getBookingById(mockRequest as Request, mockResponse as Response, mockNext);
-        throw new Error('Expected error was not thrown');
-      } catch (error: any) {
-        expect(error.statusCode).toBe(400);
-        expect(error.message).toContain('Booking ID is required');
-      }
-    });
-
-    it('should throw an error if booking does not exist', async () => {
+    it('should call next with error if booking does not exist', async () => {
       // Mock booking not found
       mockDbInstance.first.mockResolvedValue(null);
 
-      // Execute and catch error
-      try {
-        await getBookingById(mockRequest as Request, mockResponse as Response, mockNext);
-        throw new Error('Expected error was not thrown');
-      } catch (error: any) {
-        expect(error.statusCode).toBe(404);
-        expect(error.message).toContain('Booking not found');
-      }
+      await getBookingById(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 404,
+        message: expect.stringContaining('Booking not found')
+      }));
     });
   });
 
@@ -241,7 +236,7 @@ describe('Booking Controller', () => {
     beforeEach(() => {
       // Setup request params and body
       mockRequest.params = {
-        id: 'booking-123'
+        id: '33333333-3333-3333-3333-333333333333'
       };
       mockRequest.body = {
         status: 'CONFIRMED'
@@ -249,12 +244,12 @@ describe('Booking Controller', () => {
 
       // Mock database responses
       mockDbInstance.first.mockResolvedValue({
-        id: 'booking-123'
+        id: '33333333-3333-3333-3333-333333333333'
       });
       mockDbInstance.returning.mockResolvedValue([{
-        id: 'booking-123',
+        id: '33333333-3333-3333-3333-333333333333',
         status: 'CONFIRMED',
-        updated_at: new Date()
+        updated_at: new Date('2023-01-01T00:00:00.000Z')
       }]);
     });
 
@@ -262,47 +257,47 @@ describe('Booking Controller', () => {
       // Execute the controller function
       await updateBookingStatus(mockRequest as Request, mockResponse as Response, mockNext);
 
+      expect(mockNext).not.toHaveBeenCalled();
+
       // Assertions
-      expect(mockDbInstance.where).toHaveBeenCalledWith('id', 'booking-123');
+      expect(mockDbInstance.where).toHaveBeenCalledWith('id', '33333333-3333-3333-3333-333333333333');
       expect(mockDbInstance.update).toHaveBeenCalledWith({
         status: 'CONFIRMED',
-        updated_at: expect.any(Function)
+        updated_at: new Date('2023-01-01T00:00:00.000Z')
       });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'success',
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        message: 'Booking status updated successfully',
         data: expect.objectContaining({
-          id: 'booking-123',
+          id: '33333333-3333-3333-3333-333333333333',
           status: 'CONFIRMED'
         })
-      });
+      }));
     });
 
-    it('should throw an error if booking ID or status is missing', async () => {
-      // Mock validation error
-      (updateBookingStatusSchema.parse as jest.Mock).mockImplementationOnce(() => {
-        throw new Error('Validation failed');
-      });
+    it('should call next with error if booking ID or status is missing', async () => {
+      // Missing status
+      mockRequest.body = {};
 
-      // Execute and catch error
-      try {
-        await updateBookingStatus(mockRequest as Request, mockResponse as Response, mockNext);
-      } catch (error: any) {
-        expect(error.message).toBe('Validation failed');
-      }
+      await updateBookingStatus(mockRequest as Request, mockResponse as Response, mockNext);
+
+      // Expect ZodError
+      expect(mockNext).toHaveBeenCalled();
+      const error = mockNext.mock.calls[0][0] as any;
+      expect(error.name).toBe('ZodError');
     });
 
-    it('should throw an error if booking does not exist', async () => {
+    it('should call next with error if booking does not exist', async () => {
       // Mock booking not found
       mockDbInstance.first.mockResolvedValue(null);
 
-      // Execute and catch error
-      try {
-        await updateBookingStatus(mockRequest as Request, mockResponse as Response, mockNext);
-      } catch (error: any) {
-        expect(error.statusCode).toBe(404);
-        expect(error.message).toContain('Booking not found');
-      }
+      await updateBookingStatus(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 404,
+        message: expect.stringContaining('Booking not found')
+      }));
     });
   });
 
@@ -310,7 +305,7 @@ describe('Booking Controller', () => {
     beforeEach(() => {
       // Setup request body
       mockRequest.body = {
-        booking_id: 'booking-123',
+        booking_id: '33333333-3333-3333-3333-333333333333',
         name: 'John Doe',
         phone: '1234567890',
         address: '123 Main St',
@@ -320,11 +315,11 @@ describe('Booking Controller', () => {
 
       // Mock database responses
       mockDbInstance.first.mockResolvedValue({
-        id: 'booking-123'
+        id: '33333333-3333-3333-3333-333333333333'
       });
       mockDbInstance.returning.mockResolvedValue([{
         id: 'test-uuid',
-        booking_id: 'booking-123',
+        booking_id: '33333333-3333-3333-3333-333333333333',
         name: 'John Doe',
         phone: '1234567890',
         address: '123 Main St',
@@ -336,71 +331,81 @@ describe('Booking Controller', () => {
     it('should save delivery details successfully for a new record', async () => {
       // Mock that delivery details don't exist yet
       mockDbInstance.first
-        .mockResolvedValueOnce({ id: 'booking-123' }) // Booking exists
-        .mockResolvedValueOnce(null); // No existing delivery details
+        .mockImplementationOnce(() => {
+          return Promise.resolve({ id: '33333333-3333-3333-3333-333333333333' });
+        })
+        .mockImplementationOnce(() => {
+          return Promise.resolve(null);
+        });
 
       // Execute the controller function
       await saveDeliveryDetails(mockRequest as Request, mockResponse as Response, mockNext);
 
+      expect(mockNext).not.toHaveBeenCalled();
+
       // Assertions
       expect(mockDbInstance.insert).toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'success',
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        message: 'Delivery details saved successfully',
         data: expect.objectContaining({
           id: 'test-uuid',
-          booking_id: 'booking-123',
+          booking_id: '33333333-3333-3333-3333-333333333333',
           name: 'John Doe'
         })
-      });
+      }));
     });
 
     it('should update existing delivery details', async () => {
       // Mock that delivery details already exist
       mockDbInstance.first
-        .mockResolvedValueOnce({ id: 'booking-123' }) // Booking exists
-        .mockResolvedValueOnce({ id: 'existing-delivery-id', booking_id: 'booking-123' }); // Existing details
+        .mockResolvedValueOnce({ id: '33333333-3333-3333-3333-333333333333' }) // Booking exists
+        .mockResolvedValueOnce({ id: 'existing-delivery-id', booking_id: '33333333-3333-3333-3333-333333333333' }); // Existing details
 
       // Execute the controller function
       await saveDeliveryDetails(mockRequest as Request, mockResponse as Response, mockNext);
 
+      expect(mockNext).not.toHaveBeenCalled();
+
       // Assertions
       expect(mockDbInstance.update).toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(201);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'success',
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        message: 'Delivery details saved successfully',
         data: expect.objectContaining({
           id: 'test-uuid',
-          booking_id: 'booking-123'
+          booking_id: '33333333-3333-3333-3333-333333333333'
         })
-      });
+      }));
     });
 
-    it('should throw an error if required fields are missing', async () => {
-      // Mock validation error
-      (saveDeliveryDetailsSchema.parse as jest.Mock).mockImplementationOnce(() => {
-        throw new Error('Validation failed');
-      });
+    it('should call next with error if required fields are missing', async () => {
+      // Missing required fields
+      mockRequest.body = {
+        booking_id: '33333333-3333-3333-3333-333333333333',
+        // Missing other required fields
+      };
 
-      // Execute and catch error
-      try {
-        await saveDeliveryDetails(mockRequest as Request, mockResponse as Response, mockNext);
-      } catch (error: any) {
-        expect(error.message).toBe('Validation failed');
-      }
+      await saveDeliveryDetails(mockRequest as Request, mockResponse as Response, mockNext);
+
+      // Expect ZodError
+      expect(mockNext).toHaveBeenCalled();
+      const error = mockNext.mock.calls[0][0] as any;
+      expect(error.name).toBe('ZodError');
     });
 
-    it('should throw an error if booking does not exist', async () => {
+    it('should call next with error if booking does not exist', async () => {
       // Mock booking not found
       mockDbInstance.first.mockResolvedValue(null);
 
-      // Execute and catch error
-      try {
-        await saveDeliveryDetails(mockRequest as Request, mockResponse as Response, mockNext);
-      } catch (error: any) {
-        expect(error.statusCode).toBe(404);
-        expect(error.message).toContain('Booking not found');
-      }
+      await saveDeliveryDetails(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+        statusCode: 404,
+        message: expect.stringContaining('Booking not found')
+      }));
     });
   });
 });
