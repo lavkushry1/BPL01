@@ -32,6 +32,7 @@ jest.mock('../services/job.service', () => ({
 }));
 
 let app: Application;
+let server: any; // Store server instance
 // Change the type to any to avoid complex typings issue with supertest
 let request: any;
 
@@ -44,9 +45,14 @@ beforeAll(async () => {
 
     // Initialize the app
     console.log('setup.ts: Creating app');
-    const { app: createdApp } = await createApp();
+    const { app: createdApp, server: createdServer } = await createApp();
     app = createdApp;
+    server = createdServer;
     request = supertest(app);
+
+    // Attach to global for access in tests
+    (global as any).app = app;
+    (global as any).server = server;
 
     // Run migrations to setup test database
     console.log('setup.ts: Running migrations');
@@ -60,6 +66,11 @@ beforeAll(async () => {
 
 // Clean up after tests
 afterAll(async () => {
+  // Close server
+  if (server) {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+
   // Rollback migrations
   await db.migrate.rollback(undefined, true);
 

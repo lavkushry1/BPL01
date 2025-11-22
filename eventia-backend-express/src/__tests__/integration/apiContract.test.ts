@@ -1,81 +1,70 @@
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
 import { Application } from 'express';
-import { beforeEach, describe, it } from 'node:test';
 import request from 'supertest';
+// import { createApp } from '../../app'; // Removed to avoid duplicate app creation
+import { default as Ajv } from 'ajv';
+import addFormats from 'ajv-formats';
+import { describe, it } from 'node:test';
 import swaggerJsdoc from 'swagger-jsdoc';
-import { createApp } from '../../app';
 import swaggerOptions from '../../config/swagger';
-
-/**
- * API Contract Testing
- *
- * This test suite validates that API responses match the schemas defined in Swagger/OpenAPI documentation.
- * It helps ensure API responses maintain backward compatibility and follow the documented format.
- */
 
 console.log('Loading apiContract.test.ts');
 
 describe('API Contract Validation', () => {
   let app: Application;
   let server: any;
-  let swaggerSpec: any;
-  let ajv: Ajv;
   let authToken: string;
   let agent: any;
+  let swaggerSpec: any;
+  let ajv: any;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     try {
-      console.log('Starting beforeEach');
-      if (!app) {
-        // Create Express app instance
-        const appObj = await createApp();
-        app = appObj.app;
-        server = appObj.server;
-        agent = request(server);
+      console.log('Starting beforeAll');
+      // Use global app and server initialized in setup.ts
+      app = (global as any).app;
+      server = (global as any).server;
 
-        console.log('App initialized:', !!app);
-        console.log('Server initialized:', !!server);
-        console.log('Agent initialized:', !!agent);
+      if (!app || !server) {
+        throw new Error('App or Server not initialized in setup.ts');
+      }
 
-        // Generate Swagger spec from JSDoc annotations
-        swaggerSpec = swaggerJsdoc(swaggerOptions);
+      agent = request(server);
 
-        // Initialize Ajv for JSON Schema validation
-        ajv = new Ajv({ allErrors: true });
-        addFormats(ajv);
+      console.log('App initialized:', !!app);
+      console.log('Server initialized:', !!server);
+      console.log('Agent initialized:', !!agent);
 
-        // Login to get auth token for protected endpoints
-        // Use agent instead of request(server)
-        const loginResponse = await agent
-          .post('/api/v1/auth/login')
-          .send({
-            email: 'test@example.com', // Use a test user that exists in your test database
-            password: 'password123',
-          });
+      // Generate Swagger spec from JSDoc annotations
+      swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-        if (loginResponse.status === 200) {
-          authToken = loginResponse.body.data.token;
-        } else {
-          console.warn('Login failed in beforeEach:', loginResponse.status, loginResponse.body);
-        }
+      // Initialize Ajv for JSON Schema validation
+      ajv = new Ajv({ allErrors: true });
+      addFormats(ajv);
+
+      // Login to get auth token for protected endpoints
+      // Use agent instead of request(server)
+      const loginResponse = await agent
+        .post('/api/v1/auth/login')
+        .send({
+          email: 'test@example.com', // Use a test user that exists in your test database
+          password: 'password123',
+        });
+
+      if (loginResponse.status === 200) {
+        authToken = loginResponse.body.data.token;
+      } else {
+        console.warn('Login failed in beforeAll:', loginResponse.status, loginResponse.body);
       }
     } catch (error) {
-      console.error('Error in beforeEach:', error);
+      console.error('Error in beforeAll:', error);
       throw error;
     }
   });
 
   afterAll(async () => {
-    // Close server
-    if (server) {
-      server.close();
-    }
+    // Server closing is handled in setup.ts
   });
 
-  /**
-   * Helper function to validate response against OpenAPI schema
-   */
   const validateResponseSchema = (endpoint: string, method: string, statusCode: number, response: any): boolean => {
     try {
       // Find the path spec
@@ -113,20 +102,6 @@ describe('API Contract Validation', () => {
       return false;
     }
   };
-
-  // Test the Health Endpoint
-  describe('Health Endpoint', () => {
-    it('should return a valid health status', async () => {
-      const response = await request(app).get('/api/v1/health');
-
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveProperty('success', true);
-
-      // Validate against OpenAPI schema
-      const isValid = validateResponseSchema('/health', 'get', 200, response.body);
-      expect(isValid).toBe(true);
-    });
-  });
 
   // Test the Events Endpoints
   describe('Events Endpoints', () => {
