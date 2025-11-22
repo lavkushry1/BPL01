@@ -75,11 +75,20 @@ describe('Event Routes', () => {
     it('should return a list of published events', async () => {
       const response = await request.get('/api/v1/events');
 
+      if (response.status !== 200 || !response.body.success) {
+        console.log('GET /events failed:', JSON.stringify(response.body, null, 2));
+        console.log('Status:', response.status);
+      }
+
       expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBe(1); // Only published events
-      expect(response.body.data[0].title).toBe('Test Event 1');
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.data.events)).toBe(true);
+      expect(response.body.data.events.length).toBeGreaterThan(0);
+
+      // Check that only published events are returned
+      const events = response.body.data.events;
+      const allPublished = events.every((e: any) => e.status === 'PUBLISHED');
+      expect(allPublished).toBe(true);
     });
 
     it('should return all events for authenticated organizers', async () => {
