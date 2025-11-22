@@ -1,7 +1,7 @@
-import { PrismaClient, Event, EventStatus, Prisma } from '@prisma/client';
-import { logger } from '../utils/logger';
-import { ApiError } from '../utils/apiError';
+import { Event, EventStatus, Prisma } from '@prisma/client';
 import { EventFilters, PaginationResult } from '../types/event.types';
+import { ApiError } from '../utils/apiError';
+import { logger } from '../utils/logger';
 
 /**
  * Repository for Event data access operations
@@ -42,21 +42,25 @@ export class EventRepository {
   }> {
     try {
       const where = this.buildWhereClause(filters);
-      
+
       // Build include object to handle relations
       const includeObject = this.buildIncludeObject(filters.include);
-      
+
       // Determine sort field and direction
       const sortField = this.mapSortField(filters.sortBy || 'createdAt');
       const sortOrder = filters.sortOrder === 'asc' ? 'asc' : 'desc';
       const orderBy: Record<string, 'asc' | 'desc'> = { [sortField]: sortOrder };
-      
+
       // Use safe select to avoid the is_deleted field
+      const select = { ...this.safeFields };
+      if (Object.keys(includeObject).length > 0) {
+        Object.assign(select, includeObject);
+      }
+
       const queryOptions: any = {
         where,
-        select: { ...this.safeFields }, // Clone to avoid mutation
-        orderBy,
-        include: includeObject
+        select,
+        orderBy
       };
 
       // Handle cursor-based pagination if cursor is provided
@@ -66,7 +70,7 @@ export class EventRepository {
         queryOptions.cursor = {
           id: filters.cursor
         };
-      } 
+      }
       // Otherwise use offset-based pagination
       else if (filters.page && filters.limit) {
         queryOptions.skip = (filters.page - 1) * filters.limit;
@@ -77,13 +81,13 @@ export class EventRepository {
       const events = await this.prisma.event.findMany(queryOptions);
 
       // Get total count for pagination (only needed for offset pagination)
-      const total = filters.cursor 
+      const total = filters.cursor
         ? undefined // For cursor pagination, we don't need total count
         : await this.prisma.event.count({ where });
 
       // Prepare pagination metadata
       let pagination: PaginationResult;
-      
+
       if (filters.cursor) {
         // Cursor-based pagination metadata
         pagination = {
@@ -117,15 +121,19 @@ export class EventRepository {
   async findByIds(ids: string[], include?: string[]): Promise<Event[]> {
     try {
       const includeObject = this.buildIncludeObject(include);
-      
+
+      const select = { ...this.safeFields };
+      if (Object.keys(includeObject).length > 0) {
+        Object.assign(select, includeObject);
+      }
+
       const events = await this.prisma.event.findMany({
         where: {
           id: { in: ids }
         },
-        select: { ...this.safeFields },
-        include: includeObject
+        select
       });
-      
+
       return events as unknown as Event[];
     } catch (error) {
       logger.error(`Error in EventRepository.findByIds:`, error);
@@ -139,13 +147,17 @@ export class EventRepository {
   async findById(id: string, include?: string[]): Promise<Event | null> {
     try {
       const includeObject = this.buildIncludeObject(include);
-      
+
+      const select = { ...this.safeFields };
+      if (Object.keys(includeObject).length > 0) {
+        Object.assign(select, includeObject);
+      }
+
       const event = await this.prisma.event.findUnique({
         where: { id },
-        select: { ...this.safeFields },
-        include: includeObject
+        select
       });
-      
+
       return event as unknown as Event; // Cast to our domain model
     } catch (error) {
       logger.error(`Error in EventRepository.findById for id ${id}:`, error);
@@ -159,7 +171,7 @@ export class EventRepository {
   async create(data: Prisma.EventCreateInput, include?: string[]): Promise<Event> {
     try {
       const includeObject = this.buildIncludeObject(include);
-      
+
       // Remove isDeleted from data if it exists to avoid Prisma errors
       const safeData = { ...data };
       // @ts-ignore
@@ -167,13 +179,17 @@ export class EventRepository {
         // @ts-ignore
         delete safeData.isDeleted;
       }
-      
+
+      const select = { ...this.safeFields };
+      if (Object.keys(includeObject).length > 0) {
+        Object.assign(select, includeObject);
+      }
+
       const event = await this.prisma.event.create({
         data: safeData,
-        select: { ...this.safeFields },
-        include: includeObject
+        select
       });
-      
+
       return event as unknown as Event; // Cast to our domain model
     } catch (error) {
       logger.error('Error in EventRepository.create:', error);
@@ -187,7 +203,7 @@ export class EventRepository {
   async update(id: string, data: Prisma.EventUpdateInput, include?: string[]): Promise<Event> {
     try {
       const includeObject = this.buildIncludeObject(include);
-      
+
       // Remove isDeleted from data if it exists to avoid Prisma errors
       const safeData = { ...data };
       // @ts-ignore
@@ -195,14 +211,18 @@ export class EventRepository {
         // @ts-ignore
         delete safeData.isDeleted;
       }
-      
+
+      const select = { ...this.safeFields };
+      if (Object.keys(includeObject).length > 0) {
+        Object.assign(select, includeObject);
+      }
+
       const event = await this.prisma.event.update({
         where: { id },
         data: safeData,
-        select: { ...this.safeFields },
-        include: includeObject
+        select
       });
-      
+
       return event as unknown as Event; // Cast to our domain model
     } catch (error) {
       logger.error(`Error in EventRepository.update for id ${id}:`, error);
@@ -216,7 +236,12 @@ export class EventRepository {
   async delete(id: string, include?: string[]): Promise<Event> {
     try {
       const includeObject = this.buildIncludeObject(include);
-      
+
+      const select = { ...this.safeFields };
+      if (Object.keys(includeObject).length > 0) {
+        Object.assign(select, includeObject);
+      }
+
       const event = await this.prisma.event.update({
         where: { id },
         data: {
@@ -224,10 +249,9 @@ export class EventRepository {
           deletedAt: new Date(),
           status: EventStatus.CANCELLED
         },
-        select: { ...this.safeFields },
-        include: includeObject
+        select
       });
-      
+
       return event as unknown as Event; // Cast to our domain model
     } catch (error) {
       logger.error(`Error in EventRepository.delete for id ${id}:`, error);
@@ -249,15 +273,15 @@ export class EventRepository {
   }
 
   /**
-   * Convert include string array to Prisma include object 
+   * Convert include string array to Prisma include object
    */
   private buildIncludeObject(include?: string[]): Record<string, boolean> {
     const includeObject: Record<string, boolean> = {};
-    
+
     if (!include || include.length === 0) {
       return includeObject;
     }
-    
+
     // Map relation names to their Prisma model names
     if (include.includes('ticketCategories')) includeObject.ticketCategories = true;
     if (include.includes('categories')) includeObject.categories = true;
@@ -265,10 +289,10 @@ export class EventRepository {
     if (include.includes('seats')) includeObject.seats = true;
     if (include.includes('discounts')) includeObject.discounts = true;
     if (include.includes('bookings')) includeObject.bookings = true;
-    
+
     return includeObject;
   }
-  
+
   /**
    * Build Prisma where clause from filters
    */
@@ -375,4 +399,4 @@ export class EventRepository {
 
 // Create and export singleton instance
 import prisma from '../db/prisma';
-export const eventRepository = new EventRepository(prisma); 
+export const eventRepository = new EventRepository(prisma);

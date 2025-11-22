@@ -1,9 +1,10 @@
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals'; // Removed to avoid duplicate app creation
 import { Application } from 'express';
 import request from 'supertest';
 // import { createApp } from '../../app'; // Removed to avoid duplicate app creation
 import { default as Ajv } from 'ajv';
 import addFormats from 'ajv-formats';
-import { describe, it } from 'node:test';
+// import { describe, it } from 'node:test';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerOptions from '../../config/swagger';
 
@@ -41,17 +42,49 @@ describe('API Contract Validation', () => {
       ajv = new Ajv({ allErrors: true });
       addFormats(ajv);
 
+      // Create a test user directly in the database
+      // Or better, use the repository if available, or direct prisma access if we can get it.
+      // Since we don't have direct access to prisma client here easily without importing,
+      // let's try to register a user via the API first.
+
+      await agent
+        .post('/api/v1/auth/register')
+        .send({
+          email: 'test@example.com',
+          password: 'Password123',
+          name: 'Test User'
+        });
+
       // Login to get auth token for protected endpoints
       // Use agent instead of request(server)
       const loginResponse = await agent
         .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com', // Use a test user that exists in your test database
-          password: 'password123',
+          password: 'Password123',
         });
 
       if (loginResponse.status === 200) {
         authToken = loginResponse.body.data.token;
+
+        // Create a test event
+        const eventResponse = await agent
+          .post('/api/v1/events')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            title: 'Test Event',
+            description: 'This is a test event',
+            startDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+            endDate: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
+            location: 'Test Location',
+            capacity: 100,
+            price: 100,
+            category: 'Music'
+          });
+
+        if (eventResponse.status !== 201) {
+          console.warn('Failed to create test event:', eventResponse.status, eventResponse.body);
+        }
       } else {
         console.warn('Login failed in beforeAll:', loginResponse.status, loginResponse.body);
       }
@@ -67,6 +100,16 @@ describe('API Contract Validation', () => {
 
   const validateResponseSchema = (endpoint: string, method: string, statusCode: number, response: any): boolean => {
     try {
+      // Debug paths if not found
+      if (!swaggerSpec.paths[endpoint]) {
+        // console.log('Available paths:', Object.keys(swaggerSpec.paths));
+        // Try adding/removing /api/v1 prefix
+        const altEndpoint = endpoint.startsWith('/api/v1') ? endpoint.replace('/api/v1', '') : `/api/v1${endpoint}`;
+        if (swaggerSpec.paths[altEndpoint]) {
+          endpoint = altEndpoint;
+        }
+      }
+
       // Find the path spec
       const pathSpec = swaggerSpec.paths[endpoint]?.[method.toLowerCase()];
       if (!pathSpec) {
