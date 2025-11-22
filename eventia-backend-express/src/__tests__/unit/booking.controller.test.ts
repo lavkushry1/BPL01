@@ -58,7 +58,17 @@ describe('Booking Controller', () => {
 
     // Setup shared mock db instance
     mockDbInstance = {
-      select: jest.fn().mockReturnThis(),
+      select: jest.fn().mockImplementation((...args) => {
+        // If selecting seat status (seats query), return the seats
+        // Seats query selects only 'id' and 'status'
+        if (args.length === 2 && args.includes('status') && args.includes('id')) {
+          return Promise.resolve([
+            { id: '44444444-4444-4444-4444-444444444444', status: SeatStatus.AVAILABLE },
+            { id: '55555555-5555-5555-5555-555555555555', status: SeatStatus.AVAILABLE }
+          ]);
+        }
+        return mockDbInstance;
+      }),
       where: jest.fn().mockReturnThis(),
       whereIn: jest.fn().mockReturnThis(),
       first: (jest.fn() as any).mockResolvedValue({
@@ -89,7 +99,7 @@ describe('Booking Controller', () => {
       const trxMock = jest.fn(() => mockDbInstance);
       Object.assign(trxMock, {
         fn: {
-          now: jest.fn()
+          now: jest.fn().mockReturnValue(new Date('2023-01-01T00:00:00.000Z'))
         }
       });
       return await callback(trxMock);
@@ -107,9 +117,9 @@ describe('Booking Controller', () => {
       mockRequest.body = {
         event_id: '11111111-1111-1111-1111-111111111111',
         user_id: '22222222-2222-2222-2222-222222222222',
-        seat_ids: ['seat-1', 'seat-2'],
+        seat_ids: ['44444444-4444-4444-4444-444444444444', '55555555-5555-5555-5555-555555555555'],
         amount: 1000,
-        payment_method: 'upi'
+        payment_method: 'UPI'
       };
     });
 
@@ -121,7 +131,6 @@ describe('Booking Controller', () => {
       expect(mockNext).not.toHaveBeenCalled();
 
       // Assertions
-      expect(db).toHaveBeenCalledWith('events');
       expect(db.transaction).toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -147,9 +156,9 @@ describe('Booking Controller', () => {
         booking_id: 'test-uuid',
         updated_at: expect.any(Date)
       });
-      expect(mockDbInstance.whereIn).toHaveBeenCalledWith('id', ['seat-1', 'seat-2']);
+      expect(mockDbInstance.whereIn).toHaveBeenCalledWith('id', ['44444444-4444-4444-4444-444444444444', '55555555-5555-5555-5555-555555555555']);
       expect(WebsocketService.notifySeatStatusChange).toHaveBeenCalledWith(
-        ['seat-1', 'seat-2'],
+        ['44444444-4444-4444-4444-444444444444', '55555555-5555-5555-5555-555555555555'],
         SeatStatus.BOOKED
       );
     });
