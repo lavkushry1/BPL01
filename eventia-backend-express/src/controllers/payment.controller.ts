@@ -27,7 +27,7 @@ export class PaymentController {
    * @route POST /api/payments/initialize
    */
   static initializePayment = asyncHandler(async (req: Request, res: Response) => {
-    const { booking_id, payment_method, currency = 'INR' } = req.body;
+    const { booking_id, payment_method, amount, currency = 'INR' } = req.body;
 
     if (!booking_id || !payment_method) {
       throw new ApiError(400, 'Booking ID and payment method are required', 'MISSING_REQUIRED_FIELDS');
@@ -43,7 +43,12 @@ export class PaymentController {
       throw new ApiError(404, 'Booking not found', 'BOOKING_NOT_FOUND');
     }
 
-    if (booking.status !== 'pending') {
+    const user_id = req.user?.id;
+    if (booking.user_id !== user_id && req.user?.role !== 'ADMIN') {
+      throw new ApiError(403, 'You are not authorized to make a payment for this booking', 'FORBIDDEN');
+    }
+
+    if (booking.status !== 'PENDING') {
       throw new ApiError(400, `Cannot initialize payment for booking in ${booking.status} state`, 'INVALID_BOOKING_STATUS');
     }
 
@@ -67,7 +72,7 @@ export class PaymentController {
           payment_id: existingPayment.id,
           booking_id,
           payment_method,
-          amount: booking.final_amount,
+          amount,
           currency,
           status: 'pending'
         });
@@ -84,27 +89,19 @@ export class PaymentController {
         const [payment] = await trx('booking_payments').insert({
           id: uuidv4(),
           booking_id,
-          amount: booking.final_amount,
+          amount,
           status: 'pending',
           createdAt: trx.fn.now(),
           updatedAt: trx.fn.now()
         }).returning('*');
 
-        // Update booking to link to payment
-        await trx('bookings')
-          .where({ id: booking_id })
-          .update({
-            payment_id: payment.id,
-            updatedAt: trx.fn.now()
-          });
-
         return payment;
       });
 
-      return ApiResponse.success(res, 201, 'Payment initialized successfully', result);
+      return ApiResponse.success(res, 201, 'Payment initialized successfully', { ...result, transaction_id: result.id });
     } catch (error) {
       logger.error('Error initializing payment:', error);
-      throw new ApiError(500, 'Failed to initialize payment', 'PAYMENT_INITIALIZATION_FAILED');
+      throw new ApiError(500, 'Failed to initialize payment', 'PAYMENT_INITIATION_FAILED');
     }
   });
 

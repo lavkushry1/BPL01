@@ -50,7 +50,7 @@ describe('Payment Routes', () => {
 
       Assert.assertApiResponse(response, 201);
       expect(response.body.data.booking_id).toBe(bookingId);
-      expect(response.body.data.amount).toBe(2000);
+      expect(response.body.data.amount).toBe('2000.00');
       expect(response.body.data.status).toBe('pending');
       expect(response.body.data.transaction_id).toBeDefined();
     });

@@ -19,7 +19,7 @@ import { ApiResponse } from '../utils/apiResponse';
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { body: validatedData } = createBookingSchema.parse({ body: req.body });
-    const { event_id, seat_ids } = validatedData;
+    const { event_id, seat_ids, amount } = validatedData;
     const user_id = req.user?.id;
 
     if (!user_id) {
@@ -46,6 +46,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           id: booking_id,
           event_id,
           user_id,
+          final_amount: amount,
           status: 'PENDING',
           createdAt: trx.fn.now(),
           updatedAt: trx.fn.now()
@@ -94,6 +95,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
 
     return ApiResponse.created(res, newBooking, 'Booking created successfully');
   } catch (error) {
+    console.error('CRITICAL DEBUG - createBooking error:', error);
     throw error;
   }
 });

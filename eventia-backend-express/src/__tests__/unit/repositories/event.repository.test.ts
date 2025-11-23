@@ -1,14 +1,14 @@
-import { EventRepository } from '../../../../repositories/event.repository';
-import { EventFactory } from '../../../factories/event.factory';
-import db from '../../../../db';
 import { EventStatus } from '@prisma/client';
+import db from '../../../db';
+import { EventRepository } from '../../../repositories/event.repository';
+import { EventFactory } from '../../factories/event.factory';
 
 // Mock the database client
 jest.mock('../../../../db');
 
 describe('EventRepository', () => {
   let eventRepository: EventRepository;
-  
+
   beforeEach(() => {
     eventRepository = new EventRepository();
     // Clear all mocks before each test
@@ -98,7 +98,7 @@ describe('EventRepository', () => {
         status: EventStatus.DRAFT,
         organizerId: 'organizer-id'
       };
-      
+
       const mockCreatedEvent = { ...eventData, id: 'event-id', createdAt: new Date(), updatedAt: new Date() };
       (db as any).mockResolvedValue({
         insert: jest.fn().mockReturnThis(),

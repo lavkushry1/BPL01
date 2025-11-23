@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { PaymentController } from '../controllers/payment.controller';
+import { auth } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import * as paymentValidation from '../validations/payment.validation';
-import { auth } from '../middleware/auth';
 
 const router = Router();
 
@@ -42,10 +42,76 @@ const router = Router();
  *         description: Server error
  */
 router.post(
-  '/', 
-  auth(), 
-  validate(paymentValidation.createPaymentSchema), 
+  '/',
+  auth(),
+  validate(paymentValidation.createPaymentSchema),
   PaymentController.createPayment
+);
+
+/**
+ * @swagger
+ * /api/v1/payments/initialize:
+ *   post:
+ *     summary: Initialize a payment for a booking
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               booking_id:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               payment_method:
+ *                 type: string
+ *               currency:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Payment initialized successfully
+ */
+router.post(
+  '/initialize',
+  auth(),
+  validate(paymentValidation.initializePaymentSchema),
+  PaymentController.initializePayment
+);
+
+/**
+ * @swagger
+ * /api/v1/payments/verify:
+ *   post:
+ *     summary: Submit UTR verification for a payment
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               payment_id:
+ *                 type: string
+ *               utr_number:
+ *                 type: string
+ *               user_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: UTR verification submitted successfully
+ */
+router.post(
+  '/verify',
+  auth(),
+  validate(paymentValidation.verifyPaymentUtrSchema),
+  PaymentController.submitUtrVerification
 );
 
 /**
@@ -80,8 +146,8 @@ router.post(
  *         description: Server error
  */
 router.put(
-  '/:id/utr', 
-  validate(paymentValidation.updateUtrSchema), 
+  '/:id/utr',
+  validate(paymentValidation.updateUtrSchema),
   PaymentController.updateUtrNumber
 );
 
@@ -114,9 +180,9 @@ router.put(
  *         description: Server error
  */
 router.put(
-  '/:id/verify', 
-  auth('admin'), 
-  validate(paymentValidation.verifyPaymentSchema), 
+  '/:id/verify',
+  auth('admin'),
+  validate(paymentValidation.verifyPaymentSchema),
   PaymentController.verifyPayment
 );
 
@@ -149,9 +215,9 @@ router.put(
  *         description: Server error
  */
 router.put(
-  '/:id/reject', 
-  auth('admin'), 
-  validate(paymentValidation.rejectPaymentSchema), 
+  '/:id/reject',
+  auth('admin'),
+  validate(paymentValidation.rejectPaymentSchema),
   PaymentController.rejectPayment
 );
 
@@ -180,9 +246,9 @@ router.put(
  *         description: Server error
  */
 router.get(
-  '/:id', 
-  auth(), 
-  validate(paymentValidation.getPaymentSchema), 
+  '/:id',
+  auth(),
+  validate(paymentValidation.getPaymentSchema),
   PaymentController.getPaymentById
 );
 
@@ -209,9 +275,9 @@ router.get(
  *         description: Server error
  */
 router.get(
-  '/booking/:bookingId', 
-  auth(), 
-  validate(paymentValidation.getPaymentByBookingIdSchema), 
+  '/booking/:bookingId',
+  auth(),
+  validate(paymentValidation.getPaymentByBookingIdSchema),
   PaymentController.getPaymentByBookingId
 );
 
@@ -251,9 +317,9 @@ router.get(
  *         description: Server error
  */
 router.get(
-  '/', 
-  auth('admin'), 
-  validate(paymentValidation.getAllPaymentsSchema), 
+  '/',
+  auth('admin'),
+  validate(paymentValidation.getAllPaymentsSchema),
   PaymentController.getAllPayments
 );
 
