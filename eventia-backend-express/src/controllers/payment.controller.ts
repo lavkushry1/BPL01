@@ -60,7 +60,7 @@ export class PaymentController {
           .where({ id: existingPayment.id })
           .update({
             status: 'pending',
-            updated_at: db.fn.now()
+            updatedAt: db.fn.now()
           });
 
         return ApiResponse.success(res, 200, 'Payment re-initialized successfully', {
@@ -86,8 +86,8 @@ export class PaymentController {
           booking_id,
           amount: booking.final_amount,
           status: 'pending',
-          created_at: trx.fn.now(),
-          updated_at: trx.fn.now()
+          createdAt: trx.fn.now(),
+          updatedAt: trx.fn.now()
         }).returning('*');
 
         // Update booking to link to payment
@@ -95,7 +95,7 @@ export class PaymentController {
           .where({ id: booking_id })
           .update({
             payment_id: payment.id,
-            updated_at: trx.fn.now()
+            updatedAt: trx.fn.now()
           });
 
         return payment;
@@ -128,8 +128,8 @@ export class PaymentController {
           amount,
           payment_method,
           status: 'pending',
-          created_at: trx.fn.now(),
-          updated_at: trx.fn.now()
+          createdAt: trx.fn.now(),
+          updatedAt: trx.fn.now()
         }).returning('*');
 
         return payment;
@@ -170,7 +170,7 @@ export class PaymentController {
         .where({ id })
         .update({
           utr_number: utrNumber,
-          updated_at: db.fn.now()
+          updatedAt: db.fn.now()
         })
         .returning('*');
 
@@ -345,9 +345,9 @@ export class PaymentController {
             .where({ id })
             .update({
               status: 'verified',
-              verified_at: trx.fn.now(),
+              payment_date: trx.fn.now(),
               verified_by: adminId,
-              updated_at: trx.fn.now()
+              updatedAt: trx.fn.now()
             })
             .returning('*');
 
@@ -366,7 +366,7 @@ export class PaymentController {
             .where({ id: booking.id })
             .update({
               status: 'confirmed',
-              updated_at: trx.fn.now()
+              updatedAt: trx.fn.now()
             })
             .returning('*');
 
@@ -456,7 +456,7 @@ export class PaymentController {
             status: 'rejected',
             rejection_reason: rejection_reason || 'Payment verification failed',
             verified_by: adminId,
-            updated_at: trx.fn.now()
+            updatedAt: trx.fn.now()
           })
           .returning('*');
 
@@ -465,7 +465,7 @@ export class PaymentController {
           .where({ id: payment.booking_id })
           .update({
             status: 'payment_rejected',
-            updated_at: trx.fn.now()
+            updatedAt: trx.fn.now()
           })
           .returning('*');
 
@@ -598,7 +598,7 @@ export class PaymentController {
         .update({
           utr_number,
           status: 'awaiting_verification',
-          updated_at: db.fn.now()
+          updatedAt: db.fn.now()
         })
         .returning('*');
 
@@ -729,7 +729,10 @@ export class PaymentController {
    * Release expired seat locks
    * @route POST /api/payments/release-locks
    */
-  static releaseExpiredSeatLocks = asyncHandler();
+  static releaseExpiredSeatLocks = asyncHandler(async (_req: Request, res: Response) => {
+    const count = await SeatService.releaseExpiredLocks();
+    return ApiResponse.success(res, 200, 'Expired seat locks released successfully', { count });
+  });
 }
 
 /**

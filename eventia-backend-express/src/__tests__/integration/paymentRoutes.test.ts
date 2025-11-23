@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Assert, Auth, Generate, TestDataFactory } from '../helpers/testUtils';
 
 describe('Payment Routes', () => {
+  console.log('Debug - Starting Payment Routes Test File');
   let user: { userId: string; authToken: string };
   let admin: { userId: string; authToken: string };
   let scenario: Awaited<ReturnType<typeof TestDataFactory.createRealisticScenario>>;
@@ -133,7 +134,12 @@ describe('Payment Routes', () => {
   describe('POST /api/v1/admin/payments/:id/verify', () => {
     it('should allow admin to verify payment', async () => {
       // Create a new payment in awaiting_verification state
-      const bookingId = scenario.bookings.booking1;
+      // Create a new booking and payment in awaiting_verification state
+      const bookingId = await TestDataFactory.createBooking(
+        user.userId,
+        scenario.event,
+        scenario.ticketCategories[0]
+      );
       const paymentId = await TestDataFactory.createPayment(bookingId, {
         amount: 2000,
         status: 'awaiting_verification'
@@ -160,7 +166,7 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .put(`/api/v1/admin/payments/${paymentId}/verify`)
+        .put(`/api/v1/payments/${paymentId}/verify`)
         .send(verifyData);
 
       Assert.assertForbiddenError(response);

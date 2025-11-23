@@ -58,8 +58,8 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
         amount,
         payment_method,
         status: 'PENDING',
-        created_at: trx.fn.now(),
-        updated_at: trx.fn.now()
+        createdAt: trx.fn.now(),
+        updatedAt: trx.fn.now()
       })
       .returning('*');
 
@@ -89,7 +89,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
         .update({
           status: SeatStatus.BOOKED,
           booking_id: booking_id,
-          updated_at: trx.fn.now()
+          updatedAt: trx.fn.now()
         })
         .whereIn('id', seat_ids);
 
@@ -104,7 +104,7 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
     await trx('events')
       .where('id', event_id)
       .increment('booked_count', requestedCount)
-      .update({ updated_at: trx.fn.now() });
+      .update({ updatedAt: trx.fn.now() });
 
     return booking;
   });
@@ -127,8 +127,8 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
       'amount',
       'payment_method',
       'status',
-      'created_at',
-      'updated_at'
+      'createdAt',
+      'updatedAt'
     )
     .where('id', id)
     .first();
@@ -174,7 +174,7 @@ export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Respon
           address,
           city,
           pincode,
-          updated_at: trx.fn.now()
+          updatedAt: trx.fn.now()
         })
         .returning('*');
     } else {
@@ -188,8 +188,8 @@ export const saveDeliveryDetails = asyncHandler(async (req: Request, res: Respon
           address,
           city,
           pincode,
-          created_at: trx.fn.now(),
-          updated_at: trx.fn.now()
+          createdAt: trx.fn.now(),
+          updatedAt: trx.fn.now()
         })
         .returning('*');
     }
@@ -220,7 +220,7 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
     .where('id', id)
     .update({
       status,
-      updated_at: db.fn.now()
+      updatedAt: db.fn.now()
     })
     .returning('*');
 
@@ -289,7 +289,7 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
         status: 'CANCELLED',
         cancelled_at: new Date(),
         cancellation_reason: cancellation_reason || 'User requested cancellation',
-        updated_at: trx.fn.now()
+        updatedAt: trx.fn.now()
       })
       .returning('*');
 
@@ -299,7 +299,7 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
       .update({
         status: 'available',
         booking_id: null,
-        updated_at: trx.fn.now()
+        updatedAt: trx.fn.now()
       });
 
     // If payment exists, mark for refund if it was verified
@@ -316,7 +316,7 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
           status: 'refunded',
           refunded_at: new Date(),
           notes: 'Booking cancelled by user, automatic refund initiated',
-          updated_at: trx.fn.now()
+          updatedAt: trx.fn.now()
         })
         .returning('*');
     }

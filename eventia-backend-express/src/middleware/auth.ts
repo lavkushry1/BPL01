@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { ApiError } from '../utils/apiError';
@@ -39,6 +39,7 @@ const PUBLIC_ENDPOINTS: PublicEndpoint[] = [
  */
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log(`Debug - Authenticating request: ${req.method} ${req.path}`);
     // Check if the endpoint is public
     const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint => {
       if ('pattern' in endpoint) {
@@ -65,7 +66,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     const tokenFromCookie = req.cookies.access_token;
     const authHeader = req.headers.authorization;
     const tokenFromHeader = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-    
+
     const token = tokenFromCookie || tokenFromHeader;
 
     if (!token) {
@@ -85,13 +86,13 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
       return next();
     } catch (error) {
       const jwtError = error as Error;
-      
+
       // Handle token expiration specifically
       if (jwtError.name === 'TokenExpiredError') {
         logger.debug('Authentication failed: Token expired');
         return next(ApiError.unauthorized('Token expired', 'TOKEN_EXPIRED'));
       }
-      
+
       logger.debug('Authentication failed: Invalid token', error);
       return next(ApiError.unauthorized('Invalid token'));
     }
