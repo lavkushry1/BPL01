@@ -267,6 +267,13 @@ export class DataGenerators {
   static generateUTR(): string {
     return `UTR${Date.now()}${Math.floor(Math.random() * 10000)}`;
   }
+
+  /**
+   * Generate a random UUID
+   */
+  static randomUUID(): string {
+    return require('uuid').v4();
+  }
 }
 
 /**
@@ -316,6 +323,6 @@ export class DatabaseHelpers {
  * Re-export commonly used helpers
  */
 export {
-    AssertionHelpers as Assert, AuthHelpers as Auth, DatabaseHelpers as Database, DataGenerators as Generate, TestDataFactory, TimeHelpers as Time,
-    WaitHelpers as Wait
+  AssertionHelpers as Assert, AuthHelpers as Auth, DatabaseHelpers as Database, DataGenerators as Generate, TestDataFactory, TimeHelpers as Time,
+  WaitHelpers as Wait
 };

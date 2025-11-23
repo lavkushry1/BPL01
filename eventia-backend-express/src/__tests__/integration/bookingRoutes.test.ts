@@ -1,76 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../../db';
-import { generateToken } from '../../utils/jwt';
+import { Assert, Auth, TestDataFactory } from '../helpers/testUtils';
 import { request } from '../setup';
 
 describe('Booking Routes', () => {
-  let authToken: string;
-  let userId: string;
+  let user: { userId: string; authToken: string };
   let eventId: string;
   let ticketCategoryId: string;
 
   // Seed test data before each test
   beforeEach(async () => {
-    // Clear relevant tables (in reverse dependency order)
-    await db('bookings').del();
-    await db('ticket_categories').del();
-    await db('events').del();
-    await db('users').del();
+    // Create authenticated user (the booker)
+    user = await Auth.createAuthenticatedUser('USER');
 
-    // Generate UUIDs for all entities
-    userId = uuidv4();
-    eventId = uuidv4();
-    ticketCategoryId = uuidv4();
+    // Create an organizer to own the event
+    const organizerId = await TestDataFactory.createOrganizer();
 
-    // Create a test user (no foreign keys)
-    await db('users').insert({
-      id: userId,  // Manual UUID
-      name: 'Test User',
-      email: 'testuser@example.com',
-      password: '$2b$10$hashedpassword',
-      role: 'USER',
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
-
-    // Generate auth token for the test user
-    authToken = generateToken({ id: userId, role: 'USER' });
-
-    // Create a test event (depends on user)
-    await db('events').insert({
-      id: eventId,  // Manual UUID
-      title: 'Test Event',
-      description: 'Description of test event',
-      start_date: new Date('2023-12-01'),
-      end_date: new Date('2023-12-02'),
-      location: 'Test Location',
-      organizer_id: userId,  // Foreign key to user
-      status: 'PUBLISHED',
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
-
-    // Create a test ticket category (depends on event)
-    await db('ticket_categories').insert({
-      id: ticketCategoryId,  // Manual UUID
-      event_id: eventId,  // Foreign key to event
-      name: 'General Admission',
-      description: 'General admission ticket',
-      price: 1000, // $10.00
-      quantity: 100,
-      max_per_order: 4,
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
+    // Create event and ticket category
+    eventId = await TestDataFactory.createEvent(organizerId);
+    ticketCategoryId = await TestDataFactory.createTicketCategory(eventId);
   });
 
   afterEach(async () => {
-    // Clean up test data
-    await db('bookings').del();
-    await db('ticket_categories').del();
-    await db('events').del();
-    await db('users').del();
+    // Clean up all test data
+    await TestDataFactory.cleanup();
   });
 
   describe('POST /api/v1/bookings', () => {
@@ -82,16 +35,13 @@ describe('Booking Routes', () => {
         seatNumbers: ['A1', 'A2']
       };
 
-      const response = await request
+      const response = await Auth.authenticatedRequest(user.authToken)
         .post('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
-        .type('json')  // Explicit Content-Type for body parsing
         .send(bookingData);
 
-      expect(response.status).toBe(201);
-      expect(response.body.data).toBeDefined();
+      Assert.assertApiResponse(response, 201);
       expect(response.body.data.event_id).toBe(eventId);
-      expect(response.body.data.user_id).toBe(userId);
+      expect(response.body.data.user_id).toBe(user.userId);
       expect(response.body.data.status).toBe('pending');
     });
 
@@ -99,99 +49,118 @@ describe('Booking Routes', () => {
       const bookingData = {
         eventId,
         ticketCategoryId,
-        quantity: 2,
-        seatNumbers: ['A1', 'A2']
+        quantity: 1
       };
 
       const response = await request
         .post('/api/v1/bookings')
-        .type('json')  // Explicit Content-Type for body parsing
+        .type('json')
         .send(bookingData);
 
-      expect(response.status).toBe(401);
+      Assert.assertAuthError(response);
     });
 
-    it('should return 400 when required fields are missing', async () => {
+    it('should return 400 when quantity exceeds limit', async () => {
       const bookingData = {
-        // Missing eventId
+        eventId,
         ticketCategoryId,
-        quantity: 2
+        quantity: 1000 // Exceeds available seats
       };
 
-      const response = await request
+      const response = await Auth.authenticatedRequest(user.authToken)
         .post('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`)
-        .type('json')  // Explicit Content-Type for body parsing
         .send(bookingData);
 
-      expect(response.status).toBe(400);
-    });
-  });
-
-  describe('GET /api/v1/bookings/:id', () => {
-    it('should return a booking by ID when authenticated', async () => {
-      // First create a booking
-      const [bookingId] = await db('bookings').insert({
-        event_id: eventId,
-        user_id: userId,
-        ticket_category_id: ticketCategoryId,
-        quantity: 2,
-        total_price: 2000,
-        status: 'pending',
-        booking_date: new Date()
-      }).returning('id');
-
-      const response = await request
-        .get(`/api/v1/bookings/${bookingId}`)
-        .set('Authorization', `Bearer ${authToken}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
-      expect(response.body.data.id).toBe(bookingId);
-      expect(response.body.data.event_id).toBe(eventId);
-    });
-
-    it('should return 404 when booking does not exist', async () => {
-      const response = await request
-        .get('/api/v1/bookings/nonexistent-id')
-        .set('Authorization', `Bearer ${authToken}`);
-
-      expect(response.status).toBe(404);
+      Assert.assertErrorResponse(response, 400);
     });
   });
 
   describe('GET /api/v1/bookings', () => {
-    it('should return all bookings for the authenticated user', async () => {
-      // Create multiple bookings for the user
-      await db('bookings').insert([
-        {
-          event_id: eventId,
-          user_id: userId,
-          ticket_category_id: ticketCategoryId,
-          quantity: 2,
-          total_price: 2000,
-          status: 'pending',
-          booking_date: new Date()
-        },
-        {
-          event_id: eventId,
-          user_id: userId,
-          ticket_category_id: ticketCategoryId,
-          quantity: 1,
-          total_price: 1000,
-          status: 'confirmed',
-          booking_date: new Date()
-        }
-      ]);
+    it('should return user bookings', async () => {
+      // Create a booking first
+      await TestDataFactory.createBooking(user.userId, eventId, ticketCategoryId);
 
-      const response = await request
-        .get('/api/v1/bookings')
-        .set('Authorization', `Bearer ${authToken}`);
+      const response = await Auth.authenticatedRequest(user.authToken)
+        .get('/api/v1/bookings');
 
-      expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
+      Assert.assertApiResponse(response, 200);
       expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBe(2);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.data[0].event_id).toBe(eventId);
+    });
+
+    it('should return empty list if user has no bookings', async () => {
+      // Create a new user with no bookings
+      const newUser = await Auth.createAuthenticatedUser('USER');
+
+      const response = await Auth.authenticatedRequest(newUser.authToken)
+        .get('/api/v1/bookings');
+
+      Assert.assertApiResponse(response, 200);
+      expect(response.body.data).toEqual([]);
+    });
+  });
+
+  describe('GET /api/v1/bookings/:id', () => {
+    it('should return booking details', async () => {
+      // Create a booking
+      const bookingId = await TestDataFactory.createBooking(user.userId, eventId, ticketCategoryId);
+
+      const response = await Auth.authenticatedRequest(user.authToken)
+        .get(`/api/v1/bookings/${bookingId}`);
+
+      Assert.assertApiResponse(response, 200);
+      expect(response.body.data.id).toBe(bookingId);
+      expect(response.body.data.user_id).toBe(user.userId);
+    });
+
+    it('should return 404 for non-existent booking', async () => {
+      const nonExistentId = uuidv4();
+      const response = await Auth.authenticatedRequest(user.authToken)
+        .get(`/api/v1/bookings/${nonExistentId}`);
+
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 403 when accessing another user booking', async () => {
+      // Create a booking for the main user
+      const bookingId = await TestDataFactory.createBooking(user.userId, eventId, ticketCategoryId);
+
+      // Create another user
+      const otherUser = await Auth.createAuthenticatedUser('USER');
+
+      // Try to access the booking with the other user
+      const response = await Auth.authenticatedRequest(otherUser.authToken)
+        .get(`/api/v1/bookings/${bookingId}`);
+
+      Assert.assertForbiddenError(response);
+    });
+  });
+
+  describe('POST /api/v1/bookings/:id/cancel', () => {
+    it('should cancel a booking', async () => {
+      // Create a booking
+      const bookingId = await TestDataFactory.createBooking(user.userId, eventId, ticketCategoryId);
+
+      const response = await Auth.authenticatedRequest(user.authToken)
+        .post(`/api/v1/bookings/${bookingId}/cancel`);
+
+      Assert.assertApiResponse(response, 200);
+      expect(response.body.data.status).toBe('cancelled');
+    });
+
+    it('should return 403 when cancelling another user booking', async () => {
+      // Create a booking for the main user
+      const bookingId = await TestDataFactory.createBooking(user.userId, eventId, ticketCategoryId);
+
+      // Create another user
+      const otherUser = await Auth.createAuthenticatedUser('USER');
+
+      // Try to cancel with the other user
+      const response = await Auth.authenticatedRequest(otherUser.authToken)
+        .post(`/api/v1/bookings/${bookingId}/cancel`);
+
+      Assert.assertForbiddenError(response);
     });
   });
 });

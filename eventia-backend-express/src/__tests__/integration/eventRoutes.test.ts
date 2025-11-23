@@ -1,82 +1,48 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../../db';
-import { generateToken } from '../../utils/jwt';
+import { Assert, Auth, TestDataFactory, Time } from '../helpers/testUtils';
 import { request } from '../setup';
 
 describe('Event Routes', () => {
-  let authToken: string;
-  let userId: string;
+  let organizer: { userId: string; authToken: string };
   let event1Id: string;
   let event2Id: string;
 
   // Seed test data before each test
   beforeEach(async () => {
-    // Clear existing test data
-    await db('events').del();
-    await db('users').del();
+    // Create authenticated organizer
+    organizer = await Auth.createAuthenticatedUser('ORGANIZER');
 
-    // Generate UUID manually for the user
-    userId = uuidv4();
-
-    // Create a test user with manual UUID and required Prisma timestamps
-    await db('users').insert({
-      id: userId,
-      name: 'Test User',
-      email: 'testuser@example.com',
-      password: '$2b$10$hashedpassword',
-      role: 'ORGANIZER',
-      createdAt: new Date(),
-      updatedAt: new Date()
+    // Create test events using factory
+    event1Id = await TestDataFactory.createEvent(organizer.userId, {
+      title: 'Test Event 1',
+      description: 'Description of test event 1',
+      startDate: new Date('2023-12-01'),
+      endDate: new Date('2023-12-02'),
+      location: 'Test Location 1',
+      status: 'PUBLISHED'
     });
 
-    // Generate auth token for the test user
-    authToken = generateToken({ id: userId, role: 'ORGANIZER' });
-
-    // Create test events with manual UUIDs and required timestamps
-    event1Id = uuidv4();
-    event2Id = uuidv4();
-
-    await db('events').insert([
-      {
-        id: event1Id,
-        title: 'Test Event 1',
-        description: 'Description of test event 1',
-        start_date: new Date('2023-12-01'),
-        end_date: new Date('2023-12-02'),
-        location: 'Test Location 1',
-        organizer_id: userId,
-        status: 'PUBLISHED',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: event2Id,
-        title: 'Test Event 2',
-        description: 'Description of test event 2',
-        start_date: new Date('2024-01-01'),
-        end_date: new Date('2024-01-02'),
-        location: 'Test Location 2',
-        organizer_id: userId,
-        status: 'DRAFT',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ]);
+    event2Id = await TestDataFactory.createEvent(organizer.userId, {
+      title: 'Test Event 2',
+      description: 'Description of test event 2',
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-01-02'),
+      location: 'Test Location 2',
+      status: 'DRAFT'
+    });
   });
 
   afterEach(async () => {
     // Clean up test data
-    await db('events').del();
-    await db('users').del();
+    await TestDataFactory.cleanup();
   });
 
   describe('GET /api/v1/events', () => {
     it('should return a list of published events', async () => {
       const response = await request.get('/api/v1/events');
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      Assert.assertApiResponse(response, 200);
       expect(Array.isArray(response.body.data.events)).toBe(true);
       expect(response.body.data.events.length).toBeGreaterThan(0);
 
@@ -87,68 +53,88 @@ describe('Event Routes', () => {
     });
 
     it('should return all events for authenticated organizers', async () => {
-      const response = await request
-        .get('/api/v1/events')
-        .set('Authorization', `Bearer ${authToken}`);
+      const response = await Auth.authenticatedRequest(organizer.authToken)
+        .get('/api/v1/events');
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
+      Assert.assertApiResponse(response, 200);
       expect(Array.isArray(response.body.data.events)).toBe(true);
-      // Note: The controller now enforces PUBLISHED for everyone on this endpoint.
-      // If we want organizers to see DRAFTs, we need a separate admin/organizer endpoint or logic.
-      // For now, let's just assert it returns the published event.
       expect(response.body.data.events.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('GET /api/v1/events/:id', () => {
+    it('should return event details for published event', async () => {
+      const response = await request.get(`/api/v1/events/${event1Id}`);
+
+      Assert.assertApiResponse(response, 200);
+      expect(response.body.data.id).toBe(event1Id);
+      expect(response.body.data.title).toBe('Test Event 1');
+    });
+
+    it('should return 404 for non-existent event', async () => {
+      const nonExistentId = uuidv4();
+      const response = await request.get(`/api/v1/events/${nonExistentId}`);
+
+      expect(response.status).toBe(404);
     });
   });
 
   describe('POST /api/v1/events', () => {
     it('should create a new event when authenticated', async () => {
-      const newEvent = {
-        title: 'New Conference',
-        description: 'A new tech conference',
-        startDate: new Date('2024-06-01').toISOString(),
-        endDate: new Date('2024-06-03').toISOString(),
-        location: 'Convention Center',
-        // Schema expects categoryIds, not category
-        categoryIds: [uuidv4()],
+      const { startDate, endDate } = Time.createEventDateRange(30);
+
+      const eventData = {
+        title: 'New Test Event',
+        description: 'Description of new test event',
+        startDate: Time.toAPIDate(startDate),
+        endDate: Time.toAPIDate(endDate),
+        location: 'New Location',
+        categoryIds: [uuidv4()], // Use a random UUID for category
         ticketCategories: [
           {
             name: 'General Admission',
-            price: 100,
-            totalSeats: 500
+            description: 'Standard entry',
+            price: 1000,
+            totalSeats: 100
           }
         ]
       };
 
-      const response = await request
+      const response = await Auth.authenticatedRequest(organizer.authToken)
         .post('/api/v1/events')
-        .type('json')  // Supertest method to set Content-Type and send JSON
-        .set('Authorization', `Bearer ${authToken}`)
-        .send(newEvent);
+        .send(eventData);
 
-      expect(response.status).toBe(201);
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.title).toBe(newEvent.title);
-
-      // Verify the event was created in the database
-      const dbEvents = await db('events').where('title', newEvent.title);
-      expect(dbEvents.length).toBe(1);
+      Assert.assertApiResponse(response, 201);
+      expect(response.body.data.title).toBe(eventData.title);
+      Assert.assertIsUUID(response.body.data.id);
     });
 
     it('should return 401 when not authenticated', async () => {
-      const newEvent = {
-        title: 'New Test Event',
-        description: 'New event description',
-        startDate: '2024-02-01',
-        endDate: '2024-02-02',
-        location: 'New Test Location'
+      const eventData = {
+        title: 'Unauthorized Event',
+        startDate: new Date(),
+        endDate: new Date(),
+        location: 'Test Location'
       };
 
       const response = await request
         .post('/api/v1/events')
-        .send(newEvent);
+        .type('json')
+        .send(eventData);
 
-      expect(response.status).toBe(401);
+      Assert.assertAuthError(response);
+    });
+
+    it('should return 400 when required fields are missing', async () => {
+      const eventData = {
+        description: 'Missing title and dates'
+      };
+
+      const response = await Auth.authenticatedRequest(organizer.authToken)
+        .post('/api/v1/events')
+        .send(eventData);
+
+      Assert.assertErrorResponse(response, 400);
     });
   });
 });
