@@ -106,6 +106,7 @@ export const validate = (schema: ZodSchema, cacheKey?: string) => {
           code: err.code,
         }));
 
+        console.log('Validation Error:', JSON.stringify(errors, null, 2));
         next(ApiError.badRequest('Validation failed', 'VALIDATION_ERROR', errors));
       } else {
         next(error);

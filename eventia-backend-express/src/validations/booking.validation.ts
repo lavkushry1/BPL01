@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const createBookingSchema = z.object({
   body: z.object({
     event_id: z.string().uuid('Invalid event ID format'),
-    user_id: z.string().uuid('Invalid user ID format'),
     seat_ids: z.array(z.string().uuid('Invalid seat ID format')).optional(),
     amount: z.number().positive('Amount must be positive'),
     payment_method: z.enum(['STRIPE', 'UPI', 'CASH', 'CARD']).optional().default('STRIPE'),

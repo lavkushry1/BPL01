@@ -8,8 +8,7 @@ export const initializePaymentSchema = z.object({
     payment_method: z.enum(['upi', 'card', 'netbanking', 'wallet'], {
       errorMap: () => ({ message: 'Invalid payment method' })
     }),
-    currency: z.string().default('INR').optional(),
-    user_id: z.string().uuid('Invalid user ID format')
+    currency: z.string().default('INR').optional()
   }),
   params: z.object({}),
   query: z.object({})

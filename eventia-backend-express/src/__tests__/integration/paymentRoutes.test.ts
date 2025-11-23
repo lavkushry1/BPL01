@@ -45,7 +45,7 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post('/api/v1/payments/initialize')
+        .post('/api/v1/payment-initialize/payments/initialize')
         .send(paymentData);
 
       Assert.assertApiResponse(response, 201);
@@ -64,7 +64,7 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post('/api/v1/payments/initialize')
+        .post('/api/v1/payment-initialize/payments/initialize')
         .send(paymentData);
 
       expect(response.status).toBe(404);
@@ -82,7 +82,7 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post('/api/v1/payments/initialize')
+        .post('/api/v1/payment-initialize/payments/initialize')
         .send(paymentData);
 
       Assert.assertForbiddenError(response);
@@ -103,16 +103,18 @@ describe('Payment Routes', () => {
       const paymentId = await TestDataFactory.createPayment(bookingId, { amount: 2000 });
 
       const verifyData = {
-        utrNumber: Generate.generateUTR()
+        payment_id: paymentId,
+        utr_number: Generate.generateUTR(),
+        user_id: user.userId
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post(`/api/v1/payments/${paymentId}/verify`)
+        .post('/api/v1/payment-initialize/payments/verify')
         .send(verifyData);
 
       Assert.assertApiResponse(response, 200);
       expect(response.body.data.status).toBe('processing'); // Or verified depending on logic
-      expect(response.body.data.utr_number).toBe(verifyData.utrNumber);
+      expect(response.body.data.utr_number).toBe(verifyData.utr_number);
     });
 
     it('should return 404 for non-existent payment', async () => {
@@ -121,7 +123,7 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post(`/api/v1/payments/${uuidv4()}/verify`)
+        .put(`/api/v1/payments/${uuidv4()}/verify`)
         .send(verifyData);
 
       expect(response.status).toBe(404);
@@ -139,7 +141,7 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(admin.authToken)
-        .post(`/api/v1/admin/payments/${paymentId}/verify`)
+        .put(`/api/v1/payments/${paymentId}/verify`)
         .send(verifyData);
 
       Assert.assertApiResponse(response, 200);
@@ -154,7 +156,7 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post(`/api/v1/admin/payments/${paymentId}/verify`)
+        .put(`/api/v1/admin/payments/${paymentId}/verify`)
         .send(verifyData);
 
       Assert.assertForbiddenError(response);

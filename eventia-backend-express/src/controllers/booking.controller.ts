@@ -19,7 +19,12 @@ import { ApiResponse } from '../utils/apiResponse';
  */
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
   const { body: validatedData } = createBookingSchema.parse({ body: req.body });
-  const { event_id, user_id, seat_ids, amount, payment_method } = validatedData;
+  const { event_id, seat_ids, amount, payment_method } = validatedData;
+  const user_id = req.user?.id;
+
+  if (!user_id) {
+    throw ApiError.unauthorized('User not authenticated');
+  }
 
   // Process booking with transaction to ensure data integrity
   const newBooking = await db.transaction(async trx => {

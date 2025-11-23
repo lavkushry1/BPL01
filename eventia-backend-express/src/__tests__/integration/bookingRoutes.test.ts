@@ -158,7 +158,8 @@ describe('Booking Routes', () => {
       const otherUser = await Auth.createAuthenticatedUser();
 
       const response = await Auth.authenticatedRequest(otherUser.authToken)
-        .post(`/api/v1/bookings/${bookingId}/cancel`);
+        .post(`/api/v1/bookings/${bookingId}/cancel`)
+        .send({});
 
       Assert.assertForbiddenError(response);
     });
