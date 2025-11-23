@@ -582,8 +582,8 @@ export class PaymentController {
 
     if (!payment) {
       throw new ApiError(404, 'Payment not found', 'PAYMENT_NOT_FOUND');
-      throw new ApiError(400, `Cannot verify payment with status: ${payment.status}`, 'INVALID_PAYMENT_STATUS');
     }
+
 
     try {
       // Update payment with UTR number

@@ -3,6 +3,7 @@ import {
   cancelBooking,
   createBooking,
   getBookingById,
+  getUserBookings,
   saveDeliveryDetails,
   updateBookingStatus
 } from '../controllers/booking.controller';
@@ -51,6 +52,22 @@ router.post(
 
 /**
  * @swagger
+ * /api/bookings:
+ *   get:
+ *     summary: Get all bookings for authenticated user
+ *     tags: [Bookings]
+ *     responses:
+ *       200:
+ *         description: User bookings
+ */
+router.get(
+  '/',
+  authenticate,
+  getUserBookings
+);
+
+/**
+ * @swagger
  * /api/bookings/{id}:
  *   get:
  *     summary: Get booking by ID
@@ -68,6 +85,7 @@ router.post(
  */
 router.get(
   '/:id',
+  authenticate,
   validate(bookingValidation.getBookingSchema),
   getBookingById
 );

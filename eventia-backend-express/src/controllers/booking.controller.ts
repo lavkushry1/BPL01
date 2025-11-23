@@ -112,6 +112,38 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
 });
 
 /**
+ * Get all bookings for the authenticated user
+ */
+export const getUserBookings = asyncHandler(async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw ApiError.unauthorized('User not authenticated');
+    }
+
+    const bookings = await db('bookings')
+      .select(
+        'id',
+        'event_id',
+        'user_id',
+        'amount',
+        'payment_method',
+        'status',
+        'created_at',
+        'updated_at'
+      )
+      .where('user_id', userId)
+      .orderBy('created_at', 'desc');
+
+    return ApiResponse.success(res, 200, 'Bookings fetched successfully', bookings);
+  } catch (error) {
+    console.error('CRITICAL DEBUG - getUserBookings error:', error);
+    throw error;
+  }
+});
+
+/**
  * Get booking by ID
  */
 export const getBookingById = asyncHandler(async (req: Request, res: Response) => {
@@ -126,8 +158,8 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
       'amount',
       'payment_method',
       'status',
-      'createdAt',
-      'updatedAt'
+      'created_at',
+      'updated_at'
     )
     .where('id', id)
     .first();
