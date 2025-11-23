@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import db from '../../db';
 import { generateToken } from '../../utils/jwt';
 import { request } from '../setup';
@@ -13,14 +14,20 @@ describe('User Routes', () => {
     // Clear users table
     await db('users').del();
 
+    // Generate UUID manually for the user (Prisma requires it)
+    userId = uuidv4();
+
     // Create a test user with hashed password
     const hashedPassword = await bcrypt.hash('password123', 10);
-    [{ id: userId }] = await db('users').insert({
+    await db('users').insert({
+      id: userId,  // Manual UUID
       name: 'Test User',
       email: 'testuser@example.com',
       password: hashedPassword,
-      role: 'USER'
-    }).returning('id');
+      role: 'USER',
+      createdAt: new Date(),  // Required Prisma timestamp
+      updatedAt: new Date()   // Required Prisma timestamp
+    });
 
     // Generate auth token for the test user
     authToken = generateToken({ id: userId, role: 'USER' });
@@ -41,6 +48,7 @@ describe('User Routes', () => {
 
       const response = await request
         .post('/api/v1/auth/register')
+        .type('json')  // Explicit Content-Type for body parsing
         .send(userData);
 
       expect(response.status).toBe(201);
@@ -93,6 +101,7 @@ describe('User Routes', () => {
 
       const response = await request
         .post('/api/v1/auth/login')
+        .type('json')  // Explicit Content-Type for body parsing
         .send(loginData);
 
       expect(response.status).toBe(200);
@@ -110,6 +119,7 @@ describe('User Routes', () => {
 
       const response = await request
         .post('/api/v1/auth/login')
+        .type('json')  // Explicit Content-Type for body parsing
         .send(loginData);
 
       expect(response.status).toBe(401);
@@ -123,6 +133,7 @@ describe('User Routes', () => {
 
       const response = await request
         .post('/api/v1/auth/login')
+        .type('json')  // Explicit Content-Type for body parsing
         .send(loginData);
 
       expect(response.status).toBe(404);
@@ -161,6 +172,7 @@ describe('User Routes', () => {
       const response = await request
         .put('/api/v1/users/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .type('json')  // Explicit Content-Type for body parsing
         .send(updateData);
 
       expect(response.status).toBe(200);
@@ -176,11 +188,15 @@ describe('User Routes', () => {
 
     it('should not allow updating email to an existing email', async () => {
       // Create another user first
+      const anotherUserId = uuidv4();
       await db('users').insert({
+        id: anotherUserId,  // Manual UUID
         name: 'Another User',
         email: 'another@example.com',
         password: 'hashedpassword',
-        role: 'USER'
+        role: 'USER',
+        createdAt: new Date(),  // Required Prisma timestamp
+        updatedAt: new Date()   // Required Prisma timestamp
       });
 
       const updateData = {
@@ -190,6 +206,7 @@ describe('User Routes', () => {
       const response = await request
         .put('/api/v1/users/profile')
         .set('Authorization', `Bearer ${authToken}`)
+        .type('json')  // Explicit Content-Type for body parsing
         .send(updateData);
 
       expect(response.status).toBe(400);

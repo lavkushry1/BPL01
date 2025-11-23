@@ -1,6 +1,6 @@
-import winston from 'winston';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import winston from 'winston';
 
 // Create logs directory if it doesn't exist
 const logDir = path.join(process.cwd(), 'logs');
@@ -59,28 +59,28 @@ export const stream = {
   }
 };
 
-// Override console methods to use Winston (in non-production environments)
-if (process.env.NODE_ENV !== 'production') {
+// Override console methods to use Winston (in development only, NOT in tests)
+if (process.env.NODE_ENV === 'development') {
   console.log = (message?: any, ...args: any[]) => {
     logger.info(message, ...args);
     return message;
   };
-  
+
   console.info = (message?: any, ...args: any[]) => {
     logger.info(message, ...args);
     return message;
   };
-  
+
   console.warn = (message?: any, ...args: any[]) => {
     logger.warn(message, ...args);
     return message;
   };
-  
+
   console.error = (message?: any, ...args: any[]) => {
     logger.error(message, ...args);
     return message;
   };
-  
+
   console.debug = (message?: any, ...args: any[]) => {
     logger.debug(message, ...args);
     return message;

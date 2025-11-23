@@ -28,6 +28,19 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+  // Debug middleware (now works since Winston console override is disabled for tests)
+  if (process.env.NODE_ENV === 'test') {
+    app.use((req, res, next) => {
+      if (req.method === 'POST') {
+        console.log('=== POST REQUEST DEBUG ===');
+        console.log('Path:', req.path);
+        console.log('Content-Type:', req.get('Content-Type'));
+        console.log('Body:', req.body);
+        console.log('==========================');
+      }
+      next();
+    });
+  }
 
   // Security headers using Helmet
   app.use(helmet({

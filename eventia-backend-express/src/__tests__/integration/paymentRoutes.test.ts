@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { v4 as uuidv4 } from 'uuid';
 import db from '../../db';
 import { generateToken } from '../../utils/jwt';
 import { request } from '../setup';
@@ -15,74 +16,99 @@ describe('Payment Routes', () => {
 
   // Seed test data before each test
   beforeEach(async () => {
-    // Clear relevant tables
+    // Clear relevant tables (in reverse dependency order)
     await db('payments').del();
     await db('bookings').del();
     await db('ticket_categories').del();
     await db('events').del();
     await db('users').del();
 
-    // Create a test user
-    [{ id: userId }] = await db('users').insert({
+    // Generate UUIDs for all entities
+    userId = uuidv4();
+    adminId = uuidv4();
+    eventId = uuidv4();
+    ticketCategoryId = uuidv4();
+    bookingId = uuidv4();
+    paymentId = uuidv4();
+
+    // Create a test user (no foreign keys)
+    await db('users').insert({
+      id: userId,  // Manual UUID
       name: 'Test User',
       email: 'testuser@example.com',
       password: '$2b$10$hashedpassword',
-      role: 'USER'
-    }).returning('id');
+      role: 'USER',
+      createdAt: new Date(),  // Required Prisma timestamp
+      updatedAt: new Date()   // Required Prisma timestamp
+    });
 
-    // Create an admin user
-    [{ id: adminId }] = await db('users').insert({
+    // Create an admin user (no foreign keys)
+    await db('users').insert({
+      id: adminId,  // Manual UUID
       name: 'Admin User',
       email: 'admin@example.com',
       password: '$2b$10$hashedpassword',
-      role: 'ADMIN'
-    }).returning('id');
+      role: 'ADMIN',
+      createdAt: new Date(),  // Required Prisma timestamp
+      updatedAt: new Date()   // Required Prisma timestamp
+    });
 
     // Generate auth tokens
     userAuthToken = generateToken({ id: userId, role: 'USER' });
     adminAuthToken = generateToken({ id: adminId, role: 'ADMIN' });
 
-    // Create a test event
-    [eventId] = await db('events').insert({
+    // Create a test event (depends on admin user)
+    await db('events').insert({
+      id: eventId,  // Manual UUID
       title: 'Test Event',
       description: 'Description of test event',
       start_date: new Date('2023-12-01'),
       end_date: new Date('2023-12-02'),
       location: 'Test Location',
-      organizer_id: adminId,
-      status: 'PUBLISHED'
-    }).returning('id');
+      organizer_id: adminId,  // Foreign key to admin user
+      status: 'PUBLISHED',
+      createdAt: new Date(),  // Required Prisma timestamp
+      updatedAt: new Date()   // Required Prisma timestamp
+    });
 
-    // Create a test ticket category
-    [ticketCategoryId] = await db('ticket_categories').insert({
-      event_id: eventId,
+    // Create a test ticket category (depends on event)
+    await db('ticket_categories').insert({
+      id: ticketCategoryId,  // Manual UUID
+      event_id: eventId,  // Foreign key to event
       name: 'General Admission',
       description: 'General admission ticket',
       price: 1000, // $10.00
       quantity: 100,
-      max_per_order: 4
-    }).returning('id');
+      max_per_order: 4,
+      createdAt: new Date(),  // Required Prisma timestamp
+      updatedAt: new Date()   // Required Prisma timestamp
+    });
 
-    // Create a test booking
-    [bookingId] = await db('bookings').insert({
-      event_id: eventId,
-      user_id: userId,
-      ticket_category_id: ticketCategoryId,
+    // Create a test booking (depends on event, user, ticket_category)
+    await db('bookings').insert({
+      id: bookingId,  // Manual UUID
+      event_id: eventId,  // Foreign key to event
+      user_id: userId,  //Foreign key to user
+      ticket_category_id: ticketCategoryId,  // Foreign key to ticket_category
       quantity: 2,
       total_price: 2000,
       status: 'pending',
-      booking_date: new Date()
-    }).returning('id');
+      booking_date: new Date(),
+      createdAt: new Date(),  // Required Prisma timestamp
+      updatedAt: new Date()   // Required Prisma timestamp
+    });
 
-    // Create a test payment
-    [paymentId] = await db('payments').insert({
-      booking_id: bookingId,
+    // Create a test payment (depends on booking)
+    await db('payments').insert({
+      id: paymentId,  // Manual UUID
+      booking_id: bookingId,  // Foreign key to booking
       amount: 2000,
       currency: 'INR',
       status: 'pending',
       payment_method: 'upi',
-      created_at: new Date()
-    }).returning('id');
+      createdAt: new Date(),  // Required Prisma timestamp (camelCase)
+      updatedAt: new Date()   // Required Prisma timestamp (camelCase)
+    });
   });
 
   afterEach(async () => {
@@ -104,6 +130,7 @@ describe('Payment Routes', () => {
       const response = await request
         .post('/api/v1/payments/initialize')
         .set('Authorization', `Bearer ${userAuthToken}`)
+        .type('json')
         .send(paymentData);
 
       expect(response.status).toBe(200);
@@ -121,6 +148,7 @@ describe('Payment Routes', () => {
       const response = await request
         .post('/api/v1/payments/initialize')
         .set('Authorization', `Bearer ${userAuthToken}`)
+        .type('json')
         .send(paymentData);
 
       expect(response.status).toBe(400);
@@ -136,6 +164,7 @@ describe('Payment Routes', () => {
       const response = await request
         .post(`/api/v1/payments/${paymentId}/verify`)
         .set('Authorization', `Bearer ${userAuthToken}`)
+        .type('json')
         .send(verificationData);
 
       expect(response.status).toBe(200);
@@ -148,6 +177,7 @@ describe('Payment Routes', () => {
       const response = await request
         .post(`/api/v1/payments/${paymentId}/verify`)
         .set('Authorization', `Bearer ${userAuthToken}`)
+        .type('json')
         .send({});
 
       expect(response.status).toBe(400);
