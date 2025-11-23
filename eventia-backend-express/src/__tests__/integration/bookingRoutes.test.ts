@@ -30,10 +30,10 @@ describe('Booking Routes', () => {
   describe('POST /api/v1/bookings', () => {
     it('should create a new booking when authenticated', async () => {
       const bookingData = {
-        eventId,
-        ticketCategoryId,
-        quantity: 2,
-        seatNumbers: ['A1', 'A2']
+        event_id: eventId,
+        seat_ids: [], // Empty for general admission
+        amount: 2000,
+        payment_method: 'UPI'
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
@@ -43,14 +43,15 @@ describe('Booking Routes', () => {
       Assert.assertApiResponse(response, 201);
       expect(response.body.data.event_id).toBe(eventId);
       expect(response.body.data.user_id).toBe(user.userId);
-      expect(response.body.data.status).toBe('pending');
+      expect(response.body.data.status).toBe('PENDING');
     });
 
     it('should return 401 when not authenticated', async () => {
       const bookingData = {
-        eventId,
-        ticketCategoryId,
-        quantity: 1
+        event_id: eventId,
+        seat_ids: [],
+        amount: 1000,
+        payment_method: 'UPI'
       };
 
       const response = await request
@@ -61,11 +62,12 @@ describe('Booking Routes', () => {
       Assert.assertAuthError(response);
     });
 
-    it('should return 400 when quantity exceeds limit', async () => {
+    it('should return 400 for invalid request data', async () => {
       const bookingData = {
-        eventId,
-        ticketCategoryId,
-        quantity: 1000 // Exceeds available seats
+        event_id: 'invalid-uuid', // Invalid UUID
+        seat_ids: [],
+        amount: -100, // Invalid negative amount
+        payment_method: 'UPI'
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)

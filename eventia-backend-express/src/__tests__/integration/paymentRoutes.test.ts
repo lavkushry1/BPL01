@@ -38,14 +38,14 @@ describe('Payment Routes', () => {
       );
 
       const paymentData = {
-        bookingId,
+        booking_id: bookingId,
         amount: 2000,
         currency: 'INR',
-        paymentMethod: 'upi'
+        payment_method: 'upi'
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post('/api/v1/payment-initialize/payments/initialize')
+        .post('/api/v1/payments/initialize')
         .send(paymentData);
 
       Assert.assertApiResponse(response, 201);
@@ -57,14 +57,14 @@ describe('Payment Routes', () => {
 
     it('should return 404 for non-existent booking', async () => {
       const paymentData = {
-        bookingId: uuidv4(),
+        booking_id: uuidv4(),
         amount: 2000,
         currency: 'INR',
-        paymentMethod: 'upi'
+        payment_method: 'upi'
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post('/api/v1/payment-initialize/payments/initialize')
+        .post('/api/v1/payments/initialize')
         .send(paymentData);
 
       expect(response.status).toBe(404);
@@ -75,14 +75,14 @@ describe('Payment Routes', () => {
       const bookingId = scenario.bookings.booking1;
 
       const paymentData = {
-        bookingId,
+        booking_id: bookingId,
         amount: 2000,
         currency: 'INR',
-        paymentMethod: 'upi'
+        payment_method: 'upi'
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post('/api/v1/payment-initialize/payments/initialize')
+        .post('/api/v1/payments/initialize')
         .send(paymentData);
 
       Assert.assertForbiddenError(response);
@@ -109,21 +109,23 @@ describe('Payment Routes', () => {
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .post('/api/v1/payment-initialize/payments/verify')
+        .post('/api/v1/payments/verify')
         .send(verifyData);
 
       Assert.assertApiResponse(response, 200);
-      expect(response.body.data.status).toBe('processing'); // Or verified depending on logic
+      expect(response.body.data.status).toBe('awaiting_verification');
       expect(response.body.data.utr_number).toBe(verifyData.utr_number);
     });
 
     it('should return 404 for non-existent payment', async () => {
       const verifyData = {
-        utrNumber: Generate.generateUTR()
+        payment_id: uuidv4(),
+        utr_number: Generate.generateUTR(),
+        user_id: user.userId
       };
 
       const response = await Auth.authenticatedRequest(user.authToken)
-        .put(`/api/v1/payments/${uuidv4()}/verify`)
+        .post('/api/v1/payments/verify')
         .send(verifyData);
 
       expect(response.status).toBe(404);

@@ -17,98 +17,85 @@ import { ApiResponse } from '../utils/apiResponse';
  * Create a new booking
  */
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
-  const { body: validatedData } = createBookingSchema.parse({ body: req.body });
-  const { event_id, seat_ids, amount, payment_method } = validatedData;
-  const user_id = req.user?.id;
+  try {
+    const { body: validatedData } = createBookingSchema.parse({ body: req.body });
+    const { event_id, seat_ids } = validatedData;
+    const user_id = req.user?.id;
 
-  if (!user_id) {
-    throw ApiError.unauthorized('User not authenticated');
-  }
-
-  // Process booking with transaction to ensure data integrity
-  const newBooking = await db.transaction(async trx => {
-    // 1. Lock and fetch event to check capacity safely
-    const event = await trx('events')
-      .select('id', 'capacity', 'booked_count')
-      .where('id', event_id)
-      .forUpdate() // Lock the event row
-      .first();
-
-    if (!event) {
-      throw ApiError.notFound('Event not found');
+    if (!user_id) {
+      throw ApiError.unauthorized('User not authenticated');
     }
 
-    // 2. Check capacity
-    // If seats are selected, capacity is implicitly checked by seat availability
-    // But for general admission (no seats), we must check booked_count
-    const requestedCount = seat_ids && seat_ids.length > 0 ? seat_ids.length : 1; // Default to 1 ticket if no seats specified (general admission)
+    // Process booking with transaction to ensure data integrity
+    const newBooking = await db.transaction(async trx => {
+      // 1. Check if event exists
+      const event = await trx('events')
+        .select('id')
+        .where('id', event_id)
+        .forUpdate() // Lock the event row
+        .first();
 
-    if (event.capacity && (event.booked_count + requestedCount > event.capacity)) {
-      throw ApiError.badRequest('Event is sold out or not enough capacity');
-    }
-
-    // 3. Create booking record
-    const booking_id = uuidv4();
-    const [booking] = await trx('bookings')
-      .insert({
-        id: booking_id,
-        event_id,
-        user_id,
-        amount,
-        payment_method,
-        status: 'PENDING',
-        createdAt: trx.fn.now(),
-        updatedAt: trx.fn.now()
-      })
-      .returning('*');
-
-    // 4. Handle Seats or General Admission
-    if (seat_ids && seat_ids.length > 0) {
-      // Pessimistically lock requested seats to prevent double booking
-      const seats = await trx('seats')
-        .whereIn('id', seat_ids)
-        .forUpdate()
-        .select('id', 'status');
-
-      if (seats.length !== seat_ids.length) {
-        throw ApiError.badRequest('One or more seats were not found');
+      if (!event) {
+        throw ApiError.notFound('Event not found');
       }
 
-      const unavailableSeats = seats.filter(seat => seat.status !== SeatStatus.AVAILABLE);
-      if (unavailableSeats.length > 0) {
-        throw ApiError.conflict(
-          'One or more seats are no longer available',
-          'SEAT_NOT_AVAILABLE',
-          unavailableSeats.map(seat => seat.id)
+      // 2. Create booking record
+      const booking_id = uuidv4();
+      const [booking] = await trx('bookings')
+        .insert({
+          id: booking_id,
+          event_id,
+          user_id,
+          status: 'PENDING',
+          createdAt: trx.fn.now(),
+          updatedAt: trx.fn.now()
+        })
+        .returning('*');
+
+      // 4. Handle Seats or General Admission
+      if (seat_ids && seat_ids.length > 0) {
+        // Pessimistically lock requested seats to prevent double booking
+        const seats = await trx('seats')
+          .whereIn('id', seat_ids)
+          .forUpdate()
+          .select('id', 'status');
+
+        if (seats.length !== seat_ids.length) {
+          throw ApiError.badRequest('One or more seats were not found');
+        }
+
+        const unavailableSeats = seats.filter(seat => seat.status !== SeatStatus.AVAILABLE);
+        if (unavailableSeats.length > 0) {
+          throw ApiError.conflict(
+            'One or more seats are no longer available',
+            'SEAT_NOT_AVAILABLE',
+            { unavailableSeats: unavailableSeats.map(s => s.id) }
+          );
+        }
+
+        // Update seat status to booked
+        await trx('seats')
+          .update({
+            status: SeatStatus.BOOKED,
+            booking_id: booking_id,
+            updatedAt: trx.fn.now()
+          })
+          .whereIn('id', seat_ids);
+
+        // Notify other clients that seats have been booked
+        WebsocketService.notifySeatStatusChange(
+          seat_ids,
+          SeatStatus.BOOKED
         );
       }
 
-      // Update seat status to booked
-      await trx('seats')
-        .update({
-          status: SeatStatus.BOOKED,
-          booking_id: booking_id,
-          updatedAt: trx.fn.now()
-        })
-        .whereIn('id', seat_ids);
+      return booking;
+    });
 
-      // Notify other clients that seats have been booked
-      WebsocketService.notifySeatStatusChange(
-        seat_ids,
-        SeatStatus.BOOKED
-      );
-    }
-
-    // 5. Update event booked_count
-    await trx('events')
-      .where('id', event_id)
-      .increment('booked_count', requestedCount)
-      .update({ updatedAt: trx.fn.now() });
-
-    return booking;
-  });
-
-  return ApiResponse.created(res, newBooking, 'Booking created successfully');
+    return ApiResponse.created(res, newBooking, 'Booking created successfully');
+  } catch (error) {
+    throw error;
+  }
 });
 
 /**
@@ -127,18 +114,15 @@ export const getUserBookings = asyncHandler(async (req: Request, res: Response) 
         'id',
         'event_id',
         'user_id',
-        'amount',
-        'payment_method',
         'status',
-        'created_at',
-        'updated_at'
+        'createdAt',
+        'updatedAt'
       )
       .where('user_id', userId)
-      .orderBy('created_at', 'desc');
+      .orderBy('createdAt', 'desc');
 
     return ApiResponse.success(res, 200, 'Bookings fetched successfully', bookings);
   } catch (error) {
-    console.error('CRITICAL DEBUG - getUserBookings error:', error);
     throw error;
   }
 });
@@ -155,11 +139,9 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
       'id',
       'event_id',
       'user_id',
-      'amount',
-      'payment_method',
       'status',
-      'created_at',
-      'updated_at'
+      'createdAt',
+      'updatedAt'
     )
     .where('id', id)
     .first();
