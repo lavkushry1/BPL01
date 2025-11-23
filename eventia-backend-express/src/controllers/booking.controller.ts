@@ -287,8 +287,6 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
       .where('id', id)
       .update({
         status: 'CANCELLED',
-        cancelled_at: new Date(),
-        cancellation_reason: cancellation_reason || 'User requested cancellation',
         updatedAt: trx.fn.now()
       })
       .returning('*');
@@ -314,8 +312,6 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
         .where('id', payment.id)
         .update({
           status: 'refunded',
-          refunded_at: new Date(),
-          notes: 'Booking cancelled by user, automatic refund initiated',
           updatedAt: trx.fn.now()
         })
         .returning('*');
