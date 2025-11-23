@@ -147,7 +147,7 @@ describe('Booking Routes', () => {
         .post(`/api/v1/bookings/${bookingId}/cancel`);
 
       Assert.assertApiResponse(response, 200);
-      expect(response.body.data.status).toBe('cancelled');
+      expect(response.body.data.status).toBe('CANCELLED');
     });
 
     it('should return 403 when cancelling another user booking', async () => {

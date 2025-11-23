@@ -155,7 +155,7 @@ describe('Payment Routes', () => {
         .send(verifyData);
 
       Assert.assertApiResponse(response, 200);
-      expect(response.body.data.status).toBe('verified');
+      expect(response.body.data.payment.status).toBe('verified');
     });
 
     it('should return 403 for non-admin users', async () => {

@@ -6,7 +6,6 @@ import { SeatStatus } from '../models/seat';
 import { WebsocketService } from '../services/websocket.service';
 import { ApiError } from '../utils/apiError';
 import { asyncHandler } from '../utils/asyncHandler';
-import { logger } from '../utils/logger';
 
 /**
  * Create a new booking
@@ -232,7 +231,7 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
  */
 export const cancelBooking = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { body: { cancellation_reason } } = cancelBookingSchema.parse({ params: req.params, body: req.body });
+  const { } = cancelBookingSchema.parse({ params: req.params, body: req.body });
 
   // Check if booking exists
   const booking = await db('bookings')
@@ -291,43 +290,53 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
       })
       .returning('*');
 
-    // Update seats to available
-    await trx('seats')
-      .where('booking_id', id)
-      .update({
-        status: 'available',
-        booking_id: null,
-        updatedAt: trx.fn.now()
-      });
+    // Get booked seats
+    const bookedSeats = await trx('booked_seats')
+      .select('seat_id')
+      .where('booking_id', id);
 
-    // If payment exists, mark for refund if it was verified
+    const seatIds = bookedSeats.map((bs: any) => bs.seat_id);
+
+    if (seatIds.length > 0) {
+      // Release seats
+      await trx('seats')
+        .whereIn('id', seatIds)
+        .update({
+          status: 'AVAILABLE',
+          updatedAt: trx.fn.now()
+        });
+    }
+
+    // Check for payment associated with this booking
     const payment = await trx('booking_payments')
+      .select('id', 'status')
       .where('booking_id', id)
-      .where('status', 'verified')
       .first();
 
-    let paymentUpdate = null;
-    if (payment) {
-      [paymentUpdate] = await trx('booking_payments')
+    // If payment exists and was verified, mark for refund
+    let paymentRefunded = false;
+    if (payment && payment.status === 'verified') {
+      await trx('booking_payments')
         .where('id', payment.id)
         .update({
           status: 'refunded',
           updatedAt: trx.fn.now()
         })
         .returning('*');
+      paymentRefunded = true;
     }
+
 
     return {
       cancelledBooking,
-      paymentRefunded: !!paymentUpdate
+      paymentRefunded
     };
   });
 
   // Notify through WebSocket if available
   try {
     WebsocketService.notifyBookingUpdate(id, 'cancelled');
-  } catch (wsError) {
-    logger.error('WebSocket notification failed:', wsError);
+  } catch (error) {
   }
 
   return ApiResponse.success(res, 200, 'Booking cancelled successfully', {

@@ -365,7 +365,7 @@ export class PaymentController {
           const [updatedBooking] = await trx('bookings')
             .where({ id: booking.id })
             .update({
-              status: 'confirmed',
+              status: 'CONFIRMED',
               updatedAt: trx.fn.now()
             })
             .returning('*');
@@ -396,13 +396,13 @@ export class PaymentController {
         // Update a retry queue for ticket generation
         await db('ticket_generation_queue').insert({
           id: uuidv4(),
-          booking_id: result.booking.id,
-          admin_id: adminId,
+          bookingId: result.booking.id,
           attempts: 0,
           max_attempts: 5,
           next_attempt_at: new Date(Date.now() + 60000), // 1 minute later
-          created_at: new Date()
-        }).onConflict('booking_id').merge();
+          created_at: new Date(),
+          updated_at: new Date()
+        }).onConflict('bookingId').merge();
       }
 
       // Notify customer via WebSocket if available
