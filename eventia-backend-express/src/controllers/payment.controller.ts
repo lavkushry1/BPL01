@@ -595,7 +595,7 @@ export class PaymentController {
         .where({ id: payment_id })
         .update({
           utr_number,
-          status: 'verification_pending',
+          status: 'awaiting_verification',
           updated_at: db.fn.now()
         })
         .returning('*');

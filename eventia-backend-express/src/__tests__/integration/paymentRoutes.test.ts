@@ -132,8 +132,12 @@ describe('Payment Routes', () => {
 
   describe('POST /api/v1/admin/payments/:id/verify', () => {
     it('should allow admin to verify payment', async () => {
-      // Use a payment from the scenario
-      const paymentId = scenario.payments.payment1;
+      // Create a new payment in awaiting_verification state
+      const bookingId = scenario.bookings.booking1;
+      const paymentId = await TestDataFactory.createPayment(bookingId, {
+        amount: 2000,
+        status: 'awaiting_verification'
+      });
 
       const verifyData = {
         status: 'verified',

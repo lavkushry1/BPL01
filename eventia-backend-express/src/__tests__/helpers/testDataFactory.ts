@@ -158,8 +158,8 @@ export class TestDataFactory {
       id: eventId,
       title: options.title || 'Test Event',
       description: options.description || 'Test event description',
-      start_date: options.startDate || new Date('2024-06-01'),
-      end_date: options.endDate || new Date('2024-06-03'),
+      start_date: options.startDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      end_date: options.endDate || new Date(Date.now() + 32 * 24 * 60 * 60 * 1000), // 32 days from now
       location: options.location || 'Test Location',
       organizer_id: organizerId,
       status: (options.status || 'PUBLISHED').toUpperCase(),

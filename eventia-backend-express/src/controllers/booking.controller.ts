@@ -245,6 +245,7 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
   }
 
   // Validate cancellation is allowed
+  console.log(`Debug - Cancel Booking: ID=${id}, Status=${booking.status}`);
   if (booking.status === 'CANCELLED') {
     throw ApiError.badRequest('Booking already cancelled', 'ALREADY_CANCELLED');
   }
