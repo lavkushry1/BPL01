@@ -1,5 +1,5 @@
-import { EventStatus } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import { EventStatus } from '@prisma/client';
 
 /**
  * Factory for generating test event data
@@ -30,7 +30,7 @@ export class EventFactory {
    * Create a published event
    */
   static createPublished(overrides: Record<string, any> = {}) {
-    return this.createBasic({
+    return EventFactory.createBasic({
       status: EventStatus.PUBLISHED,
       ...overrides
     });
@@ -52,7 +52,7 @@ export class EventFactory {
       isDeleted: false
     }));
 
-    return this.createBasic({
+    return EventFactory.createBasic({
       ticketCategories,
       ...overrides
     });
@@ -101,7 +101,7 @@ export class EventFactory {
       updatedAt: faker.date.recent()
     };
 
-    return this.createPublished({
+    return EventFactory.createPublished({
       ticketCategories,
       venue: {
         id: faker.string.uuid(),
@@ -126,12 +126,12 @@ export class EventFactory {
   /**
    * Create an array of events
    */
-  static createMany(count = 5, factory = this.createBasic, overrides: Record<string, any> = {}) {
-    return Array.from({ length: count }, (_, index) => 
+  static createMany(count = 5, factory = EventFactory.createBasic, overrides: Record<string, any> = {}) {
+    return Array.from({ length: count }, (_) =>
       factory({
         id: faker.string.uuid(),
         ...overrides
       })
     );
   }
-} 
+}
