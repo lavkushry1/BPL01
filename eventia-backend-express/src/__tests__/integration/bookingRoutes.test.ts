@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { v4 as uuidv4 } from 'uuid';
-import { Assert, Auth, TestDataFactory } from '../helpers/testUtils';
+import { TestDataFactory } from '../helpers/testDataFactory';
+import { Assert, Auth } from '../helpers/testUtils';
 import { request } from '../setup';
 
 describe('Booking Routes', () => {
@@ -153,10 +154,9 @@ describe('Booking Routes', () => {
       // Create a booking for the main user
       const bookingId = await TestDataFactory.createBooking(user.userId, eventId, ticketCategoryId);
 
-      // Create another user
-      const otherUser = await Auth.createAuthenticatedUser('USER');
+      // Create a new user to ensure it's different from the booking owner
+      const otherUser = await Auth.createAuthenticatedUser();
 
-      // Try to cancel with the other user
       const response = await Auth.authenticatedRequest(otherUser.authToken)
         .post(`/api/v1/bookings/${bookingId}/cancel`);
 

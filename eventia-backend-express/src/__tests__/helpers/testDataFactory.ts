@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+const bcrypt = require('bcrypt');
 import { v4 as uuidv4 } from 'uuid';
 import db from '../../db';
 
@@ -63,7 +63,7 @@ export interface PaymentFactoryOptions {
   bookingId?: string;
   amount?: number;
   currency?: string;
-  status?: 'pending' | 'verified' | 'failed';
+  status?: 'pending' | 'verified' | 'rejected' | 'awaiting_verification';
   paymentMethod?: string;
   utrNumber?: string;
   customFields?: Record<string, any>;
@@ -89,7 +89,6 @@ export class TestDataFactory {
       email: options.email || `test-${userId.substring(0, 8)}@example.com`,
       password: hashedPassword,
       role: options.role || 'USER',
-      phone: options.phone || null,
       createdAt: new Date(),
       updatedAt: new Date(),
       ...options.customFields
@@ -139,7 +138,6 @@ export class TestDataFactory {
       name,
       email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@company.com`,
       password: 'SecurePass123!',
-      phone: `+91${9000000000 + index}`,
       role: index % 3 === 0 ? 'ORGANIZER' : 'USER'
     });
   }
@@ -164,7 +162,7 @@ export class TestDataFactory {
       end_date: options.endDate || new Date('2024-06-03'),
       location: options.location || 'Test Location',
       organizer_id: organizerId,
-      status: options.status || 'PUBLISHED',
+      status: (options.status || 'PUBLISHED').toUpperCase(),
       createdAt: new Date(),
       updatedAt: new Date(),
       ...options.customFields
@@ -225,8 +223,7 @@ export class TestDataFactory {
       name: options.name || 'General Admission',
       description: options.description || 'Standard ticket',
       price: options.price || 1000, // ₹10.00
-      quantity: options.quantity || 100,
-      max_per_order: options.maxPerOrder || 4,
+      totalSeats: options.quantity || 100,
       createdAt: new Date(),
       updatedAt: new Date(),
       ...options.customFields
@@ -276,17 +273,32 @@ export class TestDataFactory {
       id: bookingId,
       event_id: eventId,
       user_id: userId,
-      ticket_category_id: ticketCategoryId,
+      // ticket_category_id removed as per schema
       quantity,
-      total_price: totalPrice,
-      status: options.status || 'pending',
-      booking_date: new Date(),
+      final_amount: totalPrice,
+      status: (options.status || 'PENDING').toUpperCase(),
       createdAt: new Date(),
       updatedAt: new Date(),
       ...options.customFields
     };
 
     await db('bookings').insert(bookingData);
+
+    // Create associated tickets
+    for (let i = 0; i < quantity; i++) {
+      await db('tickets').insert({
+        id: uuidv4(),
+        code: `TKT-${bookingId.substring(0, 8)}-${i}`,
+        status: 'PENDING',
+        booking_id: bookingId,
+        event_id: eventId,
+        ticket_category_id: ticketCategoryId,
+        price: totalPrice / quantity,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+
     return bookingId;
   }
 
@@ -306,16 +318,16 @@ export class TestDataFactory {
       id: paymentId,
       booking_id: bookingId,
       amount: options.amount || 2000,
-      currency: options.currency || 'INR',
-      status: options.status || 'pending',
-      payment_method: options.paymentMethod || 'upi',
+      // currency: options.currency || 'INR', // Not in booking_payments
+      status: options.status || 'pending', // Lowercase for booking_payments
+      // method: options.paymentMethod || 'upi', // Not in schema for booking_payments
       utr_number: options.utrNumber || null,
       createdAt: new Date(),
       updatedAt: new Date(),
       ...options.customFields
     };
 
-    await db('payments').insert(paymentData);
+    await db('booking_payments').insert(paymentData);
     return paymentId;
   }
 
@@ -379,7 +391,8 @@ export class TestDataFactory {
    */
   static async cleanup() {
     // Delete in reverse dependency order
-    await db('payments').del();
+    await db('booking_payments').del();
+    await db('payments').del(); // Keep just in case
     await db('bookings').del();
     await db('ticket_categories').del();
     await db('events').del();

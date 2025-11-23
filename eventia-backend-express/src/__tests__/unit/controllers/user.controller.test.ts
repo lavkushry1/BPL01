@@ -66,7 +66,7 @@ describe('UserControllerV1 Unit Tests', () => {
         }
       };
 
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(realUser);
+      (prisma.user.findUnique as any).mockResolvedValue(realUser);
 
       await UserControllerV1.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -98,7 +98,7 @@ describe('UserControllerV1 Unit Tests', () => {
         profile: null // No profile
       };
 
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(dummyUser);
+      (prisma.user.findUnique as any).mockResolvedValue(dummyUser);
 
       await UserControllerV1.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
 
@@ -112,12 +112,12 @@ describe('UserControllerV1 Unit Tests', () => {
     });
 
     test('should throw 404 if user not found', async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.user.findUnique as any).mockResolvedValue(null);
 
       await UserControllerV1.getProfile(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
-      const error = mockNext.mock.calls[0][0] as ApiError;
+      const error = mockNext.mock.calls[0][0] as unknown as ApiError;
       expect(error.statusCode).toBe(404);
     });
   });
@@ -133,15 +133,15 @@ describe('UserControllerV1 Unit Tests', () => {
       };
 
       const existingUser = { id: 'user-123', email: 'test@example.com' };
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(existingUser);
+      (prisma.user.findUnique as any).mockResolvedValue(existingUser);
 
-      (prisma.user.update as jest.Mock).mockResolvedValue({
+      (prisma.user.update as any).mockResolvedValue({
         ...existingUser,
         name: 'Updated Name'
       });
 
-      (prisma.userProfile.findUnique as jest.Mock).mockResolvedValue({ id: 'profile-1' });
-      (prisma.userProfile.update as jest.Mock).mockResolvedValue({
+      (prisma.userProfile.findUnique as any).mockResolvedValue({ id: 'profile-1' });
+      (prisma.userProfile.update as any).mockResolvedValue({
         id: 'profile-1',
         street: '456 New St',
         city: 'New City'

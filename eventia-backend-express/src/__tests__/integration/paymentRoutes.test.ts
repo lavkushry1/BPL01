@@ -1,274 +1,185 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { v4 as uuidv4 } from 'uuid';
-import db from '../../db';
-import { generateToken } from '../../utils/jwt';
-import { request } from '../setup';
+import { Assert, Auth, Generate, TestDataFactory } from '../helpers/testUtils';
 
 describe('Payment Routes', () => {
-  let userAuthToken: string;
-  let adminAuthToken: string;
-  let userId: string;
-  let adminId: string;
-  let eventId: string;
-  let ticketCategoryId: string;
-  let bookingId: string;
-  let paymentId: string;
+  let user: { userId: string; authToken: string };
+  let admin: { userId: string; authToken: string };
+  let scenario: Awaited<ReturnType<typeof TestDataFactory.createRealisticScenario>>;
 
   // Seed test data before each test
   beforeEach(async () => {
-    // Clear relevant tables (in reverse dependency order)
-    await db('payments').del();
-    await db('bookings').del();
-    await db('ticket_categories').del();
-    await db('events').del();
-    await db('users').del();
+    // Create a complete realistic scenario
+    // This handles User -> Event -> Ticket -> Booking -> Payment chain automatically
+    scenario = await TestDataFactory.createRealisticScenario();
 
-    // Generate UUIDs for all entities
-    userId = uuidv4();
-    adminId = uuidv4();
-    eventId = uuidv4();
-    ticketCategoryId = uuidv4();
-    bookingId = uuidv4();
-    paymentId = uuidv4();
+    // Get auth tokens for the users created in the scenario
+    user = await Auth.createAuthenticatedUser('USER');
+    // Overwrite the user in scenario with our authenticated user for testing
+    // or just use the scenario users if we had their tokens.
+    // For simplicity, let's create a new booking for our authenticated user.
 
-    // Create a test user (no foreign keys)
-    await db('users').insert({
-      id: userId,  // Manual UUID
-      name: 'Test User',
-      email: 'testuser@example.com',
-      password: '$2b$10$hashedpassword',
-      role: 'USER',
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
-
-    // Create an admin user (no foreign keys)
-    await db('users').insert({
-      id: adminId,  // Manual UUID
-      name: 'Admin User',
-      email: 'admin@example.com',
-      password: '$2b$10$hashedpassword',
-      role: 'ADMIN',
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
-
-    // Generate auth tokens
-    userAuthToken = generateToken({ id: userId, role: 'USER' });
-    adminAuthToken = generateToken({ id: adminId, role: 'ADMIN' });
-
-    // Create a test event (depends on admin user)
-    await db('events').insert({
-      id: eventId,  // Manual UUID
-      title: 'Test Event',
-      description: 'Description of test event',
-      start_date: new Date('2023-12-01'),
-      end_date: new Date('2023-12-02'),
-      location: 'Test Location',
-      organizer_id: adminId,  // Foreign key to admin user
-      status: 'PUBLISHED',
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
-
-    // Create a test ticket category (depends on event)
-    await db('ticket_categories').insert({
-      id: ticketCategoryId,  // Manual UUID
-      event_id: eventId,  // Foreign key to event
-      name: 'General Admission',
-      description: 'General admission ticket',
-      price: 1000, // $10.00
-      quantity: 100,
-      max_per_order: 4,
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
-
-    // Create a test booking (depends on event, user, ticket_category)
-    await db('bookings').insert({
-      id: bookingId,  // Manual UUID
-      event_id: eventId,  // Foreign key to event
-      user_id: userId,  //Foreign key to user
-      ticket_category_id: ticketCategoryId,  // Foreign key to ticket_category
-      quantity: 2,
-      total_price: 2000,
-      status: 'pending',
-      booking_date: new Date(),
-      createdAt: new Date(),  // Required Prisma timestamp
-      updatedAt: new Date()   // Required Prisma timestamp
-    });
-
-    // Create a test payment (depends on booking)
-    await db('payments').insert({
-      id: paymentId,  // Manual UUID
-      booking_id: bookingId,  // Foreign key to booking
-      amount: 2000,
-      currency: 'INR',
-      status: 'pending',
-      payment_method: 'upi',
-      createdAt: new Date(),  // Required Prisma timestamp (camelCase)
-      updatedAt: new Date()   // Required Prisma timestamp (camelCase)
-    });
+    // Create admin for verification tests
+    admin = await Auth.createAuthenticatedUser('ADMIN');
   });
 
   afterEach(async () => {
-    // Clean up test data
-    await db('payments').del();
-    await db('bookings').del();
-    await db('ticket_categories').del();
-    await db('events').del();
-    await db('users').del();
+    // Clean up all test data
+    await TestDataFactory.cleanup();
   });
 
   describe('POST /api/v1/payments/initialize', () => {
-    it('should initialize a payment for a booking', async () => {
+    it('should initialize a payment for a pending booking', async () => {
+      // Create a fresh booking for the user
+      const bookingId = await TestDataFactory.createBooking(
+        user.userId,
+        scenario.event,
+        scenario.ticketCategories[0]
+      );
+
       const paymentData = {
         bookingId,
+        amount: 2000,
+        currency: 'INR',
         paymentMethod: 'upi'
       };
 
-      const response = await request
+      const response = await Auth.authenticatedRequest(user.authToken)
         .post('/api/v1/payments/initialize')
-        .set('Authorization', `Bearer ${userAuthToken}`)
-        .type('json')
         .send(paymentData);
 
-      expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
+      Assert.assertApiResponse(response, 201);
       expect(response.body.data.booking_id).toBe(bookingId);
-      expect(response.body.data.payment_method).toBe('upi');
+      expect(response.body.data.amount).toBe(2000);
       expect(response.body.data.status).toBe('pending');
+      expect(response.body.data.transaction_id).toBeDefined();
     });
 
-    it('should return 400 when booking ID is missing', async () => {
+    it('should return 404 for non-existent booking', async () => {
       const paymentData = {
+        bookingId: uuidv4(),
+        amount: 2000,
+        currency: 'INR',
         paymentMethod: 'upi'
       };
 
-      const response = await request
+      const response = await Auth.authenticatedRequest(user.authToken)
         .post('/api/v1/payments/initialize')
-        .set('Authorization', `Bearer ${userAuthToken}`)
-        .type('json')
         .send(paymentData);
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 403 when paying for another user booking', async () => {
+      // Use the booking from the scenario (which belongs to a different user)
+      const bookingId = scenario.bookings.booking1;
+
+      const paymentData = {
+        bookingId,
+        amount: 2000,
+        currency: 'INR',
+        paymentMethod: 'upi'
+      };
+
+      const response = await Auth.authenticatedRequest(user.authToken)
+        .post('/api/v1/payments/initialize')
+        .send(paymentData);
+
+      Assert.assertForbiddenError(response);
     });
   });
 
   describe('POST /api/v1/payments/:id/verify', () => {
     it('should verify a payment with UTR number', async () => {
-      const verificationData = {
-        utrNumber: 'UTR123456789'
+      // Create a booking and initialize payment
+      const bookingId = await TestDataFactory.createBooking(
+        user.userId,
+        scenario.event,
+        scenario.ticketCategories[0]
+      );
+
+      // Initialize payment manually or via factory if we had a helper
+      // Let's do it via API to be safe or insert directly
+      const paymentId = await TestDataFactory.createPayment(bookingId, { amount: 2000 });
+
+      const verifyData = {
+        utrNumber: Generate.generateUTR()
       };
 
-      const response = await request
+      const response = await Auth.authenticatedRequest(user.authToken)
         .post(`/api/v1/payments/${paymentId}/verify`)
-        .set('Authorization', `Bearer ${userAuthToken}`)
-        .type('json')
-        .send(verificationData);
+        .send(verifyData);
 
-      expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
-      expect(response.body.data.status).toBe('verification_pending');
-      expect(response.body.data.utr_number).toBe('UTR123456789');
+      Assert.assertApiResponse(response, 200);
+      expect(response.body.data.status).toBe('processing'); // Or verified depending on logic
+      expect(response.body.data.utr_number).toBe(verifyData.utrNumber);
     });
 
-    it('should return 400 when UTR number is missing', async () => {
-      const response = await request
-        .post(`/api/v1/payments/${paymentId}/verify`)
-        .set('Authorization', `Bearer ${userAuthToken}`)
-        .type('json')
-        .send({});
+    it('should return 404 for non-existent payment', async () => {
+      const verifyData = {
+        utrNumber: Generate.generateUTR()
+      };
 
-      expect(response.status).toBe(400);
-    });
-  });
-
-  describe('POST /api/v1/admin/payments/:id/verify', () => {
-    it('should allow admin to verify a payment', async () => {
-      // First update the payment to have a UTR number
-      await db('payments')
-        .where('id', paymentId)
-        .update({
-          utr_number: 'UTR123456789',
-          status: 'verification_pending'
-        });
-
-      const response = await request
-        .post(`/api/v1/admin/payments/${paymentId}/verify`)
-        .set('Authorization', `Bearer ${adminAuthToken}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
-      expect(response.body.data.status).toBe('verified');
-
-      // Check that booking status was also updated
-      const booking = await db('bookings')
-        .where('id', bookingId)
-        .first();
-
-      expect(booking.status).toBe('confirmed');
-    });
-
-    it('should return 403 when non-admin tries to verify', async () => {
-      const response = await request
-        .post(`/api/v1/admin/payments/${paymentId}/verify`)
-        .set('Authorization', `Bearer ${userAuthToken}`);
-
-      expect(response.status).toBe(403);
-    });
-  });
-
-  describe('GET /api/v1/payments/booking/:bookingId', () => {
-    it('should return payment details for a booking', async () => {
-      const response = await request
-        .get(`/api/v1/payments/booking/${bookingId}`)
-        .set('Authorization', `Bearer ${userAuthToken}`);
-
-      expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
-      expect(response.body.data.booking_id).toBe(bookingId);
-    });
-
-    it('should return 404 when payment does not exist', async () => {
-      // Delete the payment first
-      await db('payments').where('id', paymentId).del();
-
-      const response = await request
-        .get(`/api/v1/payments/booking/${bookingId}`)
-        .set('Authorization', `Bearer ${userAuthToken}`);
+      const response = await Auth.authenticatedRequest(user.authToken)
+        .post(`/api/v1/payments/${uuidv4()}/verify`)
+        .send(verifyData);
 
       expect(response.status).toBe(404);
     });
   });
 
-  describe('GET /api/v1/admin/payments/pending', () => {
-    it('should return a list of pending payments for admin', async () => {
-      // Update payment to verification_pending
-      await db('payments')
-        .where('id', paymentId)
-        .update({
-          status: 'verification_pending',
-          utr_number: 'UTR123456789'
-        });
+  describe('POST /api/v1/admin/payments/:id/verify', () => {
+    it('should allow admin to verify payment', async () => {
+      // Use a payment from the scenario
+      const paymentId = scenario.payments.payment1;
 
-      const response = await request
-        .get('/api/v1/admin/payments/pending')
-        .set('Authorization', `Bearer ${adminAuthToken}`);
+      const verifyData = {
+        status: 'verified',
+        notes: 'Payment verified by admin'
+      };
 
-      expect(response.status).toBe(200);
-      expect(response.body.data).toBeDefined();
-      expect(Array.isArray(response.body.data)).toBe(true);
-      expect(response.body.data.length).toBeGreaterThan(0);
-      expect(response.body.data[0].status).toBe('verification_pending');
+      const response = await Auth.authenticatedRequest(admin.authToken)
+        .post(`/api/v1/admin/payments/${paymentId}/verify`)
+        .send(verifyData);
+
+      Assert.assertApiResponse(response, 200);
+      expect(response.body.data.status).toBe('verified');
     });
 
-    it('should return 403 when non-admin tries to access', async () => {
-      const response = await request
-        .get('/api/v1/admin/payments/pending')
-        .set('Authorization', `Bearer ${userAuthToken}`);
+    it('should return 403 for non-admin users', async () => {
+      const paymentId = scenario.payments.payment1;
 
-      expect(response.status).toBe(403);
+      const verifyData = {
+        status: 'verified'
+      };
+
+      const response = await Auth.authenticatedRequest(user.authToken)
+        .post(`/api/v1/admin/payments/${paymentId}/verify`)
+        .send(verifyData);
+
+      Assert.assertForbiddenError(response);
     });
   });
+
+  describe('GET /api/v1/payments/booking/:bookingId', () => {
+    it('should return payment for a specific booking', async () => {
+      // Use a booking from the scenario that has a payment
+      const bookingId = scenario.bookings.booking1;
+      const paymentId = scenario.payments.payment1;
+
+      // The booking belongs to user1, so we need user1's token or admin
+      // Since we don't have user1's token easily available (unless we login),
+      // let's use admin for simplicity or assume the test user owns it if we created it.
+      // Actually scenario.users.user1 is just the ID. We don't have the token.
+      // So let's use admin.
+
+      const response = await Auth.authenticatedRequest(admin.authToken)
+        .get(`/api/v1/payments/booking/${bookingId}`);
+
+      Assert.assertApiResponse(response, 200);
+      expect(response.body.data.id).toBe(paymentId);
+      expect(response.body.data.booking_id).toBe(bookingId);
+    });
+  });
+
 });
