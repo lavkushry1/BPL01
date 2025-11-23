@@ -568,6 +568,7 @@ export class PaymentController {
    * @route POST /api/payments/verify
    */
   static submitUtrVerification = asyncHandler(async (req: Request, res: Response) => {
+    console.log('Debug - Entering submitUtrVerification');
     const { payment_id, utr_number, user_id } = req.body;
 
     if (!payment_id || !utr_number || !user_id) {
@@ -590,6 +591,7 @@ export class PaymentController {
     }
 
     try {
+      console.log(`Debug - Submitting UTR: ID=${payment_id}, UTR=${utr_number}`);
       // Update payment with UTR number
       const [updatedPayment] = await db('booking_payments')
         .where({ id: payment_id })
@@ -601,13 +603,17 @@ export class PaymentController {
         .returning('*');
 
       // Notify admins about new verification request
-      WebsocketService.sendToAdmins('new_payment_verification', {
-        payment_id,
-        booking_id: payment.booking_id,
-        amount: payment.amount,
-        utr_number,
-        user_id
-      });
+      try {
+        WebsocketService.sendToAdmins('new_payment_verification', {
+          payment_id,
+          booking_id: payment.booking_id,
+          amount: payment.amount,
+          utr_number,
+          user_id
+        });
+      } catch (wsError) {
+        logger.warn('WebSocket notification failed:', wsError);
+      }
 
       return ApiResponse.success(res, 200, 'Payment verification submitted successfully', updatedPayment);
     } catch (error) {
@@ -723,10 +729,7 @@ export class PaymentController {
    * Release expired seat locks
    * @route POST /api/payments/release-locks
    */
-  static releaseExpiredSeatLocks = asyncHandler(async (req: Request, res: Response) => {
-    const count = await SeatService.releaseExpiredLocks();
-    return ApiResponse.success(res, 200, 'Expired seat locks released successfully', { count });
-  });
+  static releaseExpiredSeatLocks = asyncHandler();
 }
 
 /**

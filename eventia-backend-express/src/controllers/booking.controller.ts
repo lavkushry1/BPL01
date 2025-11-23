@@ -244,6 +244,12 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
     throw ApiError.notFound('Booking not found', 'BOOKING_NOT_FOUND');
   }
 
+  // User can only cancel their own bookings unless they're an admin
+  const userId = req.user?.id;
+  if (booking.user_id !== userId && req.user?.role !== 'ADMIN') {
+    throw ApiError.forbidden('You are not authorized to cancel this booking');
+  }
+
   // Validate cancellation is allowed
   console.log(`Debug - Cancel Booking: ID=${id}, Status=${booking.status}`);
   if (booking.status === 'CANCELLED') {
