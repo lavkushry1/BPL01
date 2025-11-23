@@ -124,7 +124,6 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   app.use('/api', legacyRoutes);
 
   // Register v1 API routes
-  console.log('Debug - Mounting v1 routes');
   app.use('/api/v1', v1Routes);
 
   // Setup Swagger documentation

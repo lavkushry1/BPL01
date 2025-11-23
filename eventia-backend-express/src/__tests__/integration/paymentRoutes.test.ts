@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Assert, Auth, Generate, TestDataFactory } from '../helpers/testUtils';
 
 describe('Payment Routes', () => {
-  console.log('Debug - Starting Payment Routes Test File');
   let user: { userId: string; authToken: string };
   let admin: { userId: string; authToken: string };
   let scenario: Awaited<ReturnType<typeof TestDataFactory.createRealisticScenario>>;

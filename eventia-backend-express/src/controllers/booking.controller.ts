@@ -136,6 +136,12 @@ export const getBookingById = asyncHandler(async (req: Request, res: Response) =
     throw ApiError.notFound('Booking not found');
   }
 
+  // User can only view their own bookings unless they're an admin
+  const userId = req.user?.id;
+  if (booking.user_id !== userId && req.user?.role !== 'ADMIN') {
+    throw ApiError.forbidden('You are not authorized to view this booking');
+  }
+
   return ApiResponse.success(res, 200, 'Booking fetched successfully', booking);
 });
 
@@ -250,7 +256,6 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
   }
 
   // Validate cancellation is allowed
-  console.log(`Debug - Cancel Booking: ID=${id}, Status=${booking.status}`);
   if (booking.status === 'CANCELLED') {
     throw ApiError.badRequest('Booking already cancelled', 'ALREADY_CANCELLED');
   }

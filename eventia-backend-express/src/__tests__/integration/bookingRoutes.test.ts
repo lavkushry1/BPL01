@@ -161,8 +161,6 @@ describe('Booking Routes', () => {
         .post(`/api/v1/bookings/${bookingId}/cancel`)
         .send({});
 
-      console.log(`Debug - Test Booking ID: ${bookingId}, Response Status: ${response.status}`);
-
       Assert.assertForbiddenError(response);
     });
   });

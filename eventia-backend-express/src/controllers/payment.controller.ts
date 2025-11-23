@@ -568,7 +568,6 @@ export class PaymentController {
    * @route POST /api/payments/verify
    */
   static submitUtrVerification = asyncHandler(async (req: Request, res: Response) => {
-    console.log('Debug - Entering submitUtrVerification');
     const { payment_id, utr_number, user_id } = req.body;
 
     if (!payment_id || !utr_number || !user_id) {
@@ -583,15 +582,10 @@ export class PaymentController {
 
     if (!payment) {
       throw new ApiError(404, 'Payment not found', 'PAYMENT_NOT_FOUND');
-    }
-
-    // Validate payment is in pending status
-    if (payment.status !== 'pending') {
       throw new ApiError(400, `Cannot verify payment with status: ${payment.status}`, 'INVALID_PAYMENT_STATUS');
     }
 
     try {
-      console.log(`Debug - Submitting UTR: ID=${payment_id}, UTR=${utr_number}`);
       // Update payment with UTR number
       const [updatedPayment] = await db('booking_payments')
         .where({ id: payment_id })

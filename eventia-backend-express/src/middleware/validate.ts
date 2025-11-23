@@ -57,7 +57,6 @@ const sanitizeData = <T>(data: T): T => {
 export const validate = (schema: ZodSchema, cacheKey?: string) => {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
     try {
-      console.log(`Debug - Validating request: ${req.method} ${req.path}`);
       // Check cache for this request if cacheKey is provided
       if (cacheKey) {
         const cacheKeyWithParams = `${cacheKey}:${JSON.stringify({

@@ -39,7 +39,6 @@ const PUBLIC_ENDPOINTS: PublicEndpoint[] = [
  */
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log(`Debug - Authenticating request: ${req.method} ${req.path}`);
     // Check if the endpoint is public
     const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint => {
       if ('pattern' in endpoint) {
