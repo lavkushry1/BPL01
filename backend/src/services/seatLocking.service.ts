@@ -1,3 +1,4 @@
+import { prisma } from '../db/prisma';
 import { logger } from '../utils/logger';
 import { cacheService } from './cacheService';
 
@@ -246,6 +247,28 @@ export class SeatLockingService {
     } catch (error) {
       logger.error('Error confirming seats', { error, seatIds, userId, eventId, bookingId });
       return { success: false, message: 'Failed to confirm seats due to server error' };
+    }
+  }
+
+  /**
+   * Cleanup expired locks from the database
+   * This handles the persistent locks in Postgres, while Redis handles ephemeral locks
+   */
+  static async cleanupExpiredDbLocks(): Promise<number> {
+    try {
+      const result = await prisma.seatLock.deleteMany({
+        where: {
+          expiresAt: {
+            lt: new Date()
+          }
+        }
+      });
+
+      logger.info(`Cleaned up ${result.count} expired seat locks from database`);
+      return result.count;
+    } catch (error) {
+      logger.error('Error cleaning up expired seat locks:', error);
+      return 0;
     }
   }
 

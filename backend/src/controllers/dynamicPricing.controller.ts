@@ -19,8 +19,8 @@ const calculatePrice = catchAsync(async (req: Request, res: Response) => {
 
 const createPricingRule = catchAsync(async (req: Request, res: Response) => {
   const validatedData = createPricingRuleSchema.parse(req.body);
-  const rule = await DynamicPricingService.savePricingRule(validatedData);
-  return ApiResponse.created(res, rule, 'Pricing rule created successfully');
+  const rule = await DynamicPricingService.savePricingRule(validatedData as any);
+  return ApiResponse.success(res, 201, 'Pricing rule created successfully', rule);
 });
 
 const getPricingRules = catchAsync(async (req: Request, res: Response) => {
@@ -45,7 +45,7 @@ const updatePricingRule = catchAsync(async (req: Request, res: Response) => {
   const rule = await DynamicPricingService.savePricingRule({
     id: req.params.ruleId,
     ...validatedData
-  });
+  } as any);
   return ApiResponse.success(res, 200, 'Pricing rule updated successfully', rule);
 });
 

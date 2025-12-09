@@ -1,18 +1,18 @@
 /**
  * Script to release expired seat locks
- * 
+ *
  * This script is meant to be run as a cron job every minute
  * to free up seats that have been locked but payment wasn't completed.
  */
 
-import * as paymentController from '../controllers/payment.controller';
+import { SeatLockingService } from '../services/seatLocking.service';
 import { logger } from '../utils/logger';
 
 async function releaseExpiredLocks() {
     try {
         logger.info('Starting expired locks cleanup job');
 
-        const releasedCount = await paymentController.releaseExpiredSeatLocks();
+        const releasedCount = await SeatLockingService.cleanupExpiredDbLocks();
 
         logger.info(`Released ${releasedCount} expired seat locks`);
     } catch (error) {
@@ -33,4 +33,4 @@ if (require.main === module) {
         });
 }
 
-export default releaseExpiredLocks; 
+export default releaseExpiredLocks;
