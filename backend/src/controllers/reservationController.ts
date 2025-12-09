@@ -21,7 +21,7 @@ export const createReservation = async (req: Request, res: Response) => {
     }
 
     const { eventId, tickets, totalAmount } = req.body;
-    // @ts-expect-error - User is attached by auth middleware
+
     const userId = req.user.id;
 
     const booking = await reservationService.createReservation({
@@ -70,7 +70,7 @@ export const updateReservation = async (req: Request, res: Response) => {
   }
 };
 
-export const processPayment = async (req: Request, res: Response) => {
+export const processPayment = async (_req: Request, res: Response) => {
   // Payment processing logic placeholder
   res.status(501).json({});
 };
