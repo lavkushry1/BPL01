@@ -4,12 +4,21 @@ import { config } from '../config';
 import { ApiError } from '../utils/apiError';
 import { logger } from '../utils/logger';
 
+export interface UserPayload {
+  id: string;
+  email: string;
+  role: string;
+  iat?: number;
+  exp?: number;
+  [key: string]: unknown;
+}
+
 // Extend Express Request interface to include the user
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: UserPayload;
     }
   }
 }
@@ -39,7 +48,7 @@ const PUBLIC_ENDPOINTS: PublicEndpoint[] = [
 /**
  * Middleware to authenticate requests using JWT
  */
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+export const authenticate = (req: Request, _res: Response, next: NextFunction) => {
   try {
     // Check if the endpoint is public
     const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint => {
@@ -83,7 +92,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
       }
 
       const decoded = jwt.verify(token, config.jwt.secret);
-      req.user = decoded;
+      req.user = decoded as UserPayload;
       return next();
     } catch (error) {
       const jwtError = error as Error;
@@ -107,7 +116,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
  * Middleware to authorize based on user roles
  */
 export const authorize = (roleArray: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user || !req.user.role) {
       return next(ApiError.forbidden('Access denied. Role required.'));
     }
@@ -177,7 +186,7 @@ export const adminMiddleware = authorize(['ADMIN']);
 /**
  * Middleware to check if the user is an admin
  */
-export const checkAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const checkAdmin = (req: Request, _res: Response, next: NextFunction) => {
   try {
     // For regular admin verification
     if (!req.user?.role || req.user.role.toUpperCase() !== 'ADMIN') {

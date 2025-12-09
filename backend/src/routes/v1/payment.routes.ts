@@ -120,7 +120,7 @@ router.get('/upi-settings', async (_req: Request, res: Response, next: NextFunct
 router.post('/verify-utr', validate(verifyUpiPaymentSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     // For unauthenticated access, use a default admin ID or skip the user ID parameter
-    const verification = await paymentService.verifyPayment(req.body.payment_id, (req as any).user?.id || 'system');
+    const verification = await paymentService.verifyPayment(req.body.payment_id, req.user?.id || 'system');
     ApiResponse.success(res, 200, 'Payment verified successfully', verification);
   } catch (error) {
     next(error);
@@ -172,7 +172,7 @@ router.route('/upi/verify')
     validate(verifyUpiPaymentSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const result = await paymentService.verifyPayment(req.body.payment_id, (req as any).user?.id || 'system');
+        const result = await paymentService.verifyPayment(req.body.payment_id, req.user?.id || 'system');
         ApiResponse.success(res, 200, 'UPI payment verified successfully', result);
       } catch (error) {
         next(error);

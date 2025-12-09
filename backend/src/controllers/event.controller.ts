@@ -75,7 +75,7 @@ export class EventController {
    */
   static createEvent = asyncHandler(async (req: Request, res: Response) => {
     // Get the authenticated user's ID
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
@@ -112,7 +112,7 @@ export class EventController {
     const { id } = req.params;
 
     // Get the authenticated user's ID
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
@@ -148,7 +148,7 @@ export class EventController {
     const { id } = req.params;
 
     // Get the authenticated user's ID
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       throw ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');

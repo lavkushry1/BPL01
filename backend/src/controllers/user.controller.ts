@@ -122,7 +122,7 @@ export class UserController {
    * Get current user profile
    */
   static getProfile = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       throw new ApiError(401, 'User not authenticated');
@@ -151,7 +151,7 @@ export class UserController {
    * Update current user profile
    */
   static updateProfile = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     const { name, email } = req.body;
 
     if (!userId) {

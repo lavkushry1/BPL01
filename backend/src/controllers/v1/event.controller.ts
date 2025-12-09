@@ -187,7 +187,7 @@ export class EventControllerV1 {
     }
 
     // Get the authenticated user's ID
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       throw new ApiError(401, 'Unauthorized', 'UNAUTHORIZED');
@@ -231,7 +231,7 @@ export class EventControllerV1 {
     } = req.body;
 
     // Get the authenticated user's ID
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       throw new ApiError(401, 'Unauthorized', 'UNAUTHORIZED');
@@ -275,7 +275,7 @@ export class EventControllerV1 {
     const { id } = req.params;
 
     // Get the authenticated user's ID
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       throw new ApiError(401, 'Unauthorized', 'UNAUTHORIZED');
