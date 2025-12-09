@@ -1,0 +1,56 @@
+{
+  "connectivity": "4G",
+  "runs": 3,
+  "firstViewOnly": false,
+  "location": "ec2-ap-south-1:Chrome",
+  "mobile": 1,
+  "mobileDevice": "MotoG4",
+  "lighthouse": 1,
+  "video": 1,
+  "timeline": 1,
+  "netLog": 1,
+  "tcpdump": 1,
+  "throttleSpeedIndex": 1,
+  "emulateMobile": 1,
+  "budget": {
+    "median": {
+      "firstView": {
+        "loadTime": 3000,
+        "firstContentfulPaint": 1500,
+        "SpeedIndex": 2000,
+        "largestContentfulPaint": 2500,
+        "TTIMeasurementEnd": 3500,
+        "TotalBlockingTime": 300,
+        "TTFB": 600,
+        "visualComplete": 3000,
+        "visualComplete85": 2500,
+        "visualComplete95": 2800,
+        "visualComplete99": 3000,
+        "bytesIn": 1000000,
+        "requests": 75,
+        "requestsFull": 75,
+        "score_progressive": 90,
+        "score_compress": 80,
+        "score_cache": 90,
+        "score_cdn": 90,
+        "gzip_total": 1000000,
+        "gzip_savings": 500000,
+        "minify_total": 100000,
+        "minify_savings": 50000,
+        "image_total": 500000,
+        "image_savings": 200000,
+        "cumulativeLayoutShift": 0.1
+      }
+    }
+  },
+  "chromeFlags": "--disable-extensions --disable-notifications --disable-popup-blocking",
+  "script": [
+    {"navigate": "{URL}"}, 
+    {"sleep": 2},
+    {"execAndWait": "window.scrollTo(0, document.body.scrollHeight / 2);"},
+    {"sleep": 1},
+    {"execAndWait": "window.scrollTo(0, document.body.scrollHeight);"},
+    {"sleep": 1},
+    {"execAndWait": "window.scrollTo(0, 0);"}
+  ]
+}

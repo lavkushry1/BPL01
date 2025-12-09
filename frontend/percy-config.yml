@@ -1,0 +1,28 @@
+version: 1
+snapshotting:
+  widths: [1280, 1024, 768]  # Desktop and tablet widths
+  min-height: 1024
+  percy-css: |
+    /* Hide elements that cause flakiness */
+    .time-sensitive, .random-content { visibility: hidden; }
+  enable-javascript: true
+  include-percy-css: true
+upload:
+  files: ./dist/**/*.html
+  ignore: ./dist/assets/**/*.map
+static-snapshots:
+  path: ./dist
+  base-url: /
+  snapshot-files:
+    - path: /index.html
+      name: Home Page
+    - path: /events/index.html
+      name: Events Page
+    - path: /event-details/index.html
+      name: Event Details Page
+    - path: /booking/index.html
+      name: Booking Page
+    - path: /payment/index.html
+      name: Payment Page
+    - path: /admin/index.html
+      name: Admin Dashboard

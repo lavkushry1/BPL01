@@ -1,0 +1,29 @@
+version: 1
+snapshotting:
+  widths: [414, 375, 360, 320]  # Common mobile device widths (iPhone XR, iPhone X, Android, iPhone SE)
+  min-height: 800
+  percy-css: |
+    /* Hide elements that cause flakiness */
+    .time-sensitive, .random-content { visibility: hidden; }
+  enable-javascript: true
+  include-percy-css: true
+  device-pixel-ratio: 2  # For high-DPI mobile screens
+upload:
+  files: ./dist/**/*.html
+  ignore: ./dist/assets/**/*.map
+static-snapshots:
+  path: ./dist
+  base-url: /
+  snapshot-files:
+    - path: /index.html
+      name: Mobile Home Page
+    - path: /events/index.html
+      name: Mobile Events Page
+    - path: /event-details/index.html
+      name: Mobile Event Details Page
+    - path: /booking/index.html
+      name: Mobile Booking Page
+    - path: /payment/index.html
+      name: Mobile Payment Page
+    - path: /admin/index.html
+      name: Mobile Admin Dashboard

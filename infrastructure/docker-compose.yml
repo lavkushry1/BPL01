@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: eventia-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-eventia}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
+      POSTGRES_DB: ${DB_NAME:-eventia_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - eventia-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-eventia}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: eventia-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - eventia-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./eventia-backend-express
+      dockerfile: Dockerfile.dev
+    container_name: eventia-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-eventia}:${DB_PASSWORD:-password123}@postgres:5432/${DB_NAME:-eventia_db}
+      - REDIS_URL=redis://redis:6379
+      - PORT=4000
+      - NODE_ENV=development
+      - JWT_SECRET=${JWT_SECRET:-supersecretkey}
+      - JWT_ACCESS_EXPIRATION=15m
+      - JWT_REFRESH_EXPIRATION=7d
+      - FRONTEND_URL=http://localhost:8080
+    volumes:
+      - ./eventia-backend-express:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - eventia-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./eventia-ticketing-flow1
+      dockerfile: Dockerfile.dev
+    container_name: eventia-frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - VITE_API_URL=http://localhost:4000/api/v1
+    volumes:
+      - ./eventia-ticketing-flow1:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - eventia-network
+    restart: unless-stopped
+
+networks:
+  eventia-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eventia - Offline</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+      color: #343a40;
+      text-align: center;
+      padding: 0 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #5c62ec;
+    }
+    
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      color: #4a4a4a;
+    }
+    
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      color: #5c62ec;
+    }
+    
+    .btn {
+      display: inline-block;
+      background-color: #5c62ec;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background-color 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    
+    .btn:hover {
+      background-color: #4951d8;
+    }
+    
+    .cached-content {
+      margin-top: 2rem;
+      width: 100%;
+    }
+    
+    .cached-item {
+      background-color: #f1f3f9;
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      p {
+        font-size: 1rem;
+      }
+      
+      .icon {
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📶</div>
+    <h1>You're offline</h1>
+    <p>It looks like you've lost your internet connection. Some features may be limited until you're back online.</p>
+    <p>Don't worry, you can still view some cached content and we'll automatically reconnect when your internet returns.</p>
+    
+    <button class="btn" onclick="window.location.reload()">Try again</button>
+    
+    <div id="cached-content" class="cached-content">
+      <!-- Cached content will appear here if available -->
+    </div>
+  </div>
+
+  <script>
+    // Check if service worker is registered
+    if ('serviceWorker' in navigator) {
+      // Display available cached pages if any
+      caches.open('eventia-pwa-cache-v1').then(cache => {
+        return cache.keys().then(keys => {
+          const cachedPages = keys.filter(request => {
+            const url = new URL(request.url);
+            return url.origin === location.origin && 
+                   !url.pathname.includes('.') && 
+                   url.pathname !== '/offline.html';
+          });
+          
+          const cachedContent = document.getElementById('cached-content');
+          
+          if (cachedPages.length > 0) {
+            cachedContent.innerHTML = '<h2>Available offline pages:</h2>';
+            
+            cachedPages.slice(0, 5).forEach(request => {
+              const url = new URL(request.url);
+              const link = document.createElement('a');
+              link.href = url.pathname;
+              link.textContent = url.pathname === '/' ? 'Home' : url.pathname;
+              
+              const div = document.createElement('div');
+              div.classList.add('cached-item');
+              div.appendChild(link);
+              
+              cachedContent.appendChild(div);
+            });
+          }
+        });
+      }).catch(error => {
+        console.error('Error checking cache:', error);
+      });
+    }
+  </script>
+</body>
+</html> 

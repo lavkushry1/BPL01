@@ -1,0 +1,695 @@
+
+> eventia-backend@1.0.0 test
+> jest --coverage src/__tests__/integration/eventRoutes.test.ts
+
+  console.log
+    Loading environment from .env.test
+
+      at Object.<anonymous> (src/config/index.ts:18:11)
+
+FAIL src/__tests__/integration/eventRoutes.test.ts
+  ● Test suite failed to run
+
+    [96msrc/middleware/validate.ts[0m:[93m88[0m:[93m13[0m - [91merror[0m[90m TS2552: [0mCannot find name 'schema'. Did you mean '_schema'?
+
+    [7m88[0m       await schema.parseAsync(sanitizedData);
+    [7m  [0m [91m            ~~~~~~[0m
+
+      [96msrc/middleware/validate.ts[0m:[93m57[0m:[93m26[0m
+        [7m57[0m export const validate = (_schema: ZodSchema, cacheKey?: string) => {
+        [7m  [0m [96m                         ~~~~~~~~~~~~~~~~~~[0m
+        '_schema' is declared here.
+
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/middleware/validate.ts
+ERROR: [96msrc/middleware/validate.ts[0m:[93m88[0m:[93m13[0m - [91merror[0m[90m TS2552: [0mCannot find name 'schema'. Did you mean '_schema'?
+
+[7m88[0m       await schema.parseAsync(sanitizedData);
+[7m  [0m [91m            ~~~~~~[0m
+
+  [96msrc/middleware/validate.ts[0m:[93m57[0m:[93m26[0m
+    [7m57[0m export const validate = (_schema: ZodSchema, cacheKey?: string) => {
+    [7m  [0m [96m                         ~~~~~~~~~~~~~~~~~~[0m
+    '_schema' is declared here.
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/scripts/release-expired-locks.ts
+ERROR: [96msrc/scripts/release-expired-locks.ts[0m:[93m15[0m:[93m55[0m - [91merror[0m[90m TS2339: [0mProperty 'releaseExpiredSeatLocks' does not exist on type 'typeof import("/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/controllers/payment.controller")'.
+
+[7m15[0m         const releasedCount = await paymentController.releaseExpiredSeatLocks();
+[7m  [0m [91m                                                      ~~~~~~~~~~~~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/controllers/dynamicPricing.controller.ts
+ERROR: [96msrc/controllers/dynamicPricing.controller.ts[0m:[93m22[0m:[93m60[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ type: "TIME_BASED" | "DEMAND_BASED" | "INVENTORY_BASED"; name: string; conditions: Record<string, any>; adjustments: Record<string, any>; priority: number; isActive: boolean; eventId?: string | undefined; ticketCategoryId?: string | undefined; }' is not assignable to parameter of type 'PricingRule'.
+  Type '{ type: "TIME_BASED" | "DEMAND_BASED" | "INVENTORY_BASED"; name: string; conditions: Record<string, any>; adjustments: Record<string, any>; priority: number; isActive: boolean; eventId?: string | undefined; ticketCategoryId?: string | undefined; }' is missing the following properties from type 'PricingRule': adjustmentType, adjustmentValue
+
+[7m22[0m   const rule = await DynamicPricingService.savePricingRule(validatedData);
+[7m  [0m [91m                                                           ~~~~~~~~~~~~~[0m
+[96msrc/controllers/dynamicPricing.controller.ts[0m:[93m45[0m:[93m60[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ eventId?: string | undefined; ticketCategoryId?: string | undefined; type?: "TIME_BASED" | "DEMAND_BASED" | "INVENTORY_BASED" | undefined; name?: string | undefined; conditions?: Record<...> | undefined; adjustments?: Record<...> | undefined; priority?: number | undefined; isActive?: boolean | undefined; id: strin...' is not assignable to parameter of type 'PricingRule'.
+  Type '{ eventId?: string | undefined; ticketCategoryId?: string | undefined; type?: "TIME_BASED" | "DEMAND_BASED" | "INVENTORY_BASED" | undefined; name?: string | undefined; conditions?: Record<...> | undefined; adjustments?: Record<...> | undefined; priority?: number | undefined; isActive?: boolean | undefined; id: strin...' is missing the following properties from type 'PricingRule': adjustmentType, adjustmentValue
+
+[7m45[0m   const rule = await DynamicPricingService.savePricingRule({
+[7m  [0m [91m                                                           ~[0m
+[7m46[0m     id: req.params.ruleId,
+[7m  [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m47[0m     ...validatedData
+[7m  [0m [91m~~~~~~~~~~~~~~~~~~~~[0m
+[7m48[0m   });
+[7m  [0m [91m~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/repositories/paymentRepository.ts
+ERROR: [96msrc/repositories/paymentRepository.ts[0m:[93m45[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; } | null' is not assignable to type 'BookingPayment | null'.
+  Type '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; }' is not assignable to type 'BookingPayment'.
+    Types of property 'utrNumber' are incompatible.
+      Type 'string | null' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+
+[7m45[0m       return payment;
+[7m  [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m61[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; } | null' is not assignable to type 'BookingPayment | null'.
+  Type '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; }' is not assignable to type 'BookingPayment'.
+    Types of property 'utrNumber' are incompatible.
+      Type 'string | null' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+
+[7m61[0m       return payment;
+[7m  [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m77[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; } | null' is not assignable to type 'BookingPayment | null'.
+  Type '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; }' is not assignable to type 'BookingPayment'.
+    Types of property 'utrNumber' are incompatible.
+      Type 'string | null' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+
+[7m77[0m       return payment;
+[7m  [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m93[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; }' is not assignable to type 'BookingPayment'.
+  Types of property 'utrNumber' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+
+[7m93[0m       return payment;
+[7m  [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m110[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; }' is not assignable to type 'BookingPayment'.
+  Types of property 'utrNumber' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+
+[7m110[0m       return payment;
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m132[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; }' is not assignable to type 'BookingPayment'.
+  Types of property 'utrNumber' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+
+[7m132[0m       return payment;
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m153[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; createdAt: Date; updatedAt: Date; status: string; bookingId: string; amount: Decimal; utrNumber: string | null; paymentDate: Date | null; verifiedBy: string | null; }' is not assignable to type 'BookingPayment'.
+  Types of property 'utrNumber' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+
+[7m153[0m       return payment;
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m201[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; upivpa: string; discountamount: Decimal; isactive: boolean; created_at: Date; updated_at: Date; } | null' is not assignable to type 'UpiSetting | null'.
+  Type '{ id: string; upivpa: string; discountamount: Decimal; isactive: boolean; created_at: Date; updated_at: Date; }' is not assignable to type 'UpiSetting'.
+    Types of property 'discountamount' are incompatible.
+      Type 'Decimal' is not assignable to type 'number'.
+
+[7m201[0m       return settings;
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m227[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; upivpa: string; discountamount: Decimal; isactive: boolean; created_at: Date; updated_at: Date; }' is not assignable to type 'UpiSetting'.
+  Types of property 'discountamount' are incompatible.
+    Type 'Decimal' is not assignable to type 'number'.
+
+[7m227[0m       return settings;
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/repositories/paymentRepository.ts[0m:[93m247[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; upivpa: string; discountamount: Decimal; isactive: boolean; created_at: Date; updated_at: Date; }' is not assignable to type 'UpiSetting'.
+  Types of property 'discountamount' are incompatible.
+    Type 'Decimal' is not assignable to type 'number'.
+
+[7m247[0m       return settings;
+[7m   [0m [91m      ~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/repositories/eventRepository.ts
+ERROR: [96msrc/repositories/eventRepository.ts[0m:[93m65[0m:[93m39[0m - [91merror[0m[90m TS2724: [0m'"/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/node_modules/.prisma/client/index".Prisma' has no exported member named 'EventStatusFilter'. Did you mean 'EnumEventStatusFilter'?
+
+[7m65[0m       where.status = status as Prisma.EventStatusFilter<"Event">;
+[7m  [0m [91m                                      ~~~~~~~~~~~~~~~~~[0m
+[96msrc/repositories/eventRepository.ts[0m:[93m103[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType '({ organizer: { name: string; id: string; email: string; }; categories: { name: string; id: string; createdAt: Date; updatedAt: Date; }[]; _count: { bookings: number; }; } & { id: string; title: string; ... 13 more ...; updatedAt: Date; })[]' is not assignable to type '({ organizer: { name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }; categories: { ...; }[]; _count: { ...; }; } & { ...; })[]'.
+  Type '{ organizer: { name: string; id: string; email: string; }; categories: { name: string; id: string; createdAt: Date; updatedAt: Date; }[]; _count: { bookings: number; }; } & { id: string; title: string; ... 13 more ...; updatedAt: Date; }' is not assignable to type '{ organizer: { name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }; categories: { ...; }[]; _count: { ...; }; } & { ...; }'.
+    Type '{ organizer: { name: string; id: string; email: string; }; categories: { name: string; id: string; createdAt: Date; updatedAt: Date; }[]; _count: { bookings: number; }; } & { id: string; title: string; ... 13 more ...; updatedAt: Date; }' is not assignable to type '{ organizer: { name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }; categories: { ...; }[]; _count: { ...; }; }'.
+      Types of property 'organizer' are incompatible.
+        Type '{ name: string; id: string; email: string; }' is missing the following properties from type '{ name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }': isDeleted, deletedAt, createdAt, updatedAt, and 4 more.
+
+[7m103[0m     return prisma.event.findMany({
+[7m   [0m [91m    ~~~~~~[0m
+[96msrc/repositories/eventRepository.ts[0m:[93m132[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType '({ organizer: { name: string; id: string; email: string; }; categories: { name: string; id: string; createdAt: Date; updatedAt: Date; }[]; _count: { bookings: number; }; } & { id: string; title: string; ... 13 more ...; updatedAt: Date; }) | null' is not assignable to type '({ organizer: { name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }; categories: { ...; }[]; _count: { ...; }; } & { ...; }) | null'.
+  Type '{ organizer: { name: string; id: string; email: string; }; categories: { name: string; id: string; createdAt: Date; updatedAt: Date; }[]; _count: { bookings: number; }; } & { id: string; title: string; ... 13 more ...; updatedAt: Date; }' is not assignable to type '({ organizer: { name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }; categories: { ...; }[]; _count: { ...; }; } & { ...; }) | null'.
+    Type '{ organizer: { name: string; id: string; email: string; }; categories: { name: string; id: string; createdAt: Date; updatedAt: Date; }[]; _count: { bookings: number; }; } & { id: string; title: string; ... 13 more ...; updatedAt: Date; }' is not assignable to type '{ organizer: { name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }; categories: { ...; }[]; _count: { ...; }; } & { ...; }'.
+      Type '{ organizer: { name: string; id: string; email: string; }; categories: { name: string; id: string; createdAt: Date; updatedAt: Date; }[]; _count: { bookings: number; }; } & { id: string; title: string; ... 13 more ...; updatedAt: Date; }' is not assignable to type '{ organizer: { name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }; categories: { ...; }[]; _count: { ...; }; }'.
+        Types of property 'organizer' are incompatible.
+          Type '{ name: string; id: string; email: string; }' is missing the following properties from type '{ name: string; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; email: string; password: string; role: UserRole; verified: boolean; verificationToken: string | null; }': isDeleted, deletedAt, createdAt, updatedAt, and 4 more.
+
+[7m132[0m     return prisma.event.findUnique({
+[7m   [0m [91m    ~~~~~~[0m
+[96msrc/repositories/eventRepository.ts[0m:[93m239[0m:[93m39[0m - [91merror[0m[90m TS2724: [0m'"/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/node_modules/.prisma/client/index".Prisma' has no exported member named 'EventStatusFilter'. Did you mean 'EnumEventStatusFilter'?
+
+[7m239[0m       where.status = status as Prisma.EventStatusFilter<"Event">;
+[7m   [0m [91m                                      ~~~~~~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/stadium.service.ts
+ERROR: [96msrc/services/stadium.service.ts[0m:[93m3[0m:[93m10[0m - [91merror[0m[90m TS2305: [0mModule '"@/services/api/apiUtils"' has no exported member 'getApiUrl'.
+
+[7m3[0m import { getApiUrl, defaultApiClient } from '@/services/api/apiUtils';
+[7m [0m [91m         ~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/seatLocking.service.ts
+ERROR: [96msrc/services/seatLocking.service.ts[0m:[93m1[0m:[93m8[0m - [91merror[0m[90m TS1192: [0mModule '"/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/cacheService"' has no default export.
+
+[7m1[0m import CacheService from './cacheService';
+[7m [0m [91m       ~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/razorpay.service.ts
+ERROR: [96msrc/services/razorpay.service.ts[0m:[93m15[0m:[93m20[0m - [91merror[0m[90m TS2339: [0mProperty 'razorpay' does not exist on type 'AppConfig'.
+
+[7m15[0m         pa: config.razorpay.merchantUpiId, // VPA (UPI ID) of the merchant
+[7m  [0m [91m                   ~~~~~~~~[0m
+[96msrc/services/razorpay.service.ts[0m:[93m16[0m:[93m20[0m - [91merror[0m[90m TS2339: [0mProperty 'razorpay' does not exist on type 'AppConfig'.
+
+[7m16[0m         pn: config.razorpay.merchantName,  // Merchant name
+[7m  [0m [91m                   ~~~~~~~~[0m
+[96msrc/services/razorpay.service.ts[0m:[93m57[0m:[93m42[0m - [91merror[0m[90m TS2339: [0mProperty 'razorpay' does not exist on type 'AppConfig'.
+
+[7m57[0m             .createHmac('sha256', config.razorpay.webhookSecret)
+[7m  [0m [91m                                         ~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/email.service.ts
+ERROR: [96msrc/services/email.service.ts[0m:[93m1[0m:[93m24[0m - [91merror[0m[90m TS7016: [0mCould not find a declaration file for module 'nodemailer'. '/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/node_modules/nodemailer/lib/nodemailer.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/nodemailer` if it exists or add a new declaration (.d.ts) file containing `declare module 'nodemailer';`
+
+[7m1[0m import nodemailer from 'nodemailer';
+[7m [0m [91m                       ~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/DynamicPricingService.ts
+ERROR: [96msrc/services/DynamicPricingService.ts[0m:[93m199[0m:[93m15[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'ticketCategoryId' does not exist in type 'BookingWhereInput'.
+
+[7m199[0m               ticketCategoryId,
+[7m   [0m [91m              ~~~~~~~~~~~~~~~~[0m
+[96msrc/services/DynamicPricingService.ts[0m:[93m245[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; }[]' is not assignable to type 'PricingRule[]'.
+  Type '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; }' is not assignable to type 'PricingRule'.
+    Types of property 'type' are incompatible.
+      Type 'string' is not assignable to type '"TIME_BASED" | "INVENTORY_BASED" | "DEMAND_BASED" | "CUSTOM"'.
+
+[7m245[0m       return await prisma.pricingRule.findMany({
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/services/DynamicPricingService.ts[0m:[93m292[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; }' is not assignable to type 'PricingRule'.
+  Types of property 'type' are incompatible.
+    Type 'string' is not assignable to type '"TIME_BASED" | "INVENTORY_BASED" | "DEMAND_BASED" | "CUSTOM"'.
+
+[7m292[0m       return await prisma.pricingRule.create({
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/services/DynamicPricingService.ts[0m:[93m309[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; }' is not assignable to type 'PricingRule'.
+  Types of property 'type' are incompatible.
+    Type 'string' is not assignable to type '"TIME_BASED" | "INVENTORY_BASED" | "DEMAND_BASED" | "CUSTOM"'.
+
+[7m309[0m       return await prisma.pricingRule.update({
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/services/DynamicPricingService.ts[0m:[93m338[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; }[]' is not assignable to type 'PricingRule[]'.
+  Type '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; }' is not assignable to type 'PricingRule'.
+    Types of property 'type' are incompatible.
+      Type 'string' is not assignable to type '"TIME_BASED" | "INVENTORY_BASED" | "DEMAND_BASED" | "CUSTOM"'.
+
+[7m338[0m       return await prisma.pricingRule.findMany({
+[7m   [0m [91m      ~~~~~~[0m
+[96msrc/services/DynamicPricingService.ts[0m:[93m355[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; } | null' is not assignable to type 'PricingRule | null'.
+  Type '{ id: string; name: string; createdAt: Date; updatedAt: Date; description: string | null; eventId: string | null; type: string; isActive: boolean; ticketCategoryId: string | null; ... 4 more ...; isGlobal: boolean; }' is not assignable to type 'PricingRule'.
+    Types of property 'type' are incompatible.
+      Type 'string' is not assignable to type '"TIME_BASED" | "INVENTORY_BASED" | "DEMAND_BASED" | "CUSTOM"'.
+
+[7m355[0m       return await prisma.pricingRule.findUnique({
+[7m   [0m [91m      ~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/routes/v1/upiPayment.routes.ts
+ERROR: [96msrc/routes/v1/upiPayment.routes.ts[0m:[93m13[0m:[93m14[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ body: Joi.ObjectSchema<any>; }' is not assignable to parameter of type 'ZodType<any, ZodTypeDef, any>'.
+  Type '{ body: ObjectSchema<any>; }' is missing the following properties from type 'ZodType<any, ZodTypeDef, any>': _type, _output, _input, _def, and 34 more.
+
+[7m13[0m     validate(upiPaymentValidation.initiatePayment),
+[7m  [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/routes/v1/upiPayment.routes.ts[0m:[93m21[0m:[93m14[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ params: Joi.ObjectSchema<any>; }' is not assignable to parameter of type 'ZodType<any, ZodTypeDef, any>'.
+  Type '{ params: ObjectSchema<any>; }' is missing the following properties from type 'ZodType<any, ZodTypeDef, any>': _type, _output, _input, _def, and 34 more.
+
+[7m21[0m     validate(upiPaymentValidation.getPaymentStatus, 'params'),
+[7m  [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/routes/v1/upiPayment.routes.ts[0m:[93m29[0m:[93m14[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ body: Joi.ObjectSchema<any>; }' is not assignable to parameter of type 'ZodType<any, ZodTypeDef, any>'.
+  Type '{ body: ObjectSchema<any>; }' is missing the following properties from type 'ZodType<any, ZodTypeDef, any>': _type, _output, _input, _def, and 34 more.
+
+[7m29[0m     validate(upiPaymentValidation.confirmPayment),
+[7m  [0m [91m             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/auth.service.ts
+ERROR: [96msrc/services/auth.service.ts[0m:[93m2[0m:[93m71[0m - [91merror[0m[90m TS2307: [0mCannot find module '@/services/api/authApi' or its corresponding type declarations.
+
+[7m2[0m import { login, register, logout, getCurrentUser, refreshToken } from '@/services/api/authApi';
+[7m [0m [91m                                                                      ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/ticketInvalidation.service.ts
+ERROR: [96msrc/services/ticketInvalidation.service.ts[0m:[93m37[0m:[93m11[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'ticketScans' does not exist in type 'TicketInclude<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }>'.
+
+[7m37[0m           ticketScans: true
+[7m  [0m [91m          ~~~~~~~~~~~[0m
+
+  [96mnode_modules/.prisma/client/index.d.ts[0m:[93m28349[0m:[93m5[0m
+    [7m28349[0m     include?: TicketInclude<ExtArgs> | null
+    [7m     [0m [96m    ~~~~~~~[0m
+    The expected type comes from property 'include' which is declared here on type 'TicketFindUniqueArgs<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }>'
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m72[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'length' does not exist on type 'never'.
+
+[7m72[0m       const entryCount = existingScans.length;
+[7m  [0m [91m                                       ~~~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m75[0m:[93m33[0m - [91merror[0m[90m TS2339: [0mProperty 'ticketType' does not exist on type '{ booking: { id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; userId: string; status: BookingStatus; eventId: string; ... 4 more ...; paymentSessionId: string | null; }; ticketScans: never; } & { ...; }'.
+
+[7m75[0m       const ticketType = ticket.ticketType || '';
+[7m  [0m [91m                                ~~~~~~~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m80[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'sort' does not exist on type 'never'.
+
+[7m80[0m         const lastScan = existingScans.sort((a, b) =>
+[7m  [0m [91m                                       ~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m80[0m:[93m46[0m - [91merror[0m[90m TS7006: [0mParameter 'a' implicitly has an 'any' type.
+
+[7m80[0m         const lastScan = existingScans.sort((a, b) =>
+[7m  [0m [91m                                             ~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m80[0m:[93m49[0m - [91merror[0m[90m TS7006: [0mParameter 'b' implicitly has an 'any' type.
+
+[7m80[0m         const lastScan = existingScans.sort((a, b) =>
+[7m  [0m [91m                                                ~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m100[0m:[93m20[0m - [91merror[0m[90m TS2339: [0mProperty 'ticketScan' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m100[0m       await prisma.ticketScan.create({
+[7m   [0m [91m                   ~~~~~~~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m117[0m:[93m11[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'lastScannedAt' does not exist in type 'Exact<(Without<TicketUpdateInput, TicketUncheckedUpdateInput> & TicketUncheckedUpdateInput) | (Without<...> & TicketUpdateInput), (Without<...> & TicketUncheckedUpdateInput) | (Without<...> & TicketUpdateInput)>'.
+
+[7m117[0m           lastScannedAt: now
+[7m   [0m [91m          ~~~~~~~~~~~~~[0m
+
+  [96mnode_modules/.prisma/client/index.d.ts[0m:[93m28576[0m:[93m5[0m
+    [7m28576[0m     data: XOR<TicketUpdateInput, TicketUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: Exact<TicketSelect<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }> | null | undefined, TicketSelect<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }> | null | undefined>; include?: Exact<...>; data: Exact<...>; where: Exact<...>; }'
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m145[0m:[93m20[0m - [91merror[0m[90m TS2339: [0mProperty 'ticketScan' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m145[0m       await prisma.ticketScan.create({
+[7m   [0m [91m                   ~~~~~~~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m170[0m:[93m34[0m - [91merror[0m[90m TS2339: [0mProperty 'ticketScan' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m170[0m       const scans = await prisma.ticketScan.findMany({
+[7m   [0m [91m                                 ~~~~~~~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m222[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type '"CANCELLED" | "PENDING" | "REFUNDED" | "ACTIVE" | "USED" | "EXPIRED" | EnumTicketStatusFieldUpdateOperationsInput | { set?: Exact<TicketStatus | undefined, TicketStatus | undefined>; } | undefined'.
+
+[7m222[0m       data: { status: newStatus }
+[7m   [0m [91m              ~~~~~~[0m
+
+  [96mnode_modules/.prisma/client/index.d.ts[0m:[93m34796[0m:[93m5[0m
+    [7m34796[0m     status?: EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
+    [7m     [0m [96m    ~~~~~~[0m
+    The expected type comes from property 'status' which is declared here on type 'Exact<(Without<TicketUpdateInput, TicketUncheckedUpdateInput> & TicketUncheckedUpdateInput) | (Without<...> & TicketUpdateInput), (Without<...> & TicketUncheckedUpdateInput) | (Without<...> & TicketUpdateInput)>'
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m226[0m:[93m18[0m - [91merror[0m[90m TS2339: [0mProperty 'ticketStatusLog' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m226[0m     await prisma.ticketStatusLog.create({
+[7m   [0m [91m                 ~~~~~~~~~~~~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m266[0m:[93m32[0m - [91merror[0m[90m TS2339: [0mProperty 'ticketScan' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m266[0m     const scans = await prisma.ticketScan.findMany({
+[7m   [0m [91m                               ~~~~~~~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m271[0m:[93m52[0m - [91merror[0m[90m TS7006: [0mParameter 'scan' implicitly has an 'any' type.
+
+[7m271[0m     const scannedTicketIds = [...new Set(scans.map(scan => scan.ticketId))];
+[7m   [0m [91m                                                   ~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m275[0m:[93m19[0m - [91merror[0m[90m TS7006: [0mParameter 'scan' implicitly has an 'any' type.
+
+[7m275[0m     scans.forEach(scan => {
+[7m   [0m [91m                  ~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m298[0m:[93m32[0m - [91merror[0m[90m TS7006: [0mParameter 'scan' implicitly has an 'any' type.
+
+[7m298[0m       validScans: scans.filter(scan => scan.status === 'VALID').length,
+[7m   [0m [91m                               ~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m299[0m:[93m34[0m - [91merror[0m[90m TS7006: [0mParameter 'scan' implicitly has an 'any' type.
+
+[7m299[0m       invalidScans: scans.filter(scan => scan.status === 'INVALID').length,
+[7m   [0m [91m                                 ~~~~[0m
+[96msrc/services/ticketInvalidation.service.ts[0m:[93m300[0m:[93m39[0m - [91merror[0m[90m TS7006: [0mParameter 'scan' implicitly has an 'any' type.
+
+[7m300[0m       duplicateAttempts: scans.filter(scan => scan.invalidReason === 'ALREADY_SCANNED').length,
+[7m   [0m [91m                                      ~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/routes/seatLocking.routes.ts
+ERROR: [96msrc/routes/seatLocking.routes.ts[0m:[93m138[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'checkSeatsLocked' does not exist on type 'typeof import("/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/controllers/seatLocking.controller")'.
+
+[7m138[0m   SeatLockingController.checkSeatsLocked
+[7m   [0m [91m                        ~~~~~~~~~~~~~~~~[0m
+[96msrc/routes/seatLocking.routes.ts[0m:[93m184[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'extendLock' does not exist on type 'typeof import("/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/controllers/seatLocking.controller")'.
+
+[7m184[0m   SeatLockingController.extendLock
+[7m   [0m [91m                        ~~~~~~~~~~[0m
+[96msrc/routes/seatLocking.routes.ts[0m:[93m231[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'confirmSeats' does not exist on type 'typeof import("/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/controllers/seatLocking.controller")'.
+
+[7m231[0m   SeatLockingController.confirmSeats
+[7m   [0m [91m                        ~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/services/paymentReconciliation.service.ts
+ERROR: [96msrc/services/paymentReconciliation.service.ts[0m:[93m48[0m:[93m15[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'transactionId' does not exist in type 'BookingPaymentWhereInput'.
+
+[7m48[0m             { transactionId: transactionData.transactionId }
+[7m  [0m [91m              ~~~~~~~~~~~~~[0m
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m68[0m:[93m41[0m - [91merror[0m[90m TS2362: [0mThe left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+
+[7m68[0m       const amountDifference = Math.abs(payment.amount - transactionData.amount);
+[7m  [0m [91m                                        ~~~~~~~~~~~~~~[0m
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m76[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType 'Decimal' is not assignable to type 'number'.
+
+[7m76[0m           expectedAmount: payment.amount,
+[7m  [0m [91m          ~~~~~~~~~~~~~~[0m
+
+  [96msrc/services/paymentReconciliation.service.ts[0m:[93m149[0m:[93m5[0m
+    [7m149[0m     expectedAmount: number;
+    [7m   [0m [96m    ~~~~~~~~~~~~~~[0m
+    The expected type comes from property 'expectedAmount' which is declared here on type '{ paymentId: string; bookingId: string; issue: string; expectedAmount: number; receivedAmount: number; transactionId: string; }'
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m94[0m:[93m11[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'transactionId' does not exist in type '(Without<BookingPaymentUpdateInput, BookingPaymentUncheckedUpdateInput> & BookingPaymentUncheckedUpdateInput) | (Without<...> & BookingPaymentUpdateInput)'.
+
+[7m94[0m           transactionId: transactionData.transactionId,
+[7m  [0m [91m          ~~~~~~~~~~~~~[0m
+
+  [96mnode_modules/.prisma/client/index.d.ts[0m:[93m11058[0m:[93m5[0m
+    [7m11058[0m     data: XOR<BookingPaymentUpdateInput, BookingPaymentUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type 'BookingPaymentUpdateArgs<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }>'
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m125[0m:[93m20[0m - [91merror[0m[90m TS2339: [0mProperty 'reconciliationLog' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m125[0m       await prisma.reconciliationLog.create({
+[7m   [0m [91m                   ~~~~~~~~~~~~~~~~~[0m
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m154[0m:[93m20[0m - [91merror[0m[90m TS2339: [0mProperty 'reconciliationLog' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m154[0m       await prisma.reconciliationLog.create({
+[7m   [0m [91m                   ~~~~~~~~~~~~~~~~~[0m
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m193[0m:[93m14[0m - [91merror[0m[90m TS2339: [0mProperty 'reconciliationLog' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m193[0m       prisma.reconciliationLog.findMany({
+[7m   [0m [91m             ~~~~~~~~~~~~~~~~~[0m
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m199[0m:[93m14[0m - [91merror[0m[90m TS2339: [0mProperty 'reconciliationLog' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m199[0m       prisma.reconciliationLog.count({ where })
+[7m   [0m [91m             ~~~~~~~~~~~~~~~~~[0m
+[96msrc/services/paymentReconciliation.service.ts[0m:[93m220[0m:[93m19[0m - [91merror[0m[90m TS2339: [0mProperty 'reconciliationLog' does not exist on type 'DynamicClientExtensionThis<TypeMap<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }, PrismaClientOptions>, TypeMapCb, { result: {}; model: {}; query: {}; client: {}; }, {}>'.
+
+[7m220[0m     return prisma.reconciliationLog.update({
+[7m   [0m [91m                  ~~~~~~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/routes/user.routes.ts
+ERROR: [96msrc/routes/user.routes.ts[0m:[93m21[0m:[93m56[0m - [91merror[0m[90m TS2304: [0mCannot find name 'DatabaseRequest'.
+
+[7m21[0m   (req, res, next) => UserController.getProfile(req as DatabaseRequest, res, next)
+[7m  [0m [91m                                                       ~~~~~~~~~~~~~~~[0m
+[96msrc/routes/user.routes.ts[0m:[93m33[0m:[93m59[0m - [91merror[0m[90m TS2304: [0mCannot find name 'DatabaseRequest'.
+
+[7m33[0m   (req, res, next) => UserController.updateProfile(req as DatabaseRequest, res, next)
+[7m  [0m [91m                                                          ~~~~~~~~~~~~~~~[0m
+[96msrc/routes/user.routes.ts[0m:[93m48[0m:[93m57[0m - [91merror[0m[90m TS2304: [0mCannot find name 'DatabaseRequest'.
+
+[7m48[0m   (req, res, next) => UserController.getAllUsers(req as DatabaseRequest, res, next)
+[7m  [0m [91m                                                        ~~~~~~~~~~~~~~~[0m
+[96msrc/routes/user.routes.ts[0m:[93m59[0m:[93m57[0m - [91merror[0m[90m TS2304: [0mCannot find name 'DatabaseRequest'.
+
+[7m59[0m   (req, res, next) => UserController.getUserById(req as DatabaseRequest, res, next)
+[7m  [0m [91m                                                        ~~~~~~~~~~~~~~~[0m
+[96msrc/routes/user.routes.ts[0m:[93m70[0m:[93m56[0m - [91merror[0m[90m TS2304: [0mCannot find name 'DatabaseRequest'.
+
+[7m70[0m   (req, res, next) => UserController.updateUser(req as DatabaseRequest, res, next)
+[7m  [0m [91m                                                       ~~~~~~~~~~~~~~~[0m
+[96msrc/routes/user.routes.ts[0m:[93m81[0m:[93m56[0m - [91merror[0m[90m TS2304: [0mCannot find name 'DatabaseRequest'.
+
+[7m81[0m   (req, res, next) => UserController.deleteUser(req as DatabaseRequest, res, next)
+[7m  [0m [91m                                                       ~~~~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/controllers/v1/booking.controller.ts
+ERROR: [96msrc/controllers/v1/booking.controller.ts[0m:[93m92[0m:[93m13[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'ticketNumber' does not exist in type '(Without<TicketCreateInput, TicketUncheckedCreateInput> & TicketUncheckedCreateInput) | { ...; }'.
+
+[7m92[0m             ticketNumber: `TKT-${Math.floor(Math.random() * 1000000)}`,
+[7m  [0m [91m            ~~~~~~~~~~~~[0m
+
+  [96mnode_modules/.prisma/client/index.d.ts[0m:[93m28528[0m:[93m5[0m
+    [7m28528[0m     data: XOR<TicketCreateInput, TicketUncheckedCreateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: Exact<TicketSelect<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }> | null | undefined, TicketSelect<InternalArgs & { result: {}; model: {}; query: {}; client: {}; }> | null | undefined>; include?: Exact<...>; data: Exact<...>; }'
+[96msrc/controllers/v1/booking.controller.ts[0m:[93m188[0m:[93m37[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ bookings: { tickets: ({ seat: { meta: JsonValue | null; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; status: $Enums.SeatStatus; ... 8 more ...; paymentIntentId: string | null; } | null; } & { ...; })[]; ... 14 more ...; paymentSessionId: string | null; }[]; pagination: ...' is not assignable to parameter of type 'number'.
+
+[7m188[0m     return ApiResponse.success(res, {
+[7m   [0m [91m                                    ~[0m
+[7m189[0m       bookings: bookingsWithTickets,
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m...[0m 
+[7m195[0m       }
+[7m   [0m [91m~~~~~~~[0m
+[7m196[0m     }, 'User bookings fetched successfully');
+[7m   [0m [91m~~~~~[0m
+[96msrc/controllers/v1/booking.controller.ts[0m:[93m221[0m:[93m37[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ tickets: ({ seat: { meta: JsonValue | null; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; status: $Enums.SeatStatus; ... 8 more ...; paymentIntentId: string | null; } | null; } & { ...; })[]; ... 15 more ...; paymentSessionId: string | null; }' is not assignable to parameter of type 'number'.
+
+[7m221[0m     return ApiResponse.success(res, booking, 'Booking fetched successfully');
+[7m   [0m [91m                                    ~~~~~~~[0m
+[96msrc/controllers/v1/booking.controller.ts[0m:[93m292[0m:[93m37[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ id: string; }' is not assignable to parameter of type 'number'.
+
+[7m292[0m     return ApiResponse.success(res, { id }, 'Booking cancelled successfully');
+[7m   [0m [91m                                    ~~~~~~[0m
+[96msrc/controllers/v1/booking.controller.ts[0m:[93m355[0m:[93m37[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ bookings: ({ event: { id: string; title: string; startDate: Date; }; user: { id: string; email: string; name: string; }; payment: { id: string; createdAt: Date; updatedAt: Date; status: $Enums.PaymentStatus; bookingId: string; amount: Decimal; method: string | null; } | null; } & { ...; })[]; pagination: { ...; }; }' is not assignable to parameter of type 'number'.
+
+[7m355[0m     return ApiResponse.success(res, {
+[7m   [0m [91m                                    ~[0m
+[7m356[0m       bookings,
+[7m   [0m [91m~~~~~~~~~~~~~~~[0m
+[7m...[0m 
+[7m362[0m       }
+[7m   [0m [91m~~~~~~~[0m
+[7m363[0m     }, 'Bookings fetched successfully');
+[7m   [0m [91m~~~~~[0m
+[96msrc/controllers/v1/booking.controller.ts[0m:[93m466[0m:[93m37[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ tickets: ({ seat: { meta: JsonValue; id: string; isDeleted: boolean; deletedAt: Date | null; createdAt: Date; updatedAt: Date; status: SeatStatus; ... 8 more ...; paymentIntentId: string | null; } | null; } & { ...; })[]; ... 15 more ...; paymentSessionId: string | null; } | null' is not assignable to parameter of type 'number | undefined'.
+  Type 'null' is not assignable to type 'number | undefined'.
+
+[7m466[0m     return ApiResponse.success(res, updatedBooking, 'Booking status updated successfully');
+[7m   [0m [91m                                    ~~~~~~~~~~~~~~[0m
+STACK: 
+Failed to collect coverage from /Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/routes/v1/payment.routes.ts
+ERROR: [96msrc/routes/v1/payment.routes.ts[0m:[93m97[0m:[93m43[0m - [91merror[0m[90m TS2339: [0mProperty 'getUpiSettings' does not exist on type '{ createUTRPayment(data: { booking_id: string; amount: number; utr_number: string; status: string; payment_date?: Date | undefined; }): Promise<{ status: string; bookingId: string; utrNumber: string | null; ... 5 more ...; verifiedBy: string | null; }>; createPayment(data: Omit_2<...>): Promise<...>; getPaymentByBoo...'.
+
+[7m97[0m     const settings = await paymentService.getUpiSettings();
+[7m  [0m [91m                                          ~~~~~~~~~~~~~~[0m
+[96msrc/routes/v1/payment.routes.ts[0m:[93m128[0m:[93m30[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ status: string; bookingId: string; utrNumber: string | null; paymentDate: Date | null; amount: Decimal; id: string; createdAt: Date; updatedAt: Date; verifiedBy: string | null; }' is not assignable to parameter of type 'number'.
+
+[7m128[0m     ApiResponse.success(res, verification, 'Payment verified successfully');
+[7m   [0m [91m                             ~~~~~~~~~~~~[0m
+[96msrc/routes/v1/payment.routes.ts[0m:[93m144[0m:[93m23[0m - [91merror[0m[90m TS2339: [0mProperty 'getPaymentStatus' does not exist on type 'typeof import("/Users/lavkushkumar/Desktop/BPL1/eventia-backend-express/src/controllers/payment.controller")'.
+
+[7m144[0m     paymentController.getPaymentStatus
+[7m   [0m [91m                      ~~~~~~~~~~~~~~~~[0m
+[96msrc/routes/v1/payment.routes.ts[0m:[93m159[0m:[93m50[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ status: PaymentStatus; bookingId: string; amount: Decimal; id: string; createdAt: Date; updatedAt: Date; method: string | null; }' is not assignable to parameter of type 'number'.
+
+[7m159[0m         .then(result => ApiResponse.success(res, result, 'UPI payment recorded successfully'))
+[7m   [0m [91m                                                 ~~~~~~[0m
+[96msrc/routes/v1/payment.routes.ts[0m:[93m173[0m:[93m34[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ status: string; bookingId: string; utrNumber: string | null; paymentDate: Date | null; amount: Decimal; id: string; createdAt: Date; updatedAt: Date; verifiedBy: string | null; }' is not assignable to parameter of type 'number'.
+
+[7m173[0m         ApiResponse.success(res, result, 'UPI payment verified successfully');
+[7m   [0m [91m                                 ~~~~~~[0m
+[96msrc/routes/v1/payment.routes.ts[0m:[93m199[0m:[93m39[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ upivpa: any; id: any; }' is not assignable to parameter of type 'number'.
+
+[7m199[0m       return ApiResponse.success(res, {
+[7m   [0m [91m                                      ~[0m
+[7m200[0m         upivpa: activeSetting.upivpa,
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m201[0m         id: activeSetting.id
+[7m   [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[7m202[0m       }, 'Active UPI setting retrieved');
+[7m   [0m [91m~~~~~~~[0m
+[96msrc/routes/v1/payment.routes.ts[0m:[93m213[0m:[93m39[0m - [91merror[0m[90m TS2345: [0mArgument of type '{ id: string; upivpa: string; discountamount: number; isactive: boolean; }' is not assignable to parameter of type 'number'.
+
+[7m213[0m       return ApiResponse.success(res, defaultSetting, 'Using default UPI setting');
+[7m   [0m [91m                                      ~~~~~~~~~~~~~~[0m
+STACK: 
+----------------------------------------------------|---------|----------|---------|---------|-------------------
+File                                                | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------------------------------------------|---------|----------|---------|---------|-------------------
+All files                                           |       0 |        0 |       0 |       0 |                   
+ src                                                |       0 |        0 |       0 |       0 |                   
+  app.ts                                            |       0 |        0 |       0 |       0 | 1-136             
+ src/controllers                                    |       0 |        0 |       0 |       0 |                   
+  authController.ts                                 |       0 |        0 |       0 |       0 | 1-213             
+  booking.controller.ts                             |       0 |        0 |       0 |       0 | 3-325             
+  dashboard.controller.ts                           |       0 |        0 |       0 |       0 | 2-125             
+  discount.controller.ts                            |       0 |        0 |       0 |       0 | 2-218             
+  event.controller.ts                               |       0 |        0 |       0 |       0 | 1-628             
+  metricsController.ts                              |       0 |        0 |       0 |       0 | 2-164             
+  payment.controller.ts                             |       0 |        0 |       0 |       0 | 1-802             
+  public.controller.ts                              |       0 |        0 |       0 |       0 | 2-105             
+  reservationController.ts                          |       0 |        0 |       0 |       0 | 2-198             
+  seat.controller.ts                                |       0 |        0 |       0 |       0 | 2-366             
+  seatLocking.controller.ts                         |       0 |        0 |       0 |       0 | 2-234             
+  stateSync.controller.ts                           |       0 |        0 |       0 |       0 | 2-97              
+  stripe.controller.ts                              |       0 |        0 |       0 |       0 | 2-215             
+  ticket.controller.ts                              |       0 |        0 |       0 |       0 | 2-343             
+  ticketCategory.controller.ts                      |       0 |        0 |       0 |       0 | 2-149             
+  upiPayment.controller.ts                          |       0 |        0 |       0 |       0 | 1-434             
+  upiSettings.controller.ts                         |       0 |        0 |       0 |       0 | 2-128             
+  user.controller.ts                                |       0 |        0 |       0 |       0 | 2-177             
+ src/controllers/admin                              |       0 |        0 |       0 |       0 |                   
+  event.controller.ts                               |       0 |        0 |       0 |       0 | 2-255             
+  upiSettings.controller.ts                         |       0 |        0 |       0 |       0 | 2-386             
+ src/controllers/v1                                 |       0 |        0 |       0 |       0 |                   
+  event.controller.ts                               |       0 |        0 |       0 |       0 | 2-332             
+  user.controller.ts                                |       0 |        0 |       0 |       0 | 2-354             
+ src/db                                             |       0 |        0 |       0 |       0 |                   
+  index.ts                                          |       0 |        0 |       0 |       0 | 1-128             
+  prisma.ts                                         |       0 |        0 |       0 |       0 | 1-248             
+ src/db/migrations                                  |       0 |      100 |       0 |       0 |                   
+  20230501000001_initial_schema.ts                  |       0 |      100 |       0 |       0 | 4-168             
+  20240426000004_payment_tables.ts                  |       0 |      100 |       0 |       0 | 4-36              
+ src/examples                                       |       0 |        0 |       0 |       0 |                   
+  optimized-controller.example.ts                   |       0 |        0 |       0 |       0 | 2-160             
+ src/middleware                                     |       0 |        0 |       0 |       0 |                   
+  auth.ts                                           |       0 |        0 |       0 |       0 | 2-189             
+  cache.ts                                          |       0 |        0 |       0 |       0 | 2-127             
+  csrf.ts                                           |       0 |        0 |       0 |       0 | 2-91              
+  database.ts                                       |       0 |      100 |       0 |       0 | 2-25              
+  dataloader.middleware.ts                          |       0 |      100 |       0 |       0 | 2-22              
+  errorBoundary.ts                                  |       0 |        0 |       0 |       0 | 2-132             
+  errorHandler.ts                                   |       0 |        0 |       0 |       0 | 2-110             
+  index.ts                                          |       0 |        0 |       0 |       0 | 2-47              
+  rateLimit.ts                                      |       0 |        0 |       0 |       0 | 1-130             
+  upload.ts                                         |       0 |        0 |       0 |       0 | 1-106             
+ src/migrations                                     |       0 |      100 |       0 |       0 |                   
+  20240615000000_create_bookings.ts                 |       0 |      100 |       0 |       0 | 3-16              
+  20240615000001_create_booking_payments.ts         |       0 |      100 |       0 |       0 | 3-17              
+  20240625000000_create_reservation_expiry_queue.ts |       0 |      100 |       0 |       0 | 6-25              
+  20240626000000_create_ticket_generation_queue.ts  |       0 |      100 |       0 |       0 | 6-28              
+ src/models                                         |       0 |        0 |       0 |       0 |                   
+  booking.ts                                        |       0 |        0 |       0 |       0 | 2-196             
+  index.ts                                          |       0 |      100 |     100 |       0 | 3-9               
+  payment.ts                                        |       0 |        0 |       0 |       0 | 2-235             
+  seat.ts                                           |       0 |        0 |       0 |       0 | 1-235             
+  seatLock.ts                                       |       0 |        0 |       0 |       0 | 1-66              
+  user.ts                                           |       0 |        0 |       0 |       0 | 1-73              
+ src/repositories                                   |       0 |        0 |       0 |       0 |                   
+  discountRepository.ts                             |       0 |        0 |       0 |       0 | 2-314             
+  event.repository.ts                               |       0 |        0 |       0 |       0 | 1-402             
+  userRepository.ts                                 |       0 |        0 |       0 |       0 | 1-123             
+ src/routes                                         |       0 |        0 |       0 |       0 |                   
+  admin.routes.ts                                   |       0 |      100 |       0 |       0 | 1-266             
+  auth.ts                                           |       0 |      100 |     100 |       0 | 1-135             
+  booking.routes.ts                                 |       0 |      100 |     100 |       0 | 1-176             
+  discount.routes.ts                                |       0 |      100 |     100 |       0 | 1-692             
+  event.routes.ts                                   |       0 |        0 |       0 |       0 | 1-472             
+  events.routes.ts                                  |       0 |      100 |     100 |       0 | 1-12              
+  health.routes.ts                                  |       0 |        0 |       0 |       0 | 1-181             
+  healthRoutes.ts                                   |       0 |      100 |       0 |       0 | 1-7               
+  index.ts                                          |       0 |      100 |       0 |       0 | 1-60              
+  metricsRoutes.ts                                  |       0 |      100 |     100 |       0 | 1-16              
+  payment.initialize.routes.ts                      |       0 |      100 |     100 |       0 | 1-135             
+  payment.routes.ts                                 |       0 |      100 |     100 |       0 | 1-293             
+  reservation.routes.ts                             |       0 |      100 |       0 |       0 | 1-27              
+  reservationRoutes.ts                              |       0 |      100 |     100 |       0 | 1-23              
+  seat.lock.routes.ts                               |       0 |      100 |     100 |       0 | 1-100             
+  seat.routes.ts                                    |       0 |      100 |     100 |       0 | 1-190             
+  stateSync.routes.ts                               |       0 |      100 |     100 |       0 | 1-153             
+  stripe.routes.ts                                  |       0 |      100 |     100 |       0 | 1-28              
+  ticket.routes.ts                                  |       0 |      100 |       0 |       0 | 1-419             
+  ticketCategory.routes.ts                          |       0 |      100 |     100 |       0 | 1-204             
+  upiSettings.routes.ts                             |       0 |      100 |     100 |       0 | 1-19              
+  utrVerification.routes.ts                         |       0 |        0 |       0 |       0 | 1-60              
+ src/routes/admin                                   |       0 |      100 |     100 |       0 |                   
+  events.routes.ts                                  |       0 |      100 |     100 |       0 | 1-28              
+ src/routes/v1                                      |       0 |      100 |       0 |       0 |                   
+  auth.routes.ts                                    |       0 |      100 |       0 |       0 | 1-98              
+  dynamicPricing.route.ts                           |       0 |      100 |     100 |       0 | 1-62              
+  event.routes.ts                                   |       0 |      100 |       0 |       0 | 1-229             
+  index.ts                                          |       0 |      100 |     100 |       0 | 1-52              
+  public.routes.ts                                  |       0 |      100 |     100 |       0 | 11-14             
+  user.routes.ts                                    |       0 |      100 |     100 |       0 | 1-65              
+ src/routes/v1/admin                                |       0 |        0 |       0 |       0 |                   
+  event.routes.ts                                   |       0 |      100 |     100 |       0 | 1-104             
+  index.ts                                          |       0 |        0 |       0 |       0 | 1-36              
+  template.routes.ts                                |       0 |      100 |       0 |       0 | 1-72              
+  upiSettings.routes.ts                             |       0 |      100 |       0 |       0 | 1-170             
+  user.routes.ts                                    |       0 |      100 |       0 |       0 | 1-104             
+ src/routes/v1/public                               |       0 |        0 |       0 |       0 |                   
+  index.ts                                          |       0 |      100 |     100 |       0 | 1-12              
+  template.routes.ts                                |       0 |        0 |       0 |       0 | 1-57              
+  upi.routes.ts                                     |       0 |      100 |     100 |       0 | 1-49              
+ src/scripts                                        |       0 |        0 |       0 |       0 |                   
+  add-ipl-events.ts                                 |       0 |        0 |       0 |       0 | 1-226             
+  create-test-user.ts                               |       0 |      100 |       0 |       0 | 1-32              
+  fix-ticket-generation-queue.ts                    |       0 |      100 |       0 |       0 | 12-24             
+  release-expired-payment-sessions.ts               |       0 |        0 |       0 |       0 | 8-36              
+  run-migration.ts                                  |       0 |      100 |       0 |       0 | 8-26              
+  seed-events.ts                                    |       0 |        0 |       0 |       0 | 8-208             
+  seed-upi-settings.ts                              |       0 |        0 |       0 |       0 | 8-72              
+  test-user-profile-api.ts                          |       0 |      100 |       0 |       0 | 7-59              
+  test-user-profile.ts                              |       0 |      100 |       0 |       0 | 7-76              
+ src/services                                       |       0 |        0 |       0 |       0 |                   
+  authService.ts                                    |       0 |        0 |       0 |       0 | 1-118             
+  booking.service.ts                                |       0 |        0 |       0 |       0 | 24-344            
+  cacheService.ts                                   |       0 |        0 |       0 |       0 | 1-137             
+  discount.service.ts                               |       0 |        0 |       0 |       0 | 2-280             
+  dynamicPricing.service.ts                         |       0 |        0 |       0 |       0 | 1-306             
+  event.service.ts                                  |       0 |        0 |       0 |       0 | 1-482             
+  index.ts                                          |       0 |      100 |     100 |       0 | 3-9               
+  job.service.ts                                    |       0 |        0 |       0 |       0 | 1-159             
+  payment.service.ts                                |       0 |        0 |       0 |       0 | 1-151             
+  reservation.service.ts                            |       0 |        0 |       0 |       0 | 1-142             
+  seat.service.ts                                   |       0 |        0 |       0 |       0 | 1-716             
+  stateSync.service.ts                              |       0 |        0 |       0 |       0 | 1-315             
+  stripe.service.ts                                 |       0 |        0 |       0 |       0 | 1-108             
+  team.service.ts                                   |       0 |      100 |       0 |       0 | 2-49              
+  ticket.service.ts                                 |       0 |        0 |       0 |       0 | 1-738             
+  transaction.service.ts                            |       0 |        0 |       0 |       0 | 1-182             
+  upiPayment.service.ts                             |       0 |        0 |       0 |       0 | 2-83              
+  websocket.service.ts                              |       0 |        0 |       0 |       0 | 1-399             
+ src/services/api                                   |       0 |        0 |       0 |       0 |                   
+  apiUtils.ts                                       |       0 |        0 |       0 |       0 | 1-23              
+  paymentApi.ts                                     |       0 |      100 |       0 |       0 | 1-69              
+ src/utils                                          |       0 |        0 |       0 |       0 |                   
+  apiError.ts                                       |       0 |        0 |       0 |       0 | 1-81              
+  apiResponse.ts                                    |       0 |        0 |       0 |       0 | 19-128            
+  asyncHandler.ts                                   |       0 |        0 |       0 |       0 | 2-50              
+  catchAsync.ts                                     |       0 |      100 |       0 |       0 | 3-5               
+  dataloader.ts                                     |       0 |        0 |       0 |       0 | 1-128             
+  date-utils.ts                                     |       0 |        0 |       0 |       0 | 6-56              
+  errorCodes.ts                                     |       0 |        0 |       0 |       0 | 5-41              
+  fileUpload.ts                                     |       0 |        0 |       0 |       0 | 1-146             
+  fix-queries.ts                                    |       0 |      100 |       0 |       0 | 1-63              
+  fix-ticket-generation-queue.ts                    |       0 |        0 |       0 |       0 | 6-96              
+  generateRouteDocs.ts                              |       0 |        0 |       0 |       0 | 1-37              
+  index.ts                                          |       0 |      100 |     100 |       0 | 2-10              
+  jwt.ts                                            |       0 |        0 |       0 |       0 | 1-97              
+  logger.ts                                         |       0 |        0 |       0 |       0 | 1-86              
+  pdf-generator.ts                                  |       0 |        0 |       0 |       0 | 1-82              
+  qrCode.ts                                         |       0 |      100 |       0 |       0 | 1-23              
+  retry.ts                                          |       0 |        0 |       0 |       0 | 1-83              
+  routeHelper.ts                                    |       0 |        0 |       0 |       0 | 2-96              
+ src/validations                                    |       0 |        0 |       0 |       0 |                   
+  booking.validation.ts                             |       0 |      100 |     100 |       0 | 1-42              
+  custom.validation.ts                              |       0 |      100 |       0 |       0 | 10-55             
+  discount.validation.ts                            |       0 |      100 |     100 |       0 | 1-64              
+  dynamicPricing.validation.ts                      |       0 |        0 |       0 |       0 | 1-78              
+  event.validation.ts                               |       0 |        0 |       0 |       0 | 1-99              
+  payment.validation.ts                             |       0 |      100 |       0 |       0 | 1-101             
+  payment.validations.ts                            |       0 |      100 |     100 |       0 | 1-94              
+  seat.validation.ts                                |       0 |      100 |       0 |       0 | 1-63              
+  seatLocking.validation.ts                         |       0 |      100 |     100 |       0 | 1-44              
+  ticket.validation.ts                              |       0 |      100 |     100 |       0 | 1-53              
+  ticketCategory.validation.ts                      |       0 |      100 |       0 |       0 | 1-57              
+  upiPayment.validations.ts                         |       0 |      100 |     100 |       0 | 1-66              
+  user.validation.ts                                |       0 |      100 |     100 |       0 | 1-30              
+ src/validators                                     |       0 |        0 |       0 |       0 |                   
+  booking.validator.ts                              |       0 |      100 |     100 |       0 | 1-24              
+  dynamicPricing.validator.ts                       |       0 |      100 |     100 |       0 | 1-20              
+  event.validator.ts                                |       0 |        0 |       0 |       0 | 1-60              
+  ticketCategory.validator.ts                       |       0 |      100 |     100 |       0 | 1-18              
+----------------------------------------------------|---------|----------|---------|---------|-------------------
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        85.962 s
+Ran all test suites matching /src\/__tests__\/integration\/eventRoutes.test.ts/i.
