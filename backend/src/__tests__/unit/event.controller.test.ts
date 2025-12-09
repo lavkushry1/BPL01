@@ -16,8 +16,8 @@ describe('Event Controller', () => {
       body: {},
       user: { id: 'user1' },
       loaders: {
-        eventWithIncludeLoader: { load: jest.fn<any>() },
-        eventLoader: { load: jest.fn<any>() }
+        eventWithIncludeLoader: { load: jest.fn() },
+        eventLoader: { load: jest.fn() }
       }
     } as any;
 
@@ -41,7 +41,7 @@ describe('Event Controller', () => {
 
   test('getEventById should return event', async () => {
     const mockEvent = { id: '1' };
-    (mockRequest.loaders!.eventWithIncludeLoader.load as jest.Mock).mockResolvedValue(mockEvent);
+    ((mockRequest as any).loaders.eventWithIncludeLoader.load as any).mockResolvedValue(mockEvent);
     jest.spyOn(eventService, 'getEventById').mockResolvedValue(mockEvent as any);
     mockRequest.params = { id: '1' };
 
@@ -50,10 +50,15 @@ describe('Event Controller', () => {
   });
 
   test('getEventById should throw not found', async () => {
-    (mockRequest.loaders!.eventWithIncludeLoader.load as jest.Mock).mockResolvedValue(null);
+    ((mockRequest as any).loaders.eventWithIncludeLoader.load as any).mockResolvedValue(null);
     mockRequest.params = { id: '1' };
 
-    await expect(eventController.EventController.getEventById(mockRequest as Request, mockResponse as Response, mockNext)).rejects.toThrow(ApiError);
+    await eventController.EventController.getEventById(mockRequest as Request, mockResponse as Response, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+    expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+      statusCode: 404,
+      message: 'Event not found'
+    }));
   });
 
   test('createEvent should create event', async () => {
@@ -63,12 +68,12 @@ describe('Event Controller', () => {
     mockRequest.body = {
       title: 'Test Event',
       description: 'Description',
-      startDate: new Date().toISOString(),
-      endDate: new Date().toISOString(),
-      location: 'Test Location',
+      start_date: new Date().toISOString(),
+      end_date: new Date().toISOString(),
+      venue_id: '123e4567-e89b-12d3-a456-426614174000',
       category: 'Music',
-      ticketCategories: [
-        { name: 'General', price: 100, totalSeats: 50 }
+      ticket_types: [
+        { name: 'General', price: 100, quantity: 50 }
       ]
     };
 
@@ -87,8 +92,8 @@ describe('Event Controller', () => {
   });
 
   test('deleteEvent should delete event', async () => {
-    (mockRequest.loaders!.eventLoader.load as jest.Mock).mockResolvedValue({ id: '1' });
-    jest.spyOn(eventService, 'deleteEvent').mockResolvedValue(undefined);
+    ((mockRequest as any).loaders.eventLoader.load as any).mockResolvedValue({ id: '1' });
+    jest.spyOn(eventService, 'deleteEvent').mockResolvedValue({ id: '1' } as any);
     mockRequest.params = { id: '1' };
 
     await eventController.EventController.deleteEvent(mockRequest as Request, mockResponse as Response, mockNext);

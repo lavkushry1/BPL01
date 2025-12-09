@@ -48,7 +48,7 @@ const getPaymentByBookingSchema = z.object({
       required_error: 'Booking ID is required'
     })
   })
-});
+}).passthrough();
 
 const recordUpiPaymentSchema = z.object({
   body: z.object({
