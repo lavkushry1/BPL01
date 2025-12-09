@@ -5,8 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
-const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 // Define environment-specific .env file paths
 const envFiles = {
     production: '.env.production',
@@ -192,8 +192,8 @@ const redactSensitiveInfo = (cfg) => {
 // Run validation
 try {
     validateConfig(exports.config);
-    // Log configuration in non-production environments
-    if (!exports.config.isProduction) {
+    // Log configuration in non-production and non-test environments
+    if (!exports.config.isProduction && !exports.config.isTest) {
         console.log('App configuration:', JSON.stringify(redactSensitiveInfo(exports.config), null, 2));
     }
 }

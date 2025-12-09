@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const discount_controller_1 = require("../controllers/discount.controller");
-const validate_1 = require("../middleware/validate");
 const auth_1 = require("../middleware/auth");
-const zod_1 = require("zod");
+const validate_1 = require("../middleware/validate");
+const discountValidation = __importStar(require("../validations/discount.validation"));
 const router = (0, express_1.Router)();
 /**
  * @swagger
@@ -77,62 +110,6 @@ const router = (0, express_1.Router)();
  *         discount_value:
  *           type: number
  */
-// Validation schemas
-const createDiscountSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        code: zod_1.z.string().min(3).max(30),
-        type: zod_1.z.enum(['PERCENTAGE', 'FIXED']),
-        value: zod_1.z.number().positive(),
-        max_uses: zod_1.z.number().int().min(0).optional(),
-        min_amount: zod_1.z.number().min(0).optional(),
-        start_date: zod_1.z.string().datetime(),
-        end_date: zod_1.z.string().datetime(),
-        is_active: zod_1.z.boolean().optional(),
-        description: zod_1.z.string().optional(),
-        event_ids: zod_1.z.array(zod_1.z.string().uuid()).optional(),
-    }),
-});
-const updateDiscountSchema = zod_1.z.object({
-    params: zod_1.z.object({
-        id: zod_1.z.string().uuid(),
-    }),
-    body: zod_1.z.object({
-        code: zod_1.z.string().min(3).max(30).optional(),
-        type: zod_1.z.enum(['PERCENTAGE', 'FIXED']).optional(),
-        value: zod_1.z.number().positive().optional(),
-        max_uses: zod_1.z.number().int().min(0).optional(),
-        min_amount: zod_1.z.number().min(0).optional(),
-        start_date: zod_1.z.string().datetime().optional(),
-        end_date: zod_1.z.string().datetime().optional(),
-        is_active: zod_1.z.boolean().optional(),
-        description: zod_1.z.string().optional(),
-        event_ids: zod_1.z.array(zod_1.z.string().uuid()).optional(),
-    }),
-});
-const applyDiscountSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        code: zod_1.z.string().min(1),
-        amount: zod_1.z.number().positive(),
-        event_id: zod_1.z.string().uuid().optional(),
-    }),
-});
-const validateDiscountSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        code: zod_1.z.string().min(1),
-        booking_id: zod_1.z.string().uuid(),
-        total_amount: zod_1.z.number().positive(),
-    }),
-});
-const getByIdSchema = zod_1.z.object({
-    params: zod_1.z.object({
-        id: zod_1.z.string().uuid(),
-    }),
-});
-const getByCodeSchema = zod_1.z.object({
-    params: zod_1.z.object({
-        code: zod_1.z.string().min(1),
-    }),
-});
 /**
  * @swagger
  * tags:
@@ -259,7 +236,7 @@ router.get('/', (0, auth_1.auth)('admin'), discount_controller_1.DiscountControl
  *       500:
  *         description: Server error
  */
-router.get('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(getByIdSchema), discount_controller_1.DiscountController.getDiscountById);
+router.get('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(discountValidation.getByIdSchema), discount_controller_1.DiscountController.getDiscountById);
 /**
  * @swagger
  * /api/v1/discounts/code/{code}:
@@ -301,7 +278,7 @@ router.get('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(getByIdSc
  *       500:
  *         description: Server error
  */
-router.get('/code/:code', (0, auth_1.auth)(), (0, validate_1.validate)(getByCodeSchema), discount_controller_1.DiscountController.getDiscountByCode);
+router.get('/code/:code', (0, auth_1.auth)(), (0, validate_1.validate)(discountValidation.getByCodeSchema), discount_controller_1.DiscountController.getDiscountByCode);
 /**
  * @swagger
  * /api/v1/discounts:
@@ -390,7 +367,7 @@ router.get('/code/:code', (0, auth_1.auth)(), (0, validate_1.validate)(getByCode
  *       500:
  *         description: Server error
  */
-router.post('/', (0, auth_1.auth)('admin'), (0, validate_1.validate)(createDiscountSchema), discount_controller_1.DiscountController.createDiscount);
+router.post('/', (0, auth_1.auth)('admin'), (0, validate_1.validate)(discountValidation.createDiscountSchema), discount_controller_1.DiscountController.createDiscount);
 /**
  * @swagger
  * /api/v1/discounts/{id}:
@@ -472,7 +449,7 @@ router.post('/', (0, auth_1.auth)('admin'), (0, validate_1.validate)(createDisco
  *       500:
  *         description: Server error
  */
-router.put('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(updateDiscountSchema), discount_controller_1.DiscountController.updateDiscount);
+router.put('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(discountValidation.updateDiscountSchema), discount_controller_1.DiscountController.updateDiscount);
 /**
  * @swagger
  * /api/v1/discounts/{id}:
@@ -515,7 +492,7 @@ router.put('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(updateDis
  *       500:
  *         description: Server error
  */
-router.delete('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(getByIdSchema), discount_controller_1.DiscountController.deleteDiscount);
+router.delete('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(discountValidation.getByIdSchema), discount_controller_1.DiscountController.deleteDiscount);
 /**
  * @swagger
  * /api/v1/discounts/apply:
@@ -583,7 +560,7 @@ router.delete('/:id', (0, auth_1.auth)('admin'), (0, validate_1.validate)(getByI
  *       500:
  *         description: Server error
  */
-router.post('/apply', (0, validate_1.validate)(applyDiscountSchema), discount_controller_1.DiscountController.applyDiscount);
+router.post('/apply', (0, validate_1.validate)(discountValidation.applyDiscountSchema), discount_controller_1.DiscountController.applyDiscount);
 /**
  * @swagger
  * /api/discounts/validate:
@@ -654,7 +631,7 @@ router.post('/apply', (0, validate_1.validate)(applyDiscountSchema), discount_co
  *       500:
  *         description: Server error
  */
-router.post('/validate', (0, validate_1.validate)(validateDiscountSchema), discount_controller_1.DiscountController.validateDiscountCode);
+router.post('/validate', (0, validate_1.validate)(discountValidation.validateDiscountSchema), discount_controller_1.DiscountController.validateDiscountCode);
 /**
  * @swagger
  * /api/discounts/auto-apply:
@@ -696,61 +673,6 @@ router.post('/validate', (0, validate_1.validate)(validateDiscountSchema), disco
  *       500:
  *         description: Server error
  */
-router.get('/auto-apply', (0, validate_1.validate)(zod_1.z.object({
-    query: zod_1.z.object({
-        eventId: zod_1.z.string().uuid()
-    })
-})), discount_controller_1.DiscountController.getAutoApplyDiscount);
-/**
- * @swagger
- * /api/discounts/validate:
- *   post:
- *     summary: Validate a discount code
- *     tags: [Discounts]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - code
- *               - amount
- *             properties:
- *               code:
- *                 type: string
- *               amount:
- *                 type: number
- *               eventId:
- *                 type: string
- *                 format: uuid
- *     responses:
- *       200:
- *         description: Discount validated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 data:
- *                   type: object
- *                   properties:
- *                     valid:
- *                       type: boolean
- *                     discount:
- *                       $ref: '#/components/schemas/Discount'
- *                     finalAmount:
- *                       type: number
- *                     message:
- *                       type: string
- *       400:
- *         description: Invalid discount code or validation error
- *       500:
- *         description: Server error
- */
-router.post('/validate', (0, validate_1.validate)(applyDiscountSchema), discount_controller_1.DiscountController.validateDiscountCode);
+router.get('/auto-apply', (0, validate_1.validate)(discountValidation.getAutoApplyDiscountSchema), discount_controller_1.DiscountController.getAutoApplyDiscount);
 exports.default = router;
 //# sourceMappingURL=discount.routes.js.map

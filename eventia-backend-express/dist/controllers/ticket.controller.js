@@ -7,8 +7,8 @@ exports.TicketController = void 0;
 const ticket_service_1 = require("../services/ticket.service");
 const apiError_1 = require("../utils/apiError");
 const apiResponse_1 = require("../utils/apiResponse");
-const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 /**
  * @class TicketController
  * @description Controller for ticket-related operations

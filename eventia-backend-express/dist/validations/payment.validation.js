@@ -10,8 +10,7 @@ exports.initializePaymentSchema = zod_1.z.object({
         payment_method: zod_1.z.enum(['upi', 'card', 'netbanking', 'wallet'], {
             errorMap: () => ({ message: 'Invalid payment method' })
         }),
-        currency: zod_1.z.string().default('INR').optional(),
-        user_id: zod_1.z.string().uuid('Invalid user ID format')
+        currency: zod_1.z.string().default('INR').optional()
     }),
     params: zod_1.z.object({}),
     query: zod_1.z.object({})

@@ -4,9 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.stream = exports.logger = void 0;
-const winston_1 = __importDefault(require("winston"));
-const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const winston_1 = __importDefault(require("winston"));
 // Create logs directory if it doesn't exist
 const logDir = path_1.default.join(process.cwd(), 'logs');
 if (!fs_1.default.existsSync(logDir)) {
@@ -53,8 +53,8 @@ exports.stream = {
         exports.logger.info(message.trim());
     }
 };
-// Override console methods to use Winston (in non-production environments)
-if (process.env.NODE_ENV !== 'production') {
+// Override console methods to use Winston (in development only, NOT in tests)
+if (process.env.NODE_ENV === 'development') {
     console.log = (message, ...args) => {
         exports.logger.info(message, ...args);
         return message;

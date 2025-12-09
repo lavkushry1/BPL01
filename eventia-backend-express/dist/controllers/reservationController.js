@@ -3,24 +3,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateTickets = exports.verifyUTR = exports.processPayment = exports.createReservation = void 0;
+exports.generateTickets = exports.verifyUTR = exports.processPayment = exports.updateReservation = exports.createReservation = void 0;
 const express_validator_1 = require("express-validator");
-// Importing services needed for UTR verification
-const payment_service_1 = require("../services/payment.service");
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const qrcode_1 = __importDefault(require("qrcode"));
-// Service to handle reservation operations
-class ReservationService {
-    static async updateReservationStatus(reservationId, status) {
-        // TODO: Implement actual database update logic
-        console.log(`Updating reservation ${reservationId} to status: ${status}`);
-    }
-}
-// Payment gateway interface
+const payment_service_1 = require("../services/payment.service");
+const reservation_service_1 = require("../services/reservation.service");
+const apiError_1 = require("../utils/apiError");
+// Payment gateway interface (Mock for now, but integrated into flow)
 class PaymentGateway {
     static async verifyUTRPayment(utrNumber) {
-        // TODO: Implement actual UTR verification with banking API
-        // This is a mock implementation that considers a UTR valid if it has 12 digits
+        // In a real app, this would call a banking API
+        // For now, we validate the format (12 digits)
         return /^\d{12}$/.test(utrNumber);
     }
 }
@@ -30,28 +24,56 @@ const createReservation = async (req, res) => {
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-        const { eventId, tickets } = req.body;
-        // TODO: Implement actual database integration
-        const reservation = {
+        const { eventId, tickets, totalAmount } = req.body;
+        // @ts-ignore - User is attached by auth middleware
+        const userId = req.user.id;
+        const booking = await reservation_service_1.reservationService.createReservation({
+            userId,
             eventId,
             tickets,
-            totalAmount: calculateTotal(tickets),
-            paymentStatus: 'pending'
-        };
+            totalAmount // Optional, service will calculate if missing
+        });
         res.status(201).json({
             success: true,
-            reservationId: 'TEMPORARY_RESERVATION_ID',
+            reservationId: booking.id,
             paymentDeadline: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
         });
     }
     catch (error) {
         console.error('Reservation error:', error);
-        res.status(500).json({ error: 'Failed to create reservation' });
+        const status = error instanceof apiError_1.ApiError ? error.statusCode : 500;
+        const message = error instanceof apiError_1.ApiError ? error.message : 'Failed to create reservation';
+        res.status(status).json({ error: message });
     }
 };
 exports.createReservation = createReservation;
+const updateReservation = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        if (!status) {
+            return res.status(400).json({ error: 'Status is required' });
+        }
+        // Validate status enum if needed, but service/prisma will throw if invalid
+        const booking = await reservation_service_1.reservationService.updateReservation(id, { status });
+        res.json({
+            success: true,
+            message: 'Reservation updated successfully',
+            reservation: booking
+        });
+    }
+    catch (error) {
+        console.error('Update reservation error:', error);
+        res.status(500).json({
+            error: 'Failed to update reservation',
+            details: error.message
+        });
+    }
+};
+exports.updateReservation = updateReservation;
 const processPayment = async (req, res) => {
-    // Payment processing logic
+    // Payment processing logic placeholder
+    res.status(501).json({ message: 'Not implemented' });
 };
 exports.processPayment = processPayment;
 const verifyUTR = async (req, res) => {
@@ -62,38 +84,28 @@ const verifyUTR = async (req, res) => {
         if (!isValidUTR) {
             return res.status(400).json({ error: 'Invalid UTR format' });
         }
-        // Assume we're getting some payment or null response 
-        // Safely convert to our expected type using unknown as an intermediate step
-        const rawPayment = await payment_service_1.paymentService.getPaymentByBookingId(reservationId);
-        // Convert to unknown first, then to our Payment interface
-        const existingPayment = rawPayment ? {
-            id: typeof rawPayment.id === 'string' ? rawPayment.id : '',
-            booking_id: typeof rawPayment.bookingId === 'string' ? rawPayment.bookingId : '',
-            amount: typeof rawPayment.amount === 'number' ? rawPayment.amount : 0,
-            status: typeof rawPayment.status === 'string' ? rawPayment.status : ''
-        } : null;
-        const isDuplicate = !!existingPayment;
-        if (isDuplicate) {
-            return res.status(409).json({ error: 'Duplicate UTR detected' });
+        // Fetch the booking to get the amount
+        const booking = await reservation_service_1.reservationService.getReservationById(reservationId);
+        if (!booking) {
+            return res.status(404).json({ error: 'Reservation not found' });
         }
-        // Verify payment with banking API
+        // Verify payment with "Banking API"
         const paymentVerified = await PaymentGateway.verifyUTRPayment(utrNumber);
         if (!paymentVerified) {
             return res.status(402).json({ error: 'Payment verification failed' });
         }
-        // Update reservation status
-        await payment_service_1.paymentService.createPayment({
+        // Record the UTR submission
+        await payment_service_1.paymentService.createUTRPayment({
             booking_id: reservationId,
-            amount: 0, // Default amount if no existing payment
+            amount: booking.finalAmount.toNumber(),
             utr_number: utrNumber,
-            status: 'pending'
+            status: 'pending' // Pending admin approval
         });
-        await ReservationService.updateReservationStatus(reservationId, 'paid');
         res.json({
             success: true,
-            message: 'Payment verified successfully',
+            message: 'Payment submitted for verification',
             verifiedAt: new Date().toISOString(),
-            nextSteps: ['generate_tickets']
+            nextSteps: ['wait_for_admin_verification']
         });
     }
     catch (error) {
@@ -108,19 +120,24 @@ exports.verifyUTR = verifyUTR;
 const generateTickets = async (req, res) => {
     try {
         const { reservationId } = req.body;
-        // TODO: Fetch actual reservation data from database
-        const mockReservation = {
-            eventId: 'EVENT_123',
-            eventTitle: 'Sample Event',
-            tickets: {
-                'Standard': 2,
-                'VIP': 1
-            },
-            totalAmount: 8500,
-            userEmail: 'user@example.com'
+        // Fetch actual reservation data
+        const booking = await reservation_service_1.reservationService.getReservationById(reservationId);
+        if (!booking) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+        if (booking.status !== 'CONFIRMED') {
+            return res.status(400).json({ error: 'Booking is not confirmed' });
+        }
+        // Prepare data for PDF
+        const reservationData = {
+            eventId: booking.eventId,
+            eventTitle: booking.event?.title || 'Event',
+            tickets: booking.seats,
+            totalAmount: Number(booking.finalAmount),
+            userEmail: booking.user?.email || 'user@example.com'
         };
         // Generate PDF ticket
-        const pdfBuffer = await generateTicketPDF(mockReservation);
+        const pdfBuffer = await generateTicketPDF(reservationData);
         // Set response headers for PDF download
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=tickets-${reservationId}.pdf`);
@@ -146,31 +163,25 @@ const generateTicketPDF = async (reservation) => {
             const qrData = `EventID:${reservation.eventId}|Email:${reservation.userEmail}`;
             const qrImage = await qrcode_1.default.toBuffer(qrData);
             // Create ticket for each category
-            Object.entries(reservation.tickets).forEach(([category, quantity]) => {
-                for (let i = 0; i < quantity; i++) {
-                    doc.fontSize(18).text(`Event: ${reservation.eventTitle}`);
-                    doc.fontSize(12).text(`Category: ${category}`);
-                    doc.text(`Ticket ${i + 1} of ${quantity}`);
-                    doc.image(qrImage, { width: 100 });
-                    doc.moveDown(2);
-                }
-            });
+            if (reservation.tickets) {
+                Object.entries(reservation.tickets).forEach(([category, quantity]) => {
+                    for (let i = 0; i < quantity; i++) {
+                        doc.fontSize(18).text(`Event: ${reservation.eventTitle}`);
+                        doc.fontSize(12).text(`Category: ${category}`);
+                        doc.text(`Ticket ${i + 1} of ${quantity}`);
+                        doc.image(qrImage, { width: 100 });
+                        doc.moveDown(2);
+                    }
+                });
+            }
+            else {
+                doc.text('No seat details available');
+            }
             doc.end();
         }
         catch (error) {
             reject(error);
         }
     });
-};
-const calculateTotal = (tickets) => {
-    // Get actual ticket prices from database (mocked here)
-    const ticketPrices = {
-        'Standard': 1500,
-        'VIP': 3500,
-        'Premium': 5000
-    };
-    return Object.entries(tickets).reduce((sum, [category, qty]) => {
-        return sum + (qty * (ticketPrices[category] || 0));
-    }, 0);
 };
 //# sourceMappingURL=reservationController.js.map

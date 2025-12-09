@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const apiError_1 = require("../utils/apiError");
 const jwt_1 = require("../utils/jwt");
 class AuthService {
@@ -25,7 +25,7 @@ class AuthService {
             throw new apiError_1.ApiError(401, 'Invalid email or password');
         }
         // Verify password
-        const isPasswordValid = await bcrypt_1.default.compare(password, user.password);
+        const isPasswordValid = await bcryptjs_1.default.compare(password, user.password);
         if (!isPasswordValid) {
             throw new apiError_1.ApiError(401, 'Invalid email or password');
         }
@@ -55,7 +55,7 @@ class AuthService {
             throw new apiError_1.ApiError(409, 'Email already in use');
         }
         // Hash password
-        const hashedPassword = await bcrypt_1.default.hash(password, 10);
+        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         // Create user
         const user = await this.userRepository.create({
             email,

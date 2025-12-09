@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DiscountController = void 0;
 const discount_service_1 = require("../services/discount.service");
+const apiError_1 = require("../utils/apiError");
 const apiResponse_1 = require("../utils/apiResponse");
 const asyncHandler_1 = require("../utils/asyncHandler");
-const apiError_1 = require("../utils/apiError");
 /**
  * Controller for handling discount operations
  */
@@ -124,13 +124,7 @@ class DiscountController {
     static applyDiscount = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
             const { code, amount } = req.body;
-            if (!code || !amount) {
-                throw new apiError_1.ApiError(400, 'Discount code and amount are required');
-            }
             const parsedAmount = parseFloat(amount);
-            if (isNaN(parsedAmount) || parsedAmount <= 0) {
-                throw new apiError_1.ApiError(400, 'Amount must be a positive number');
-            }
             const validation = await discount_service_1.discountService.validateDiscountCode(code);
             if (!validation || !validation.valid) {
                 throw new apiError_1.ApiError(400, validation?.message || 'Invalid discount code');
@@ -158,13 +152,7 @@ class DiscountController {
     static validateDiscountCode = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
             const { code, amount } = req.body;
-            if (!code || !amount) {
-                throw new apiError_1.ApiError(400, 'Discount code and amount are required');
-            }
             const parsedAmount = parseFloat(amount);
-            if (isNaN(parsedAmount) || parsedAmount <= 0) {
-                throw new apiError_1.ApiError(400, 'Amount must be a positive number');
-            }
             const validation = await discount_service_1.discountService.validateDiscountCode(code);
             // If validation failed, return the error message
             if (!validation || !validation.valid) {
@@ -195,9 +183,6 @@ class DiscountController {
     static getAutoApplyDiscount = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         try {
             const { eventId } = req.query;
-            if (!eventId) {
-                throw new apiError_1.ApiError(400, 'Event ID is required');
-            }
             const discount = await discount_service_1.discountService.getAutoApplyDiscountForEvent(eventId);
             if (!discount) {
                 return apiResponse_1.ApiResponse.success(res, 200, 'No auto-apply discount found', {

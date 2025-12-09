@@ -1,97 +1,131 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cancelBooking = exports.updateBookingStatus = exports.saveDeliveryDetails = exports.getBookingById = exports.createBooking = void 0;
-const apiError_1 = require("../utils/apiError");
-const db_1 = require("../db");
+exports.cancelBooking = exports.updateBookingStatus = exports.saveDeliveryDetails = exports.getBookingById = exports.getUserBookings = exports.createBooking = void 0;
 const uuid_1 = require("uuid");
-const asyncHandler_1 = require("../utils/asyncHandler");
-const websocket_service_1 = require("../services/websocket.service");
+const db_1 = require("../db");
 const seat_1 = require("../models/seat");
+const websocket_service_1 = require("../services/websocket.service");
+const apiError_1 = require("../utils/apiError");
+const asyncHandler_1 = require("../utils/asyncHandler");
+/**
+ * Create a new booking
+ */
+const booking_validation_1 = require("@/validations/booking.validation");
+const apiResponse_1 = require("../utils/apiResponse");
 /**
  * Create a new booking
  */
 exports.createBooking = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const { event_id, user_id, seat_ids, amount, payment_method } = req.body;
-    // Validate required fields
-    if (!event_id || !user_id || !amount || !payment_method) {
-        throw apiError_1.ApiError.badRequest('Missing required booking information');
-    }
-    // Check if event exists and has enough capacity
-    const event = await (0, db_1.db)('events')
-        .select('id', 'capacity', 'booked_count')
-        .where('id', event_id)
-        .first();
-    if (!event) {
-        throw apiError_1.ApiError.notFound('Event not found');
-    }
-    // Process booking with transaction to ensure data integrity
-    const newBooking = await db_1.db.transaction(async (trx) => {
-        // Create booking record
-        const booking_id = (0, uuid_1.v4)();
-        const [booking] = await trx('bookings')
-            .insert({
-            id: booking_id,
-            event_id,
-            user_id,
-            amount,
-            payment_method,
-            status: 'PENDING',
-            created_at: trx.fn.now(),
-            updated_at: trx.fn.now()
-        })
-            .returning('*');
-        // If seat_ids are provided, reserve those seats
-        if (seat_ids && seat_ids.length > 0) {
-            const seats = { seat_ids, booking_id };
-            // Update seat status to booked
-            await trx('seats')
-                .update({
-                status: seat_1.SeatStatus.BOOKED,
-                booking_id: booking_id,
-                updated_at: trx.fn.now()
-            })
-                .whereIn('id', seats.seat_ids);
-            // Notify other clients that seats have been booked
-            websocket_service_1.WebsocketService.notifySeatStatusChange(seats.seat_ids, seat_1.SeatStatus.BOOKED);
+    try {
+        const { body: validatedData } = booking_validation_1.createBookingSchema.parse({ body: req.body });
+        const { event_id, seat_ids, amount } = validatedData;
+        const user_id = req.user?.id;
+        if (!user_id) {
+            throw apiError_1.ApiError.unauthorized('User not authenticated');
         }
-        return booking;
-    });
-    return res.status(201).json({
-        status: 'success',
-        data: newBooking
-    });
+        // Process booking with transaction to ensure data integrity
+        const newBooking = await db_1.db.transaction(async (trx) => {
+            // 1. Check if event exists
+            const event = await trx('events')
+                .select('id')
+                .where('id', event_id)
+                .forUpdate() // Lock the event row
+                .first();
+            if (!event) {
+                throw apiError_1.ApiError.notFound('Event not found');
+            }
+            // 2. Create booking record
+            const booking_id = (0, uuid_1.v4)();
+            const [booking] = await trx('bookings')
+                .insert({
+                id: booking_id,
+                event_id,
+                user_id,
+                final_amount: amount,
+                status: 'PENDING',
+                createdAt: trx.fn.now(),
+                updatedAt: trx.fn.now()
+            })
+                .returning('*');
+            // 4. Handle Seats or General Admission
+            if (seat_ids && seat_ids.length > 0) {
+                // Pessimistically lock requested seats to prevent double booking
+                const seats = await trx('seats')
+                    .whereIn('id', seat_ids)
+                    .forUpdate()
+                    .select('id', 'status');
+                if (seats.length !== seat_ids.length) {
+                    throw apiError_1.ApiError.badRequest('One or more seats were not found');
+                }
+                const unavailableSeats = seats.filter(seat => seat.status !== seat_1.SeatStatus.AVAILABLE);
+                if (unavailableSeats.length > 0) {
+                    throw apiError_1.ApiError.conflict('One or more seats are no longer available', 'SEAT_NOT_AVAILABLE', { unavailableSeats: unavailableSeats.map(s => s.id) });
+                }
+                // Update seat status to booked
+                await trx('seats')
+                    .update({
+                    status: seat_1.SeatStatus.BOOKED,
+                    booking_id: booking_id,
+                    updatedAt: trx.fn.now()
+                })
+                    .whereIn('id', seat_ids);
+                // Notify other clients that seats have been booked
+                websocket_service_1.WebsocketService.notifySeatStatusChange(seat_ids, seat_1.SeatStatus.BOOKED);
+            }
+            return booking;
+        });
+        return apiResponse_1.ApiResponse.created(res, newBooking, 'Booking created successfully');
+    }
+    catch (error) {
+        console.error('CRITICAL DEBUG - createBooking error:', error);
+        throw error;
+    }
+});
+/**
+ * Get all bookings for the authenticated user
+ */
+exports.getUserBookings = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            throw apiError_1.ApiError.unauthorized('User not authenticated');
+        }
+        const bookings = await (0, db_1.db)('bookings')
+            .select('id', 'event_id', 'user_id', 'status', 'createdAt', 'updatedAt')
+            .where('user_id', userId)
+            .orderBy('createdAt', 'desc');
+        return apiResponse_1.ApiResponse.success(res, 200, 'Bookings fetched successfully', bookings);
+    }
+    catch (error) {
+        throw error;
+    }
 });
 /**
  * Get booking by ID
  */
 exports.getBookingById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { id } = req.params;
-    // Validate booking ID
-    if (!id) {
-        throw apiError_1.ApiError.badRequest('Booking ID is required');
-    }
     // Get booking details
     const booking = await (0, db_1.db)('bookings')
-        .select('*')
+        .select('id', 'event_id', 'user_id', 'status', 'createdAt', 'updatedAt')
         .where('id', id)
         .first();
     if (!booking) {
         throw apiError_1.ApiError.notFound('Booking not found');
     }
-    return res.status(200).json({
-        status: 'success',
-        data: booking
-    });
+    // User can only view their own bookings unless they're an admin
+    const userId = req.user?.id;
+    if (booking.user_id !== userId && req.user?.role !== 'ADMIN') {
+        throw apiError_1.ApiError.forbidden('You are not authorized to view this booking');
+    }
+    return apiResponse_1.ApiResponse.success(res, 200, 'Booking fetched successfully', booking);
 });
 /**
  * Save delivery details
  */
 exports.saveDeliveryDetails = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const { booking_id, name, phone, address, city, pincode } = req.body;
-    // Validate required fields
-    if (!booking_id || !name || !phone || !address || !city || !pincode) {
-        throw apiError_1.ApiError.badRequest('Missing required delivery details');
-    }
+    const { body: validatedData } = booking_validation_1.saveDeliveryDetailsSchema.parse({ body: req.body });
+    const { booking_id, name, phone, address, city, pincode } = validatedData;
     // Check if booking exists
     const booking = await (0, db_1.db)('bookings')
         .select('id')
@@ -116,7 +150,7 @@ exports.saveDeliveryDetails = (0, asyncHandler_1.asyncHandler)(async (req, res) 
                 address,
                 city,
                 pincode,
-                updated_at: trx.fn.now()
+                updatedAt: trx.fn.now()
             })
                 .returning('*');
         }
@@ -131,27 +165,20 @@ exports.saveDeliveryDetails = (0, asyncHandler_1.asyncHandler)(async (req, res) 
                 address,
                 city,
                 pincode,
-                created_at: trx.fn.now(),
-                updated_at: trx.fn.now()
+                createdAt: trx.fn.now(),
+                updatedAt: trx.fn.now()
             })
                 .returning('*');
         }
     });
-    return res.status(201).json({
-        status: 'success',
-        data: deliveryDetails
-    });
+    return apiResponse_1.ApiResponse.created(res, deliveryDetails, 'Delivery details saved successfully');
 });
 /**
  * Update booking status
  */
 exports.updateBookingStatus = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body;
-    // Validate required fields
-    if (!id || !status) {
-        throw apiError_1.ApiError.badRequest('Booking ID and status are required');
-    }
+    const { body: { status } } = booking_validation_1.updateBookingStatusSchema.parse({ params: req.params, body: req.body });
     // Check if booking exists
     const booking = await (0, db_1.db)('bookings')
         .select('id')
@@ -165,20 +192,17 @@ exports.updateBookingStatus = (0, asyncHandler_1.asyncHandler)(async (req, res) 
         .where('id', id)
         .update({
         status,
-        updated_at: db_1.db.fn.now()
+        updatedAt: db_1.db.fn.now()
     })
         .returning('*');
-    return res.status(200).json({
-        status: 'success',
-        data: updatedBooking
-    });
+    return apiResponse_1.ApiResponse.success(res, 200, 'Booking status updated successfully', updatedBooking);
 });
 /**
  * Cancel booking
  */
 exports.cancelBooking = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { id } = req.params;
-    const { cancellation_reason } = req.body;
+    const {} = booking_validation_1.cancelBookingSchema.parse({ params: req.params, body: req.body });
     // Check if booking exists
     const booking = await (0, db_1.db)('bookings')
         .select('*')
@@ -186,6 +210,11 @@ exports.cancelBooking = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         .first();
     if (!booking) {
         throw apiError_1.ApiError.notFound('Booking not found', 'BOOKING_NOT_FOUND');
+    }
+    // User can only cancel their own bookings unless they're an admin
+    const userId = req.user?.id;
+    if (booking.user_id !== userId && req.user?.role !== 'ADMIN') {
+        throw apiError_1.ApiError.forbidden('You are not authorized to cancel this booking');
     }
     // Validate cancellation is allowed
     if (booking.status === 'CANCELLED') {
@@ -218,58 +247,56 @@ exports.cancelBooking = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
             .where('id', id)
             .update({
             status: 'CANCELLED',
-            cancelled_at: new Date(),
-            cancellation_reason: cancellation_reason || 'User requested cancellation',
-            updated_at: trx.fn.now()
+            updatedAt: trx.fn.now()
         })
             .returning('*');
-        // Update seats to available
-        await trx('seats')
-            .where('booking_id', id)
-            .update({
-            status: 'available',
-            booking_id: null,
-            updated_at: trx.fn.now()
-        });
-        // If payment exists, mark for refund if it was verified
+        // Get booked seats
+        const bookedSeats = await trx('booked_seats')
+            .select('seat_id')
+            .where('booking_id', id);
+        const seatIds = bookedSeats.map((bs) => bs.seat_id);
+        if (seatIds.length > 0) {
+            // Release seats
+            await trx('seats')
+                .whereIn('id', seatIds)
+                .update({
+                status: 'AVAILABLE',
+                updatedAt: trx.fn.now()
+            });
+        }
+        // Check for payment associated with this booking
         const payment = await trx('booking_payments')
+            .select('id', 'status')
             .where('booking_id', id)
-            .where('status', 'verified')
             .first();
-        let paymentUpdate = null;
-        if (payment) {
-            [paymentUpdate] = await trx('booking_payments')
+        // If payment exists and was verified, mark for refund
+        let paymentRefunded = false;
+        if (payment && payment.status === 'verified') {
+            await trx('booking_payments')
                 .where('id', payment.id)
                 .update({
                 status: 'refunded',
-                refunded_at: new Date(),
-                notes: 'Booking cancelled by user, automatic refund initiated',
-                updated_at: trx.fn.now()
+                updatedAt: trx.fn.now()
             })
                 .returning('*');
+            paymentRefunded = true;
         }
         return {
             cancelledBooking,
-            paymentRefunded: !!paymentUpdate
+            paymentRefunded
         };
     });
     // Notify through WebSocket if available
     try {
         websocket_service_1.WebsocketService.notifyBookingUpdate(id, 'cancelled');
     }
-    catch (wsError) {
-        // Log WebSocket error but don't fail the request
-        console.error('WebSocket notification failed:', wsError);
+    catch (error) {
     }
-    return res.status(200).json({
-        status: 'success',
-        message: 'Booking cancelled successfully',
-        data: {
-            booking_id: result.cancelledBooking.id,
-            status: result.cancelledBooking.status,
-            cancelled_at: result.cancelledBooking.cancelled_at,
-            refund_status: result.paymentRefunded ? 'initiated' : 'not_applicable'
-        }
+    return apiResponse_1.ApiResponse.success(res, 200, 'Booking cancelled successfully', {
+        booking_id: result.cancelledBooking.id,
+        status: result.cancelledBooking.status,
+        cancelled_at: result.cancelledBooking.cancelled_at,
+        refund_status: result.paymentRefunded ? 'initiated' : 'not_applicable'
     });
 });
 //# sourceMappingURL=booking.controller.js.map

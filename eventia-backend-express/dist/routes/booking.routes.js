@@ -35,9 +35,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const booking_controller_1 = require("../controllers/booking.controller");
+const auth_1 = require("../middleware/auth");
 const validate_1 = require("../middleware/validate");
 const bookingValidation = __importStar(require("../validations/booking.validation"));
-const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 /**
  * @swagger
@@ -69,7 +69,18 @@ const router = (0, express_1.Router)();
  *       201:
  *         description: Booking created successfully
  */
-router.post('/', booking_controller_1.createBooking);
+router.post('/', auth_1.authenticate, (0, validate_1.validate)(bookingValidation.createBookingSchema), booking_controller_1.createBooking);
+/**
+ * @swagger
+ * /api/bookings:
+ *   get:
+ *     summary: Get all bookings for authenticated user
+ *     tags: [Bookings]
+ *     responses:
+ *       200:
+ *         description: User bookings
+ */
+router.get('/', auth_1.authenticate, booking_controller_1.getUserBookings);
 /**
  * @swagger
  * /api/bookings/{id}:
@@ -87,7 +98,7 @@ router.post('/', booking_controller_1.createBooking);
  *       200:
  *         description: Booking details
  */
-router.get('/:id', booking_controller_1.getBookingById);
+router.get('/:id', auth_1.authenticate, (0, validate_1.validate)(bookingValidation.getBookingSchema), booking_controller_1.getBookingById);
 /**
  * @swagger
  * /api/bookings/delivery-details:
@@ -111,7 +122,7 @@ router.get('/:id', booking_controller_1.getBookingById);
  *       201:
  *         description: Delivery details saved successfully
  */
-router.post('/delivery-details', booking_controller_1.saveDeliveryDetails);
+router.post('/delivery-details', (0, validate_1.validate)(bookingValidation.saveDeliveryDetailsSchema), booking_controller_1.saveDeliveryDetails);
 /**
  * @swagger
  * /api/bookings/{id}/status:
@@ -141,7 +152,7 @@ router.post('/delivery-details', booking_controller_1.saveDeliveryDetails);
  *       200:
  *         description: Booking status updated successfully
  */
-router.put('/:id/status', booking_controller_1.updateBookingStatus);
+router.put('/:id/status', (0, validate_1.validate)(bookingValidation.updateBookingStatusSchema), booking_controller_1.updateBookingStatus);
 /**
  * @swagger
  * /api/bookings/{id}/cancel:

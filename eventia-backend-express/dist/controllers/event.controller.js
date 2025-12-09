@@ -4,16 +4,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listCategories = exports.listIPLMatches = exports.getPublicEventById = exports.listPublicEvents = exports.EventController = void 0;
-const apiError_1 = require("../utils/apiError");
-const asyncHandler_1 = require("../utils/asyncHandler");
-const apiResponse_1 = require("../utils/apiResponse");
-const logger_1 = require("../utils/logger");
 const client_1 = require("@prisma/client");
-const uuid_1 = require("uuid");
-const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-const event_service_1 = require("../services/event.service");
+const http_status_1 = __importDefault(require("http-status"));
+const path_1 = __importDefault(require("path"));
+const uuid_1 = require("uuid");
 const prisma_1 = __importDefault(require("../db/prisma"));
+const event_service_1 = require("../services/event.service");
+const apiError_1 = require("../utils/apiError");
+const apiResponse_1 = require("../utils/apiResponse");
+const asyncHandler_1 = require("../utils/asyncHandler");
+const logger_1 = require("../utils/logger");
+const event_validation_1 = require("../validations/event.validation");
+const event_validator_1 = require("../validators/event.validator");
 /**
  * Controller for handling event operations
  * Responsible for parsing requests, delegating to services, and formatting responses
@@ -66,9 +69,15 @@ class EventController {
         if (!userId) {
             throw apiError_1.ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
         }
+        // Validate request body
+        // Validate request body
+        const { error, value: validatedData } = event_validation_1.createEventSchema.validate(req.body);
+        if (error) {
+            throw new apiError_1.ApiError(http_status_1.default.BAD_REQUEST, error.details[0].message);
+        }
         // Prepare event data from request body
         const eventData = {
-            ...req.body,
+            ...validatedData,
             organizerId: userId,
             // Include any relations we want in the response
             include: ['ticketCategories', 'categories', 'organizer']
@@ -89,9 +98,15 @@ class EventController {
         if (!userId) {
             throw apiError_1.ApiError.unauthorized('Unauthorized', 'UNAUTHORIZED');
         }
+        // Validate request body
+        // Validate request body
+        const { error, value: validatedData } = event_validation_1.updateEventSchema.validate(req.body);
+        if (error) {
+            throw new apiError_1.ApiError(http_status_1.default.BAD_REQUEST, error.details[0].message);
+        }
         // Prepare update data from request body
         const updateData = {
-            ...req.body,
+            ...validatedData,
             // Include any relations we want in the response
             include: ['ticketCategories', 'categories']
         };
@@ -218,12 +233,9 @@ class EventController {
             ...(result.pagination.nextCursor !== undefined && { nextCursor: result.pagination.nextCursor }),
             ...(result.pagination.hasMore !== undefined && { hasMore: result.pagination.hasMore })
         };
-        return res.status(200).json({
-            status: 'success',
-            data: {
-                events: formattedEvents,
-                pagination
-            }
+        return apiResponse_1.ApiResponse.success(res, 200, 'Public events listed successfully', {
+            events: formattedEvents,
+            pagination
         });
     });
     /**
@@ -281,75 +293,59 @@ class EventController {
                 : undefined
         };
         // Return successful response
-        return res.status(200).json({
-            status: 'success',
-            data: eventData
-        });
+        return apiResponse_1.ApiResponse.success(res, 200, 'Event details fetched successfully', eventData);
     });
     /**
      * List IPL matches (cricket events with teams)
      * @route GET /api/public/events/ipl
      */
+    /**
+     * List IPL matches (cricket events with teams)
+     * @route GET /api/public/events/ipl
+     */
     static listIPLMatches = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-        try {
-            logger_1.logger.info("IPL Matches API called");
-            // Get cricket/sports events with "vs" in title
-            const filters = {
-                status: client_1.EventStatus.PUBLISHED,
-                search: "vs", // This will find events with "vs" in title or description
-                limit: 10
-            };
-            const result = await event_service_1.eventService.getAllEvents(filters);
-            // Transform to the expected format
-            const matches = result.events.map(event => ({
-                id: event.id,
-                title: event.title,
-                description: event.description,
-                start_date: event.startDate.toISOString(),
-                end_date: event.endDate.toISOString(),
-                status: event.status,
-                location: event.location,
-                venue: event.location,
-                category: 'Cricket, IPL',
-                teams: {
-                    team1: {
-                        name: event.title.split(' vs ')[0] || 'Team 1',
-                        shortName: (event.title.split(' vs ')[0] || 'Team 1').substring(0, 3).toUpperCase(),
-                        logo: '/teams/default.svg'
-                    },
-                    team2: {
-                        name: event.title.split(' vs ')[1] || 'Team 2',
-                        shortName: (event.title.split(' vs ')[1] || 'Team 2').substring(0, 3).toUpperCase(),
-                        logo: '/teams/default.svg'
-                    }
+        logger_1.logger.info("IPL Matches API called");
+        // Parse query parameters for filtering
+        const filters = EventController.parseEventFilters(req);
+        // Ensure we only return published events
+        filters.status = client_1.EventStatus.PUBLISHED;
+        const result = await event_service_1.eventService.getPublishedEvents(filters);
+        // Transform to the expected format
+        const matches = result.events.map((event) => ({
+            id: event.id,
+            title: event.title,
+            description: event.description,
+            start_date: event.startDate.toISOString(),
+            end_date: event.endDate.toISOString(),
+            status: event.status,
+            location: event.location,
+            venue: event.location,
+            category: 'Cricket, IPL',
+            teams: {
+                team1: {
+                    name: event.title.split(' vs ')[0] || 'Team 1',
+                    shortName: (event.title.split(' vs ')[0] || 'Team 1').substring(0, 3).toUpperCase(),
+                    logo: '/teams/default.svg'
                 },
-                ticketTypes: event.ticketCategories ? event.ticketCategories.map(tc => ({
-                    category: tc.name,
-                    price: parseFloat(tc.price.toString()),
-                    available: tc.totalSeats - tc.bookedSeats,
-                    capacity: tc.totalSeats
-                })) : [],
-                organizer_id: event.organizerId,
-                created_at: event.createdAt.toISOString(),
-                updated_at: event.updatedAt.toISOString(),
-                time: event.startDate.toTimeString().substring(0, 5),
-                duration: '3 hours'
-            }));
-            return res.json({
-                success: true,
-                data: {
-                    matches
+                team2: {
+                    name: event.title.split(' vs ')[1] || 'Team 2',
+                    shortName: (event.title.split(' vs ')[1] || 'Team 2').substring(0, 3).toUpperCase(),
+                    logo: '/teams/default.svg'
                 }
-            });
-        }
-        catch (error) {
-            logger_1.logger.error('Error listing IPL matches:', error);
-            return res.status(500).json({
-                success: false,
-                message: 'Failed to fetch IPL matches',
-                error: error.message
-            });
-        }
+            },
+            ticketTypes: event.ticketCategories ? event.ticketCategories.map((tc) => ({
+                category: tc.name,
+                price: parseFloat(tc.price.toString()),
+                available: tc.totalSeats - tc.bookedSeats,
+                capacity: tc.totalSeats
+            })) : [],
+            organizer_id: event.organizerId,
+            created_at: event.createdAt.toISOString(),
+            updated_at: event.updatedAt.toISOString(),
+            time: event.startDate.toTimeString().substring(0, 5),
+            duration: '3 hours'
+        }));
+        return apiResponse_1.ApiResponse.success(res, 200, 'IPL matches fetched successfully', { matches });
     });
     /**
      * List available event categories
@@ -363,29 +359,14 @@ class EventController {
         if (req.method === 'OPTIONS') {
             return res.status(200).end();
         }
-        try {
-            // Get categories from database
-            const categories = await prisma_1.default.category.findMany({
-                select: {
-                    id: true,
-                    name: true
-                }
-            });
-            return res.json({
-                success: true,
-                data: {
-                    categories
-                }
-            });
-        }
-        catch (error) {
-            logger_1.logger.error('Error listing categories:', error);
-            return res.status(500).json({
-                success: false,
-                message: 'Failed to fetch categories',
-                error: error.message
-            });
-        }
+        // Get categories from database
+        const categories = await prisma_1.default.category.findMany({
+            select: {
+                id: true,
+                name: true
+            }
+        });
+        return apiResponse_1.ApiResponse.success(res, 200, 'Categories fetched successfully', { categories });
     });
     /**
      * Get all seats for an event
@@ -424,13 +405,10 @@ class EventController {
                     });
                 });
             });
-            return res.status(200).json({
-                success: true,
-                data: {
-                    event_id: id,
-                    sections: Object.keys(seatsBySection),
-                    seats: seatsBySection
-                }
+            return apiResponse_1.ApiResponse.success(res, 200, 'Event seats fetched successfully', {
+                event_id: id,
+                sections: Object.keys(seatsBySection),
+                seats: seatsBySection
             });
         }
         catch (error) {
@@ -494,45 +472,46 @@ class EventController {
      * Parse event filters from request query parameters
      */
     static parseEventFilters(req) {
-        // We could destructure, but explicit is clearer
+        // Validate and parse query parameters using Zod
+        const validatedQuery = event_validator_1.eventFilterSchema.parse(req.query);
         const filters = {};
         // Basic filters
-        if (req.query.category)
-            filters.category = req.query.category;
-        if (req.query.date)
-            filters.date = req.query.date;
-        if (req.query.startDate)
-            filters.startDate = req.query.startDate;
-        if (req.query.endDate)
-            filters.endDate = req.query.endDate;
-        if (req.query.search)
-            filters.search = req.query.search;
-        if (req.query.status)
-            filters.status = req.query.status;
-        if (req.query.organizerId)
-            filters.organizerId = req.query.organizerId;
+        if (validatedQuery.category)
+            filters.category = validatedQuery.category;
+        if (validatedQuery.date)
+            filters.date = validatedQuery.date;
+        if (validatedQuery.startDate)
+            filters.startDate = validatedQuery.startDate;
+        if (validatedQuery.endDate)
+            filters.endDate = validatedQuery.endDate;
+        if (validatedQuery.search)
+            filters.search = validatedQuery.search;
+        if (validatedQuery.status)
+            filters.status = validatedQuery.status;
+        if (validatedQuery.organizerId)
+            filters.organizerId = validatedQuery.organizerId;
         // Pagination options
-        if (req.query.page)
-            filters.page = parseInt(req.query.page);
-        if (req.query.limit)
-            filters.limit = parseInt(req.query.limit);
-        if (req.query.cursor)
-            filters.cursor = req.query.cursor;
+        if (validatedQuery.page)
+            filters.page = validatedQuery.page;
+        if (validatedQuery.limit)
+            filters.limit = validatedQuery.limit;
+        if (validatedQuery.cursor)
+            filters.cursor = validatedQuery.cursor;
         // Sorting options
-        if (req.query.sortBy)
-            filters.sortBy = req.query.sortBy;
-        if (req.query.sortOrder)
-            filters.sortOrder = req.query.sortOrder;
+        if (validatedQuery.sortBy)
+            filters.sortBy = validatedQuery.sortBy;
+        if (validatedQuery.sortOrder)
+            filters.sortOrder = validatedQuery.sortOrder;
         // Data loading options
-        if (req.query.include) {
-            filters.include = req.query.include.split(',');
+        if (validatedQuery.include) {
+            filters.include = validatedQuery.include.split(',');
         }
-        if (req.query.fields) {
-            filters.fields = req.query.fields.split(',');
+        if (validatedQuery.fields) {
+            filters.fields = validatedQuery.fields.split(',');
         }
         // Additional filters
-        if (req.query.ids) {
-            filters.ids = req.query.ids.split(',');
+        if (validatedQuery.ids) {
+            filters.ids = validatedQuery.ids.split(',');
         }
         return filters;
     }

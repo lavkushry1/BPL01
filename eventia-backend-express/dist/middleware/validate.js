@@ -4,9 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.customValidation = exports.clearValidationCache = exports.validate = void 0;
+const node_cache_1 = __importDefault(require("node-cache"));
 const zod_1 = require("zod");
 const apiError_1 = require("../utils/apiError");
-const node_cache_1 = __importDefault(require("node-cache"));
 // Cache for validation schemas (with 10 min TTL)
 const validationCache = new node_cache_1.default({ stdTTL: 600, checkperiod: 120 });
 /**
@@ -53,7 +53,7 @@ const sanitizeData = (data) => {
  * Enhanced validation middleware with sanitization and caching
  */
 const validate = (schema, cacheKey) => {
-    return async (req, res, next) => {
+    return async (req, _res, next) => {
         try {
             // Check cache for this request if cacheKey is provided
             if (cacheKey) {
@@ -98,6 +98,7 @@ const validate = (schema, cacheKey) => {
                     message: err.message,
                     code: err.code,
                 }));
+                console.log('Validation Error:', JSON.stringify(errors, null, 2));
                 next(apiError_1.ApiError.badRequest('Validation failed', 'VALIDATION_ERROR', errors));
             }
             else {

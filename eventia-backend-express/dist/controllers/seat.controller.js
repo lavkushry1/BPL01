@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SeatController = void 0;
+const uuid_1 = require("uuid");
 const db_1 = require("../db");
+const seat_1 = require("../models/seat");
+const seat_service_1 = require("../services/seat.service");
+const websocket_service_1 = require("../services/websocket.service");
 const apiError_1 = require("../utils/apiError");
 const apiResponse_1 = require("../utils/apiResponse");
-const uuid_1 = require("uuid");
-const seat_1 = require("../models/seat");
-const websocket_service_1 = require("../services/websocket.service");
-const seat_service_1 = require("../services/seat.service");
 const logger_1 = require("../utils/logger");
 /**
  * @class SeatController
@@ -51,12 +51,6 @@ class SeatController {
     static async reserveSeats(req, res, next) {
         try {
             const { seat_ids, user_id, expiration = 900 } = req.body; // Default: 15 minutes
-            if (!seat_ids || !Array.isArray(seat_ids) || seat_ids.length === 0) {
-                throw new apiError_1.ApiError(400, 'Seat IDs are required');
-            }
-            if (!user_id) {
-                throw new apiError_1.ApiError(400, 'User ID is required');
-            }
             // Check if seats are available
             const seats = await (0, db_1.db)('seats')
                 .whereIn('id', seat_ids)
@@ -120,12 +114,6 @@ class SeatController {
     static async releaseReservation(req, res, next) {
         try {
             const { seat_ids, user_id } = req.body;
-            if (!seat_ids || !Array.isArray(seat_ids) || seat_ids.length === 0) {
-                throw new apiError_1.ApiError(400, 'Seat IDs are required');
-            }
-            if (!user_id) {
-                throw new apiError_1.ApiError(400, 'User ID is required');
-            }
             // Release the seats
             await (0, db_1.db)('seats')
                 .whereIn('id', seat_ids)

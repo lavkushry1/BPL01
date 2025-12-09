@@ -1,32 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const catchAsync_1 = require("../utils/catchAsync");
-const apiError_1 = require("../utils/apiError");
 const dynamicPricing_service_1 = require("../services/dynamicPricing.service");
-// Define HTTP status codes instead of using external package
-const HTTP_STATUS = {
-    OK: 200,
-    CREATED: 201,
-    NO_CONTENT: 204,
-    BAD_REQUEST: 400,
-    NOT_FOUND: 404
-};
+const apiError_1 = require("../utils/apiError");
+const apiResponse_1 = require("../utils/apiResponse");
+const catchAsync_1 = require("../utils/catchAsync");
+const dynamicPricing_validator_1 = require("../validators/dynamicPricing.validator");
 const calculatePrice = (0, catchAsync_1.catchAsync)(async (req, res) => {
-    const { eventId, ticketCategoryId, quantity } = req.query;
-    if (!eventId || !ticketCategoryId) {
-        throw apiError_1.ApiError.badRequest('eventId and ticketCategoryId are required');
-    }
-    const calculatedPrice = await dynamicPricing_service_1.DynamicPricingService.calculatePrice(eventId, ticketCategoryId, quantity ? Number(quantity) : 1);
-    res.status(HTTP_STATUS.OK).json(calculatedPrice);
+    const { eventId, ticketCategoryId, quantity } = dynamicPricing_validator_1.calculatePriceSchema.parse(req.query);
+    const calculatedPrice = await dynamicPricing_service_1.DynamicPricingService.calculatePrice(eventId, ticketCategoryId, quantity);
+    return apiResponse_1.ApiResponse.success(res, 200, 'Price calculated successfully', calculatedPrice);
 });
 const createPricingRule = (0, catchAsync_1.catchAsync)(async (req, res) => {
-    const rule = await dynamicPricing_service_1.DynamicPricingService.savePricingRule(req.body);
-    res.status(HTTP_STATUS.CREATED).json(rule);
+    const validatedData = dynamicPricing_validator_1.createPricingRuleSchema.parse(req.body);
+    const rule = await dynamicPricing_service_1.DynamicPricingService.savePricingRule(validatedData);
+    return apiResponse_1.ApiResponse.created(res, rule, 'Pricing rule created successfully');
 });
 const getPricingRules = (0, catchAsync_1.catchAsync)(async (req, res) => {
     const eventId = req.query.eventId;
     const rules = await dynamicPricing_service_1.DynamicPricingService.getPricingRules(eventId);
-    res.status(HTTP_STATUS.OK).json(rules);
+    return apiResponse_1.ApiResponse.success(res, 200, 'Pricing rules fetched successfully', rules);
 });
 const getPricingRule = (0, catchAsync_1.catchAsync)(async (req, res) => {
     const rules = await dynamicPricing_service_1.DynamicPricingService.getPricingRules(undefined);
@@ -34,18 +26,19 @@ const getPricingRule = (0, catchAsync_1.catchAsync)(async (req, res) => {
     if (!foundRule) {
         throw apiError_1.ApiError.notFound('Pricing rule not found');
     }
-    res.status(HTTP_STATUS.OK).json(foundRule);
+    return apiResponse_1.ApiResponse.success(res, 200, 'Pricing rule fetched successfully', foundRule);
 });
 const updatePricingRule = (0, catchAsync_1.catchAsync)(async (req, res) => {
+    const validatedData = dynamicPricing_validator_1.updatePricingRuleSchema.parse(req.body);
     const rule = await dynamicPricing_service_1.DynamicPricingService.savePricingRule({
         id: req.params.ruleId,
-        ...req.body
+        ...validatedData
     });
-    res.status(HTTP_STATUS.OK).json(rule);
+    return apiResponse_1.ApiResponse.success(res, 200, 'Pricing rule updated successfully', rule);
 });
 const deletePricingRule = (0, catchAsync_1.catchAsync)(async (req, res) => {
     await dynamicPricing_service_1.DynamicPricingService.deletePricingRule(req.params.ruleId);
-    res.status(HTTP_STATUS.NO_CONTENT).send();
+    return apiResponse_1.ApiResponse.success(res, 204, 'Pricing rule deleted successfully');
 });
 exports.default = {
     calculatePrice,

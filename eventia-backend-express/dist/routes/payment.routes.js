@@ -35,9 +35,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const payment_controller_1 = require("../controllers/payment.controller");
+const auth_1 = require("../middleware/auth");
 const validate_1 = require("../middleware/validate");
 const paymentValidation = __importStar(require("../validations/payment.validation"));
-const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 /**
  * @swagger
@@ -74,6 +74,60 @@ const router = (0, express_1.Router)();
  *         description: Server error
  */
 router.post('/', (0, auth_1.auth)(), (0, validate_1.validate)(paymentValidation.createPaymentSchema), payment_controller_1.PaymentController.createPayment);
+/**
+ * @swagger
+ * /api/v1/payments/initialize:
+ *   post:
+ *     summary: Initialize a payment for a booking
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               booking_id:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               payment_method:
+ *                 type: string
+ *               currency:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Payment initialized successfully
+ */
+router.post('/initialize', (0, auth_1.auth)(), (0, validate_1.validate)(paymentValidation.initializePaymentSchema), payment_controller_1.PaymentController.initializePayment);
+/**
+ * @swagger
+ * /api/v1/payments/verify:
+ *   post:
+ *     summary: Submit UTR verification for a payment
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               payment_id:
+ *                 type: string
+ *               utr_number:
+ *                 type: string
+ *               user_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: UTR verification submitted successfully
+ */
+router.post('/verify', (0, auth_1.auth)(), (0, validate_1.validate)(paymentValidation.verifyPaymentUtrSchema), payment_controller_1.PaymentController.submitUtrVerification);
 /**
  * @swagger
  * /api/v1/payments/{id}/utr:

@@ -1,11 +1,44 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const ticket_controller_1 = require("../controllers/ticket.controller");
 const auth_1 = require("../middleware/auth");
 const database_1 = require("../middleware/database");
 const validate_1 = require("../middleware/validate");
-const zod_1 = require("zod");
+const ticketValidation = __importStar(require("../validations/ticket.validation"));
 const router = (0, express_1.Router)();
 // Add database middleware to all routes
 router.use(database_1.databaseMiddleware);
@@ -60,72 +93,7 @@ router.use(database_1.databaseMiddleware);
  *         updated_at:
  *           type: string
  *           format: date-time
- *
- *     Seat:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *         label:
- *           type: string
- *         section:
- *           type: string
- *         row:
- *           type: string
- *         seatNumber:
- *           type: integer
- *         status:
- *           type: string
- *           enum: [available, locked, booked]
- *         price:
- *           type: number
- *         eventId:
- *           type: string
- *           format: uuid
- *         locked_by:
- *           type: string
- *           nullable: true
- *         lock_expires_at:
- *           type: string
- *           format: date-time
- *           nullable: true
  */
-// Create validation schemas
-const generateTicketsSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        booking_id: zod_1.z.string().uuid('Invalid booking ID format'),
-        event_id: zod_1.z.string().uuid('Invalid event ID format'),
-        user_id: zod_1.z.string().uuid('Invalid user ID format'),
-        email: zod_1.z.string().email('Invalid email format').optional(),
-        send_email: zod_1.z.boolean().optional().default(true)
-    })
-});
-const checkInTicketSchema = zod_1.z.object({
-    body: zod_1.z.object({
-        ticket_id: zod_1.z.string().uuid('Invalid ticket ID format'),
-        event_id: zod_1.z.string().uuid('Invalid event ID format'),
-        check_in_location: zod_1.z.string().optional(),
-        device_id: zod_1.z.string().optional(),
-        notes: zod_1.z.string().optional()
-    })
-});
-const resendTicketSchema = zod_1.z.object({
-    params: zod_1.z.object({
-        id: zod_1.z.string().uuid('Invalid ticket ID format')
-    }),
-    body: zod_1.z.object({
-        email: zod_1.z.string().email('Invalid email format').optional()
-    })
-});
-const cancelTicketSchema = zod_1.z.object({
-    params: zod_1.z.object({
-        id: zod_1.z.string().uuid('Invalid ticket ID format')
-    }),
-    body: zod_1.z.object({
-        reason: zod_1.z.string().optional()
-    })
-});
 /**
  * @swagger
  * tags:
@@ -168,32 +136,8 @@ const cancelTicketSchema = zod_1.z.object({
  *     responses:
  *       201:
  *         description: Tickets generated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     tickets:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Ticket'
- *                     count:
- *                       type: integer
- *       400:
- *         description: Invalid input
- *       404:
- *         description: Booking not found
  */
-router.post('/tickets/generate', (0, auth_1.auth)(), (0, validate_1.validate)(generateTicketsSchema), (req, res, next) => {
+router.post('/tickets/generate', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.generateTicketsSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.generateTickets(req, res, next);
 });
 /**
@@ -213,23 +157,8 @@ router.post('/tickets/generate', (0, auth_1.auth)(), (0, validate_1.validate)(ge
  *     responses:
  *       200:
  *         description: Ticket retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   $ref: '#/components/schemas/Ticket'
- *       404:
- *         description: Ticket not found
  */
-router.get('/tickets/:id', (0, auth_1.auth)(), (req, res, next) => {
+router.get('/tickets/:id', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.getTicketSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.getTicketById(req, res, next);
 });
 /**
@@ -251,25 +180,8 @@ router.get('/tickets/:id', (0, auth_1.auth)(), (req, res, next) => {
  *     responses:
  *       200:
  *         description: Tickets retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Ticket'
- *       404:
- *         description: Booking not found
  */
-router.get('/tickets/booking/:booking_id', (0, auth_1.auth)(), (req, res, next) => {
+router.get('/tickets/booking/:booking_id', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.getTicketsByBookingSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.getTicketsByBookingId(req, res, next);
 });
 /**
@@ -300,25 +212,8 @@ router.get('/tickets/booking/:booking_id', (0, auth_1.auth)(), (req, res, next) 
  *     responses:
  *       200:
  *         description: Ticket cancelled successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   $ref: '#/components/schemas/Ticket'
- *       400:
- *         description: Cannot cancel ticket (already used or cancelled)
- *       404:
- *         description: Ticket not found
  */
-router.post('/tickets/:id/cancel', (0, auth_1.auth)(), (0, validate_1.validate)(cancelTicketSchema), (req, res, next) => {
+router.post('/tickets/:id/cancel', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.cancelTicketSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.cancelTicket(req, res, next);
 });
 /**
@@ -359,25 +254,8 @@ router.post('/tickets/:id/cancel', (0, auth_1.auth)(), (0, validate_1.validate)(
  *     responses:
  *       200:
  *         description: Ticket checked in successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   $ref: '#/components/schemas/Ticket'
- *       400:
- *         description: Invalid input or ticket already used/cancelled
- *       404:
- *         description: Ticket not found
  */
-router.post('/tickets/:id/checkin', (0, auth_1.auth)(), (0, validate_1.validate)(checkInTicketSchema), (req, res, next) => {
+router.post('/tickets/:id/checkin', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.checkInTicketSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.checkInTicket(req, res, next);
 });
 /**
@@ -406,30 +284,8 @@ router.post('/tickets/:id/checkin', (0, auth_1.auth)(), (0, validate_1.validate)
  *     responses:
  *       200:
  *         description: Ticket verification result
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     valid:
- *                       type: boolean
- *                     ticket:
- *                       $ref: '#/components/schemas/Ticket'
- *       400:
- *         description: Invalid input
- *       404:
- *         description: Ticket not found
  */
-router.post('/tickets/:id/verify', (0, auth_1.auth)(), (req, res, next) => {
+router.post('/tickets/:id/verify', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.verifyTicketSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.verifyTicket(req, res, next);
 });
 /**
@@ -461,29 +317,8 @@ router.post('/tickets/:id/verify', (0, auth_1.auth)(), (req, res, next) => {
  *     responses:
  *       200:
  *         description: Ticket resent successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     ticket_id:
- *                       type: string
- *                       format: uuid
- *                     sent_to:
- *                       type: string
- *       404:
- *         description: Ticket not found
  */
-router.post('/tickets/:id/resend', (0, auth_1.auth)(), (0, validate_1.validate)(resendTicketSchema), (req, res, next) => {
+router.post('/tickets/:id/resend', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.resendTicketSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.resendTicket(req, res, next);
 });
 /**
@@ -503,17 +338,8 @@ router.post('/tickets/:id/resend', (0, auth_1.auth)(), (0, validate_1.validate)(
  *     responses:
  *       200:
  *         description: PDF ticket file
- *         content:
- *           application/pdf:
- *             schema:
- *               type: string
- *               format: binary
- *       404:
- *         description: Ticket not found
- *       500:
- *         description: Error generating PDF
  */
-router.get('/tickets/:id/pdf', (0, auth_1.auth)(), (req, res, next) => {
+router.get('/tickets/:id/pdf', (0, auth_1.auth)(), (0, validate_1.validate)(ticketValidation.getTicketSchema), (req, res, next) => {
     return ticket_controller_1.TicketController.downloadTicketPdf(req, res, next);
 });
 /**
@@ -532,53 +358,9 @@ router.get('/tickets/:id/pdf', (0, auth_1.auth)(), (req, res, next) => {
  *           type: string
  *           format: uuid
  *         description: Event ID
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 50
- *         description: Items per page
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [active, used, cancelled]
- *         description: Filter by ticket status
  *     responses:
  *       200:
  *         description: Event tickets retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     tickets:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Ticket'
- *                     total:
- *                       type: integer
- *                     page:
- *                       type: integer
- *                     limit:
- *                       type: integer
- *       403:
- *         description: Unauthorized - Admin access required
  */
 router.get('/events/:event_id/tickets', (0, auth_1.auth)(), (req, res, next) => {
     return ticket_controller_1.TicketController.getEventTickets(req, res, next);
@@ -599,53 +381,9 @@ router.get('/events/:event_id/tickets', (0, auth_1.auth)(), (req, res, next) => 
  *           type: string
  *           format: uuid
  *         description: User ID
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Items per page
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [active, used, cancelled]
- *         description: Filter by ticket status
  *     responses:
  *       200:
  *         description: User tickets retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 statusCode:
- *                   type: integer
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     tickets:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Ticket'
- *                     total:
- *                       type: integer
- *                     page:
- *                       type: integer
- *                     limit:
- *                       type: integer
- *       403:
- *         description: Unauthorized - Can only access own tickets
  */
 router.get('/users/:userId/tickets', (0, auth_1.auth)(), (req, res, next) => {
     return ticket_controller_1.TicketController.getUserTickets(req, res, next);

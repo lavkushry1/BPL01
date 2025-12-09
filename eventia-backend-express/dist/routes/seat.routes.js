@@ -35,9 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const seat_controller_1 = require("../controllers/seat.controller");
-const validate_1 = require("../middleware/validate");
 const auth_1 = require("../middleware/auth");
-const seat_1 = require("../models/seat");
+const validate_1 = require("../middleware/validate");
 const seatValidation = __importStar(require("../validations/seat.validation"));
 const router = (0, express_1.Router)();
 /**
@@ -69,7 +68,7 @@ const router = (0, express_1.Router)();
  *       404:
  *         description: Venue or section not found
  */
-router.get('/venues/:venueId/sections/:sectionId/seats', seat_controller_1.SeatController.getSeats);
+router.get('/venues/:venueId/sections/:sectionId/seats', (0, validate_1.validate)(seatValidation.getSeatsSchema), seat_controller_1.SeatController.getSeats);
 /**
  * @swagger
  * /api/seats/reserve:
@@ -104,7 +103,7 @@ router.get('/venues/:venueId/sections/:sectionId/seats', seat_controller_1.SeatC
  *       409:
  *         description: One or more seats are not available
  */
-router.post('/seats/reserve', (0, auth_1.auth)(), (0, validate_1.validate)(seat_1.SeatReservationSchema), seat_controller_1.SeatController.reserveSeats);
+router.post('/seats/reserve', (0, auth_1.auth)(), (0, validate_1.validate)(seatValidation.seatReservationSchema), seat_controller_1.SeatController.reserveSeats);
 /**
  * @swagger
  * /api/seats/reserve:
@@ -132,7 +131,7 @@ router.post('/seats/reserve', (0, auth_1.auth)(), (0, validate_1.validate)(seat_
  *       400:
  *         description: Invalid input
  */
-router.delete('/seats/reserve', (0, auth_1.auth)(), seat_controller_1.SeatController.releaseReservation);
+router.delete('/seats/reserve', (0, auth_1.auth)(), (0, validate_1.validate)(seatValidation.releaseReservationSchema), seat_controller_1.SeatController.releaseReservation);
 /**
  * @swagger
  * /api/seats/{id}/status:
@@ -165,7 +164,7 @@ router.delete('/seats/reserve', (0, auth_1.auth)(), seat_controller_1.SeatContro
  *       404:
  *         description: Seat not found
  */
-router.put('/seats/:id/status', (0, auth_1.auth)('admin'), seat_controller_1.SeatController.updateSeatStatus);
+router.put('/seats/:id/status', (0, auth_1.auth)('admin'), (0, validate_1.validate)(seatValidation.updateSeatStatusSchema), seat_controller_1.SeatController.updateSeatStatus);
 /**
  * @swagger
  * /api/v1/seats/bulk-availability:

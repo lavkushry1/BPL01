@@ -41,9 +41,9 @@ exports.default = {
                             schema: {
                                 type: 'object',
                                 properties: {
-                                    status: {
-                                        type: 'string',
-                                        example: 'error',
+                                    success: {
+                                        type: 'boolean',
+                                        example: false,
                                     },
                                     statusCode: {
                                         type: 'integer',

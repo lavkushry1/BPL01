@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.errorHandler = void 0;
-const apiError_1 = require("../utils/apiError");
-const logger_1 = require("../utils/logger");
-const errorCodes_1 = require("../utils/errorCodes");
 const client_1 = require("@prisma/client");
+const apiError_1 = require("../utils/apiError");
+const errorCodes_1 = require("../utils/errorCodes");
+const logger_1 = require("../utils/logger");
 /**
  * Global error handler middleware
  * Processes all errors and returns standardized error responses
@@ -23,7 +23,8 @@ const errorHandler = (err, req, res, next) => {
             success: false,
             error: {
                 code: err.code,
-                message: err.message
+                message: err.message,
+                details: err.details
             },
             data: null
         });

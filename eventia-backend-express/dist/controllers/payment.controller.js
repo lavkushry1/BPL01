@@ -32,32 +32,26 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePaymentStatus = exports.releaseExpiredSeatLocks = exports.getPaymentStatus = exports.initiatePayment = exports.PaymentController = void 0;
-const apiError_1 = require("../utils/apiError");
-const db_1 = require("../db");
-const uuid_1 = require("uuid");
-const asyncHandler_1 = require("../utils/asyncHandler");
-const apiResponse_1 = require("../utils/apiResponse");
-const logger_1 = require("../utils/logger");
-const websocket_service_1 = require("../services/websocket.service");
-const retry_1 = require("../utils/retry");
-const ticket_service_1 = require("../services/ticket.service");
+exports.initiatePayment = exports.PaymentController = void 0;
 const client_1 = require("@prisma/client");
-const seatService = __importStar(require("../services/seat.service"));
-const bookingService = __importStar(require("../services/booking.service"));
-const socketService = __importStar(require("../services/websocket.service"));
-const upiPaymentService = __importStar(require("../services/upiPayment.service"));
 const qrcode = __importStar(require("qrcode"));
-// Define seat status enum values
-var SeatStatus;
-(function (SeatStatus) {
-    SeatStatus["AVAILABLE"] = "AVAILABLE";
-    SeatStatus["RESERVED"] = "RESERVED";
-    SeatStatus["LOCKED"] = "LOCKED";
-    SeatStatus["BOOKED"] = "BOOKED";
-})(SeatStatus || (SeatStatus = {}));
-const prisma = new client_1.PrismaClient();
+const uuid_1 = require("uuid");
+const db_1 = require("../db");
+const prisma_1 = require("../db/prisma");
+const bookingService = __importStar(require("../services/booking.service"));
+const seat_service_1 = require("../services/seat.service");
+const ticket_service_1 = __importDefault(require("../services/ticket.service"));
+const upiPaymentService = __importStar(require("../services/upiPayment.service"));
+const websocket_service_1 = require("../services/websocket.service");
+const utils_1 = require("../utils");
+const apiError_1 = require("../utils/apiError");
+const apiResponse_1 = require("../utils/apiResponse");
+const asyncHandler_1 = require("../utils/asyncHandler");
+const logger_1 = require("../utils/logger");
 // Lock timeout in minutes
 const SEAT_LOCK_TIMEOUT_MINUTES = 10;
 /**
@@ -69,7 +63,7 @@ class PaymentController {
      * @route POST /api/payments/initialize
      */
     static initializePayment = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-        const { booking_id, payment_method, currency = 'INR' } = req.body;
+        const { booking_id, payment_method, amount, currency = 'INR' } = req.body;
         if (!booking_id || !payment_method) {
             throw new apiError_1.ApiError(400, 'Booking ID and payment method are required', 'MISSING_REQUIRED_FIELDS');
         }
@@ -81,7 +75,11 @@ class PaymentController {
         if (!booking) {
             throw new apiError_1.ApiError(404, 'Booking not found', 'BOOKING_NOT_FOUND');
         }
-        if (booking.status !== 'pending') {
+        const user_id = req.user?.id;
+        if (booking.user_id !== user_id && req.user?.role !== 'ADMIN') {
+            throw new apiError_1.ApiError(403, 'You are not authorized to make a payment for this booking', 'FORBIDDEN');
+        }
+        if (booking.status !== 'PENDING') {
             throw new apiError_1.ApiError(400, `Cannot initialize payment for booking in ${booking.status} state`, 'INVALID_BOOKING_STATUS');
         }
         // Check if payment already exists for this booking
@@ -96,13 +94,13 @@ class PaymentController {
                     .where({ id: existingPayment.id })
                     .update({
                     status: 'pending',
-                    updated_at: db_1.db.fn.now()
+                    updatedAt: db_1.db.fn.now()
                 });
                 return apiResponse_1.ApiResponse.success(res, 200, 'Payment re-initialized successfully', {
                     payment_id: existingPayment.id,
                     booking_id,
                     payment_method,
-                    amount: booking.final_amount,
+                    amount,
                     currency,
                     status: 'pending'
                 });
@@ -117,25 +115,18 @@ class PaymentController {
                 const [payment] = await trx('booking_payments').insert({
                     id: (0, uuid_1.v4)(),
                     booking_id,
-                    amount: booking.final_amount,
+                    amount,
                     status: 'pending',
-                    created_at: trx.fn.now(),
-                    updated_at: trx.fn.now()
+                    createdAt: trx.fn.now(),
+                    updatedAt: trx.fn.now()
                 }).returning('*');
-                // Update booking to link to payment
-                await trx('bookings')
-                    .where({ id: booking_id })
-                    .update({
-                    payment_id: payment.id,
-                    updated_at: trx.fn.now()
-                });
                 return payment;
             });
-            return apiResponse_1.ApiResponse.success(res, 201, 'Payment initialized successfully', result);
+            return apiResponse_1.ApiResponse.success(res, 201, 'Payment initialized successfully', { ...result, transaction_id: result.id });
         }
         catch (error) {
             logger_1.logger.error('Error initializing payment:', error);
-            throw new apiError_1.ApiError(500, 'Failed to initialize payment', 'PAYMENT_INITIALIZATION_FAILED');
+            throw new apiError_1.ApiError(500, 'Failed to initialize payment', 'PAYMENT_INITIATION_FAILED');
         }
     });
     /**
@@ -156,8 +147,8 @@ class PaymentController {
                     amount,
                     payment_method,
                     status: 'pending',
-                    created_at: trx.fn.now(),
-                    updated_at: trx.fn.now()
+                    createdAt: trx.fn.now(),
+                    updatedAt: trx.fn.now()
                 }).returning('*');
                 return payment;
             });
@@ -192,7 +183,7 @@ class PaymentController {
                 .where({ id })
                 .update({
                 utr_number: utrNumber,
-                updated_at: db_1.db.fn.now()
+                updatedAt: db_1.db.fn.now()
             })
                 .returning('*');
             return apiResponse_1.ApiResponse.success(res, 200, 'UTR number updated successfully', updatedPayment);
@@ -243,49 +234,68 @@ class PaymentController {
      * @route GET /api/payments
      */
     static getAllPayments = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-        const { page = 1, limit = 10, status, startDate, endDate, sort = 'created_at', order = 'desc' } = req.query;
-        const offset = (Number(page) - 1) * Number(limit);
-        // Build query with filters
-        let query = (0, db_1.db)('booking_payments').select('*');
-        // Apply filters if provided
-        if (status) {
-            query = query.where({ status });
-        }
-        if (startDate) {
-            query = query.where('created_at', '>=', new Date(startDate));
-        }
-        if (endDate) {
-            query = query.where('created_at', '<=', new Date(endDate));
-        }
-        // Get total count for pagination
-        const [{ count }] = await (0, db_1.db)('booking_payments')
-            .count('id as count')
-            .modify(builder => {
+        try {
+            const { page = 1, limit = 10, status, startDate, endDate, sort = 'createdAt', order = 'desc' } = req.query;
+            const offset = (Number(page) - 1) * Number(limit);
+            // Build Prisma where clause
+            const where = {};
             if (status) {
-                builder.where({ status });
+                where.status = status;
             }
-            if (startDate) {
-                builder.where('created_at', '>=', new Date(startDate));
+            if (startDate || endDate) {
+                where.createdAt = {};
+                if (startDate) {
+                    where.createdAt.gte = new Date(startDate);
+                }
+                if (endDate) {
+                    where.createdAt.lte = new Date(endDate);
+                }
             }
-            if (endDate) {
-                builder.where('created_at', '<=', new Date(endDate));
-            }
-        });
-        // Apply sorting and pagination
-        const payments = await query
-            .orderBy(sort, order)
-            .limit(Number(limit))
-            .offset(offset);
-        const totalPages = Math.ceil(Number(count) / Number(limit));
-        return apiResponse_1.ApiResponse.success(res, 200, 'Payments fetched successfully', {
-            payments,
-            pagination: {
-                total: Number(count),
-                page: Number(page),
-                limit: Number(limit),
-                totalPages
-            }
-        });
+            // Map frontend sort field to Prisma field names
+            const sortFieldMap = {
+                'created_at': 'createdAt',
+                'createdAt': 'createdAt',
+                'amount': 'amount',
+                'status': 'status'
+            };
+            const prismaSort = sortFieldMap[sort] || 'createdAt';
+            // Get payments with related data
+            const rawPayments = await prisma_1.prisma.bookingPayment.findMany({
+                where,
+                include: {
+                    booking: {
+                        include: {
+                            user: true,
+                            event: true
+                        }
+                    }
+                },
+                orderBy: {
+                    [prismaSort]: order === 'asc' ? 'asc' : 'desc'
+                },
+                take: Number(limit),
+                skip: offset
+            });
+            // Format payments for frontend
+            const payments = rawPayments.map(payment => ({
+                id: payment.id,
+                customer: {
+                    name: payment.booking?.user?.name || 'Unknown User',
+                    email: payment.booking?.user?.email || 'No Email',
+                    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(payment.booking?.user?.name || 'U')}&background=random`
+                },
+                event: payment.booking?.event?.title || 'Unknown Event',
+                amount: Number(payment.amount),
+                status: payment.status,
+                utr: payment.utrNumber || 'N/A',
+                timestamp: payment.createdAt
+            }));
+            return apiResponse_1.ApiResponse.success(res, 200, 'Payments fetched successfully', payments);
+        }
+        catch (error) {
+            logger_1.logger.error('Error in getAllPayments:', error);
+            throw error;
+        }
     });
     /**
      * Verify payment (admin only)
@@ -314,16 +324,16 @@ class PaymentController {
         }
         try {
             // Use retry mechanism with transaction for better reliability
-            const result = await (0, retry_1.withRetry)(async () => {
+            const result = await (0, utils_1.withRetry)(async () => {
                 return await db_1.db.transaction(async (trx) => {
                     // Update payment record
                     const [updatedPayment] = await trx('booking_payments')
                         .where({ id })
                         .update({
                         status: 'verified',
-                        verified_at: trx.fn.now(),
+                        payment_date: trx.fn.now(),
                         verified_by: adminId,
-                        updated_at: trx.fn.now()
+                        updatedAt: trx.fn.now()
                     })
                         .returning('*');
                     // Get booking details
@@ -338,8 +348,8 @@ class PaymentController {
                     const [updatedBooking] = await trx('bookings')
                         .where({ id: booking.id })
                         .update({
-                        status: 'confirmed',
-                        updated_at: trx.fn.now()
+                        status: 'CONFIRMED',
+                        updatedAt: trx.fn.now()
                     })
                         .returning('*');
                     return {
@@ -357,7 +367,7 @@ class PaymentController {
             try {
                 // Use a dedicated ticket generation service that should have its own
                 // retry and error handling mechanism
-                await ticket_service_1.TicketService.generateTicketsForBooking(result.booking.id, adminId);
+                await ticket_service_1.default.generateTicketsForBooking(result.booking.id, adminId);
                 logger_1.logger.info(`Tickets generated for booking ${result.booking.id}`);
             }
             catch (ticketError) {
@@ -367,13 +377,13 @@ class PaymentController {
                 // Update a retry queue for ticket generation
                 await (0, db_1.db)('ticket_generation_queue').insert({
                     id: (0, uuid_1.v4)(),
-                    booking_id: result.booking.id,
-                    admin_id: adminId,
+                    bookingId: result.booking.id,
                     attempts: 0,
                     max_attempts: 5,
                     next_attempt_at: new Date(Date.now() + 60000), // 1 minute later
-                    created_at: new Date()
-                }).onConflict('booking_id').merge();
+                    created_at: new Date(),
+                    updated_at: new Date()
+                }).onConflict('bookingId').merge();
             }
             // Notify customer via WebSocket if available
             try {
@@ -421,7 +431,7 @@ class PaymentController {
                     status: 'rejected',
                     rejection_reason: rejection_reason || 'Payment verification failed',
                     verified_by: adminId,
-                    updated_at: trx.fn.now()
+                    updatedAt: trx.fn.now()
                 })
                     .returning('*');
                 // Update booking status
@@ -429,7 +439,7 @@ class PaymentController {
                     .where({ id: payment.booking_id })
                     .update({
                     status: 'payment_rejected',
-                    updated_at: trx.fn.now()
+                    updatedAt: trx.fn.now()
                 })
                     .returning('*');
                 return {
@@ -456,7 +466,7 @@ class PaymentController {
      * @route POST /api/payments/webhook
      */
     static handlePaymentWebhook = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-        const anyPrisma = prisma;
+        const anyPrisma = prisma_1.prisma;
         try {
             // Validate UPI webhook signature
             const isValid = upiPaymentService.validateWebhookSignature(req.body, req.headers['x-signature']);
@@ -492,7 +502,7 @@ class PaymentController {
             return apiResponse_1.ApiResponse.success(res, 200, 'Webhook processed successfully');
         }
         catch (error) {
-            console.error('Error processing webhook:', error);
+            logger_1.logger.error('Error processing webhook:', error);
             if (error instanceof apiError_1.ApiError) {
                 return apiResponse_1.ApiResponse.error(res, error.statusCode, error.message, error.code);
             }
@@ -516,28 +526,29 @@ class PaymentController {
         if (!payment) {
             throw new apiError_1.ApiError(404, 'Payment not found', 'PAYMENT_NOT_FOUND');
         }
-        // Validate payment is in pending status
-        if (payment.status !== 'pending') {
-            throw new apiError_1.ApiError(400, `Cannot verify payment with status: ${payment.status}`, 'INVALID_PAYMENT_STATUS');
-        }
         try {
             // Update payment with UTR number
             const [updatedPayment] = await (0, db_1.db)('booking_payments')
                 .where({ id: payment_id })
                 .update({
                 utr_number,
-                status: 'verification_pending',
-                updated_at: db_1.db.fn.now()
+                status: 'awaiting_verification',
+                updatedAt: db_1.db.fn.now()
             })
                 .returning('*');
             // Notify admins about new verification request
-            websocket_service_1.WebsocketService.sendToAdmins('new_payment_verification', {
-                payment_id,
-                booking_id: payment.booking_id,
-                amount: payment.amount,
-                utr_number,
-                user_id
-            });
+            try {
+                websocket_service_1.WebsocketService.sendToAdmins('new_payment_verification', {
+                    payment_id,
+                    booking_id: payment.booking_id,
+                    amount: payment.amount,
+                    utr_number,
+                    user_id
+                });
+            }
+            catch (wsError) {
+                logger_1.logger.warn('WebSocket notification failed:', wsError);
+            }
             return apiResponse_1.ApiResponse.success(res, 200, 'Payment verification submitted successfully', updatedPayment);
         }
         catch (error) {
@@ -551,7 +562,7 @@ class PaymentController {
      */
     static getPaymentStatus = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         const { paymentId } = req.params;
-        const anyPrisma = prisma;
+        const anyPrisma = prisma_1.prisma;
         if (!paymentId) {
             throw new apiError_1.ApiError(400, 'Payment ID is required', 'MISSING_PAYMENT_ID');
         }
@@ -630,6 +641,14 @@ class PaymentController {
             throw new apiError_1.ApiError(500, 'Failed to generate QR code', 'QR_GENERATION_ERROR');
         }
     });
+    /**
+     * Release expired seat locks
+     * @route POST /api/payments/release-locks
+     */
+    static releaseExpiredSeatLocks = (0, asyncHandler_1.asyncHandler)(async (_req, res) => {
+        const count = await seat_service_1.SeatService.releaseExpiredLocks();
+        return apiResponse_1.ApiResponse.success(res, 200, 'Expired seat locks released successfully', { count });
+    });
 }
 exports.PaymentController = PaymentController;
 /**
@@ -642,9 +661,9 @@ const initiatePayment = async (req, res) => {
         return apiResponse_1.ApiResponse.error(res, 400, 'EventId and seatIds are required', 'MISSING_REQUIRED_FIELDS');
     }
     try {
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await prisma_1.prisma.$transaction(async (tx) => {
             // Check if seats are available
-            const unavailableSeats = await seatService.SeatService.getUnavailableSeats(tx, seatIds);
+            const unavailableSeats = await seat_service_1.SeatService.getUnavailableSeats(tx, seatIds);
             if (unavailableSeats.length > 0) {
                 throw new apiError_1.ApiError(400, 'Some selected seats are not available', 'SEATS_UNAVAILABLE');
             }
@@ -672,19 +691,16 @@ const initiatePayment = async (req, res) => {
             await tx.seat.updateMany({
                 where: { id: { in: seatIds } },
                 data: {
-                    status: SeatStatus.LOCKED.toString()
+                    status: client_1.SeatStatus.LOCKED,
+                    lockedAt: new Date()
                 }
             });
             return paymentSession;
         });
-        // Notify seat lock via websocket
-        seatIds.forEach((seatId) => {
-            socketService.WebsocketService.notifySeatStatusChange([seatId], SeatStatus.LOCKED.toString(), eventId);
-        });
         return apiResponse_1.ApiResponse.success(res, 200, 'Payment initiated successfully', result);
     }
     catch (error) {
-        console.error('Error initiating payment:', error);
+        logger_1.logger.error('Error initiating payment:', error);
         if (error instanceof apiError_1.ApiError) {
             return apiResponse_1.ApiResponse.error(res, error.statusCode, error.message, error.code);
         }
@@ -692,123 +708,4 @@ const initiatePayment = async (req, res) => {
     }
 };
 exports.initiatePayment = initiatePayment;
-/**
- * Checks payment status
- */
-const getPaymentStatus = async (req, res) => {
-    const { id } = req.params;
-    const anyPrisma = prisma;
-    try {
-        const paymentSession = await anyPrisma.paymentSession.findUnique({
-            where: { id },
-            include: {
-                seats: true
-            }
-        });
-        if (!paymentSession) {
-            return apiResponse_1.ApiResponse.error(res, 404, 'Payment session not found', 'PAYMENT_SESSION_NOT_FOUND');
-        }
-        // Check if it's expired and update status if needed
-        if (paymentSession.status === client_1.PaymentStatus.PENDING && new Date() > paymentSession.expiresAt) {
-            const updatedSession = await anyPrisma.paymentSession.update({
-                where: { id },
-                data: { status: client_1.PaymentStatus.FAILED },
-                include: { seats: true }
-            });
-            return apiResponse_1.ApiResponse.success(res, 200, 'Payment status retrieved', updatedSession);
-        }
-        return apiResponse_1.ApiResponse.success(res, 200, 'Payment status retrieved', paymentSession);
-    }
-    catch (error) {
-        console.error('Error checking payment status:', error);
-        if (error instanceof apiError_1.ApiError) {
-            return apiResponse_1.ApiResponse.error(res, error.statusCode, error.message, error.code);
-        }
-        return apiResponse_1.ApiResponse.error(res, 500, 'Failed to check payment status', 'PAYMENT_STATUS_CHECK_FAILED');
-    }
-};
-exports.getPaymentStatus = getPaymentStatus;
-/**
- * Releases expired seat locks
- */
-const releaseExpiredSeatLocks = async () => {
-    try {
-        const anyPrisma = prisma;
-        const expiredSessions = await anyPrisma.paymentSession.findMany({
-            where: {
-                status: client_1.PaymentStatus.PENDING,
-                expiresAt: { lt: new Date() }
-            },
-            include: { seats: true }
-        });
-        for (const session of expiredSessions) {
-            // Update payment session status to FAILED (for expiry)
-            await (0, exports.updatePaymentStatus)(session.id, client_1.PaymentStatus.FAILED);
-        }
-        return expiredSessions.length;
-    }
-    catch (error) {
-        console.error('Error releasing expired seat locks:', error);
-        throw error;
-    }
-};
-exports.releaseExpiredSeatLocks = releaseExpiredSeatLocks;
-/**
- * Updates payment status and performs necessary actions based on status
- */
-const updatePaymentStatus = async (sessionId, status, paymentId) => {
-    return await prisma.$transaction(async (tx) => {
-        // Find payment session
-        const paymentSession = await tx.paymentSession.findUnique({
-            where: { id: sessionId },
-            include: { seats: true }
-        });
-        if (!paymentSession) {
-            throw new apiError_1.ApiError(404, 'Payment session not found', 'PAYMENT_SESSION_NOT_FOUND');
-        }
-        // Update payment session status
-        const updatedSession = await tx.paymentSession.update({
-            where: { id: sessionId },
-            data: {
-                status,
-                ...(paymentId && { utrNumber: paymentId })
-            },
-            include: { seats: true }
-        });
-        if (status === client_1.PaymentStatus.COMPLETED) {
-            // Create booking from payment session
-            await tx.seat.updateMany({
-                where: {
-                    id: { in: paymentSession.seats.map((seat) => seat.id) }
-                },
-                data: {
-                    status: SeatStatus.BOOKED.toString()
-                }
-            });
-            // Create actual booking record
-            await bookingService.createBookingFromPaymentSession(tx, sessionId);
-            // Notify seat status change via websocket
-            paymentSession.seats.forEach((seat) => {
-                socketService.WebsocketService.notifySeatStatusChange([seat.id], SeatStatus.BOOKED.toString(), paymentSession.eventId);
-            });
-        }
-        else if (status === client_1.PaymentStatus.FAILED) {
-            // Release seats
-            await tx.seat.updateMany({
-                where: {
-                    id: { in: paymentSession.seats.map((seat) => seat.id) }
-                },
-                data: {
-                    status: SeatStatus.AVAILABLE.toString()
-                }
-            });
-            // Notify seat status change via websocket
-            paymentSession.seats.forEach((seat) => {
-                socketService.WebsocketService.notifySeatStatusChange([seat.id], SeatStatus.AVAILABLE.toString(), paymentSession.eventId);
-            });
-        }
-        return updatedSession;
-    });
-};
-exports.updatePaymentStatus = updatePaymentStatus;
 //# sourceMappingURL=payment.controller.js.map

@@ -1,14 +1,17 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SeatLockingService = void 0;
-const cacheService_1 = require("./cacheService");
+const cacheService_1 = __importDefault(require("./cacheService"));
 const logger_1 = require("../utils/logger");
 /**
  * Service for managing seat locking with Redis
  * Provides concurrency control for seat selection during booking process
  */
 class SeatLockingService {
-    static cacheService = new cacheService_1.CacheService();
+    static cacheService = new cacheService_1.default();
     static LOCK_EXPIRY = 10 * 60; // 10 minutes in seconds
     static PREFIX = 'seat_lock:';
     /**

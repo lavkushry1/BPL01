@@ -1,61 +1,72 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.paymentService = void 0;
-const apiUtils_1 = require("../services/api/apiUtils");
-const paymentApi_1 = require("../services/api/paymentApi");
+const client_1 = require("@prisma/client");
+const prisma_1 = require("../db/prisma");
+const apiError_1 = require("../utils/apiError");
+const logger_1 = require("../utils/logger");
 exports.paymentService = {
     /**
-     * Create a new payment record
+     * Create a new UTR payment record (BookingPayment)
      */
-    async createPayment(payment) {
+    async createUTRPayment(data) {
         try {
-            const response = await (0, paymentApi_1.recordUpiPayment)({
-                bookingId: payment.booking_id,
-                utrNumber: payment.utr_number || '',
-                paymentDate: payment.payment_date
+            // Check if BookingPayment already exists
+            const existing = await prisma_1.prisma.bookingPayment.findUnique({
+                where: { bookingId: data.booking_id }
             });
-            return payment; // Type conversion needed
+            if (existing) {
+                return await prisma_1.prisma.bookingPayment.update({
+                    where: { bookingId: data.booking_id },
+                    data: {
+                        utrNumber: data.utr_number,
+                        status: data.status,
+                        paymentDate: data.payment_date || new Date()
+                    }
+                });
+            }
+            return await prisma_1.prisma.bookingPayment.create({
+                data: {
+                    bookingId: data.booking_id,
+                    amount: data.amount,
+                    utrNumber: data.utr_number,
+                    status: data.status,
+                    paymentDate: data.payment_date || new Date()
+                }
+            });
         }
         catch (error) {
-            throw error;
+            logger_1.logger.error('Error creating UTR payment:', error);
+            throw new apiError_1.ApiError(500, 'Failed to create UTR payment record');
         }
     },
     /**
-     * Update UTR number for a payment
+     * Create a generic payment record
      */
-    async updateUtrNumber(id, utrNumber) {
+    async createPayment(data) {
         try {
-            // Use defaultApiClient directly since there's no specific function for this
-            const response = await apiUtils_1.defaultApiClient.patch(`/payments/${id}/utr`, { utrNumber });
-            return response.data.payment;
+            // Map to Prisma Payment model
+            // Note: Prisma Payment model is different from the Payment interface
+            // We'll try to save what we can to the Payment table
+            const statusMap = {
+                'pending': client_1.PaymentStatus.PENDING,
+                'verified': client_1.PaymentStatus.COMPLETED,
+                'rejected': client_1.PaymentStatus.FAILED,
+                'refunded': client_1.PaymentStatus.REFUNDED
+            };
+            const prismaStatus = statusMap[data.status] || client_1.PaymentStatus.PENDING;
+            return await prisma_1.prisma.payment.create({
+                data: {
+                    bookingId: data.booking_id,
+                    amount: data.amount,
+                    status: prismaStatus,
+                    method: data.payment_method || 'unknown'
+                }
+            });
         }
         catch (error) {
-            throw error;
-        }
-    },
-    /**
-     * Verify a payment
-     */
-    async verifyPayment(id, adminId) {
-        try {
-            // verifyPayment API function only accepts bookingId, so we use defaultApiClient directly
-            const response = await apiUtils_1.defaultApiClient.post(`/payments/${id}/admin-verify`, { adminId });
-            return response.data.payment;
-        }
-        catch (error) {
-            throw error;
-        }
-    },
-    /**
-     * Reject a payment
-     */
-    async rejectPayment(id, adminId) {
-        try {
-            const response = await apiUtils_1.defaultApiClient.post(`/payments/${id}/reject`, { adminId });
-            return response.data.payment;
-        }
-        catch (error) {
-            throw error;
+            logger_1.logger.error('Error creating payment:', error);
+            throw new apiError_1.ApiError(500, 'Failed to create payment record');
         }
     },
     /**
@@ -63,38 +74,67 @@ exports.paymentService = {
      */
     async getPaymentByBookingId(bookingId) {
         try {
-            const response = await apiUtils_1.defaultApiClient.get(`/payments/booking/${bookingId}`);
-            return response.data.payment;
+            return await prisma_1.prisma.bookingPayment.findUnique({
+                where: { bookingId }
+            });
         }
         catch (error) {
-            throw error;
+            throw new apiError_1.ApiError(500, 'Failed to fetch payment');
         }
     },
     /**
-     * Get UPI settings
+     * Verify a payment (Admin)
      */
-    async getUpiSettings() {
+    async verifyPayment(bookingId, adminId) {
         try {
-            const response = await (0, paymentApi_1.getActiveUpiSettings)();
-            return response;
+            // Start a transaction to update both BookingPayment and Booking
+            return await prisma_1.prisma.$transaction(async (tx) => {
+                // 1. Update BookingPayment
+                const payment = await tx.bookingPayment.update({
+                    where: { bookingId },
+                    data: {
+                        status: 'verified',
+                        verifiedBy: adminId
+                    }
+                });
+                // 2. Update Booking status
+                await tx.booking.update({
+                    where: { id: bookingId },
+                    data: { status: 'CONFIRMED' }
+                });
+                // 3. Update main Payment record if exists
+                const mainPayment = await tx.payment.findUnique({
+                    where: { bookingId }
+                });
+                if (mainPayment) {
+                    await tx.payment.update({
+                        where: { bookingId },
+                        data: { status: client_1.PaymentStatus.COMPLETED }
+                    });
+                }
+                return payment;
+            });
         }
         catch (error) {
-            return null;
+            logger_1.logger.error('Error verifying payment:', error);
+            throw new apiError_1.ApiError(500, 'Failed to verify payment');
         }
     },
     /**
-     * Update UPI settings
+     * Reject a payment
      */
-    async updateUpiSettings(settings) {
+    async rejectPayment(bookingId, adminId) {
         try {
-            if (!settings.id) {
-                throw new Error('UPI setting ID is required for update');
-            }
-            const response = await (0, paymentApi_1.updateUpiSetting)(settings.id, settings);
-            return response;
+            return await prisma_1.prisma.bookingPayment.update({
+                where: { bookingId },
+                data: {
+                    status: 'rejected',
+                    verifiedBy: adminId
+                }
+            });
         }
         catch (error) {
-            throw error;
+            throw new apiError_1.ApiError(500, 'Failed to reject payment');
         }
     }
 };

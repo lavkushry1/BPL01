@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.unlockSeatsSchema = exports.lockSeatsSchema = exports.updateSeatStatusSchema = exports.releaseReservationSchema = exports.seatReservationSchema = exports.bulkSeatAvailabilitySchema = void 0;
+exports.getSeatsSchema = exports.unlockSeatsSchema = exports.lockSeatsSchema = exports.updateSeatStatusSchema = exports.releaseReservationSchema = exports.seatReservationSchema = exports.bulkSeatAvailabilitySchema = void 0;
 const zod_1 = require("zod");
 exports.bulkSeatAvailabilitySchema = zod_1.z.object({
     body: zod_1.z.object({
@@ -55,5 +55,11 @@ exports.unlockSeatsSchema = zod_1.z.object({
     }),
     params: zod_1.z.object({}),
     query: zod_1.z.object({})
+});
+exports.getSeatsSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        venueId: zod_1.z.string().min(1, 'Venue ID is required'),
+        sectionId: zod_1.z.string().min(1, 'Section ID is required')
+    })
 });
 //# sourceMappingURL=seat.validation.js.map

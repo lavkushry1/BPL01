@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const seatLocking_controller_1 = require("../controllers/seatLocking.controller");
+const SeatLockingController = __importStar(require("../controllers/seatLocking.controller"));
 const validate_1 = require("../middleware/validate");
 const auth_1 = require("../middleware/auth");
 const seatLockingValidation = __importStar(require("../validations/seatLocking.validation"));
@@ -84,7 +84,7 @@ const router = (0, express_1.Router)();
  *       400:
  *         description: Invalid input or seats already locked
  */
-router.post('/seats/lock', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.lockSeatsSchema), seatLocking_controller_1.SeatLockingController.lockSeats);
+router.post('/seats/lock', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.lockSeatsSchema), SeatLockingController.lockSeats);
 /**
  * @swagger
  * /api/seats/release:
@@ -121,7 +121,7 @@ router.post('/seats/lock', (0, auth_1.auth)(), (0, validate_1.validate)(seatLock
  *       400:
  *         description: Invalid input or unauthorized release attempt
  */
-router.post('/seats/release', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.releaseSeatsSchema), seatLocking_controller_1.SeatLockingController.releaseSeats);
+router.post('/seats/release', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.releaseSeatsSchema), SeatLockingController.releaseSeats);
 /**
  * @swagger
  * /api/seats/check-locks:
@@ -151,7 +151,7 @@ router.post('/seats/release', (0, auth_1.auth)(), (0, validate_1.validate)(seatL
  *       400:
  *         description: Invalid input
  */
-router.get('/seats/check-locks', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.checkSeatsLockedSchema), seatLocking_controller_1.SeatLockingController.checkSeatsLocked);
+router.get('/seats/check-locks', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.checkSeatsLockedSchema), SeatLockingController.checkSeatsLocked);
 /**
  * @swagger
  * /api/seats/extend-lock:
@@ -191,7 +191,7 @@ router.get('/seats/check-locks', (0, auth_1.auth)(), (0, validate_1.validate)(se
  *       400:
  *         description: Invalid input or unauthorized extension attempt
  */
-router.post('/seats/extend-lock', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.extendLockSchema), seatLocking_controller_1.SeatLockingController.extendLock);
+router.post('/seats/extend-lock', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.extendLockSchema), SeatLockingController.extendLock);
 /**
  * @swagger
  * /api/seats/confirm:
@@ -232,6 +232,6 @@ router.post('/seats/extend-lock', (0, auth_1.auth)(), (0, validate_1.validate)(s
  *       400:
  *         description: Invalid input or unauthorized confirmation attempt
  */
-router.post('/seats/confirm', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.confirmSeatsSchema), seatLocking_controller_1.SeatLockingController.confirmSeats);
+router.post('/seats/confirm', (0, auth_1.auth)(), (0, validate_1.validate)(seatLockingValidation.confirmSeatsSchema), SeatLockingController.confirmSeats);
 exports.default = router;
 //# sourceMappingURL=seatLocking.routes.js.map

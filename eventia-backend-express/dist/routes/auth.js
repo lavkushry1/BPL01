@@ -16,6 +16,7 @@ const router = express_1.default.Router();
  * /auth/register:
  *   post:
  *     summary: Register a new user
+ *     description: Self-service registration always creates USER role accounts.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -39,10 +40,6 @@ const router = express_1.default.Router();
  *                 type: string
  *                 format: password
  *                 example: password123
- *               role:
- *                 type: string
- *                 enum: [user, admin]
- *                 example: user
  *     responses:
  *       201:
  *         description: User created successfully
@@ -51,7 +48,7 @@ const router = express_1.default.Router();
  *       409:
  *         description: Email already in use
  */
-router.post('/register', (0, validate_1.validate)(zod_1.z.object({ body: user_1.userSchema })), authController_1.register);
+router.post('/register', (0, validate_1.validate)(zod_1.z.object({ body: user_1.registerSchema })), authController_1.register);
 /**
  * @swagger
  * /auth/login:

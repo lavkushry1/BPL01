@@ -1,9 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
 const apiError_1 = require("../utils/apiError");
 const logger_1 = require("../utils/logger");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = require("../db/prisma");
 class DynamicPricingService {
     /**
      * Calculate the dynamic price for tickets based on various factors
@@ -13,7 +12,7 @@ class DynamicPricingService {
             // Set default options
             const { applyMinimumPrice = true, minimumPricePercentage = 70, logCalculation = true } = options;
             // Get ticket category to determine base price
-            const ticketCategory = await prisma.ticketCategory.findUnique({
+            const ticketCategory = await prisma_1.prisma.ticketCategory.findUnique({
                 where: { id: ticketCategoryId },
                 include: { event: true }
             });
@@ -97,7 +96,7 @@ class DynamicPricingService {
             switch (type) {
                 case 'TIME_BASED': {
                     // Check if current time is within the specified time range
-                    const event = await prisma.event.findUnique({ where: { id: eventId } });
+                    const event = await prisma_1.prisma.event.findUnique({ where: { id: eventId } });
                     if (!event)
                         return false;
                     const currentTime = new Date();
@@ -112,7 +111,7 @@ class DynamicPricingService {
                 }
                 case 'INVENTORY_BASED': {
                     // Check if current inventory levels meet the conditions
-                    const ticketCategory = await prisma.ticketCategory.findUnique({
+                    const ticketCategory = await prisma_1.prisma.ticketCategory.findUnique({
                         where: { id: ticketCategoryId },
                         select: { totalSeats: true, bookedSeats: true }
                     });
@@ -128,7 +127,7 @@ class DynamicPricingService {
                 case 'DEMAND_BASED': {
                     // Check if current demand meets the conditions
                     // Demand could be measured by recent bookings
-                    const recentBookingCount = await prisma.booking.count({
+                    const recentBookingCount = await prisma_1.prisma.booking.count({
                         where: {
                             ticketCategoryId,
                             createdAt: {
@@ -174,7 +173,7 @@ class DynamicPricingService {
     async getApplicablePricingRules(eventId) {
         try {
             // Get both event-specific rules and global rules
-            return await prisma.pricingRule.findMany({
+            return await prisma_1.prisma.pricingRule.findMany({
                 where: {
                     isActive: true,
                     OR: [
@@ -195,7 +194,7 @@ class DynamicPricingService {
      */
     async logPriceCalculation(eventId, ticketCategoryId, result, quantity) {
         try {
-            await prisma.pricingLog.create({
+            await prisma_1.prisma.pricingLog.create({
                 data: {
                     eventId,
                     ticketCategoryId,
@@ -216,7 +215,7 @@ class DynamicPricingService {
      */
     async savePricingRule(data) {
         try {
-            return await prisma.pricingRule.create({
+            return await prisma_1.prisma.pricingRule.create({
                 data: {
                     ...data,
                     conditions: data.conditions || {}
@@ -233,7 +232,7 @@ class DynamicPricingService {
      */
     async updatePricingRule(id, data) {
         try {
-            return await prisma.pricingRule.update({
+            return await prisma_1.prisma.pricingRule.update({
                 where: { id },
                 data
             });
@@ -248,7 +247,7 @@ class DynamicPricingService {
      */
     async deletePricingRule(id) {
         try {
-            await prisma.pricingRule.delete({
+            await prisma_1.prisma.pricingRule.delete({
                 where: { id }
             });
         }
@@ -262,7 +261,7 @@ class DynamicPricingService {
      */
     async getPricingRules(filters = {}) {
         try {
-            return await prisma.pricingRule.findMany({
+            return await prisma_1.prisma.pricingRule.findMany({
                 where: {
                     ...filters
                 },
@@ -279,7 +278,7 @@ class DynamicPricingService {
      */
     async getPricingRuleById(id) {
         try {
-            return await prisma.pricingRule.findUnique({
+            return await prisma_1.prisma.pricingRule.findUnique({
                 where: { id }
             });
         }

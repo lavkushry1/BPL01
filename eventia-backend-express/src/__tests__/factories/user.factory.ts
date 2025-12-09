@@ -79,10 +79,10 @@ export class UserFactory {
         postalCode: faker.location.zipCode(),
         avatarUrl: faker.image.avatar(),
         socialLinks: {
-          twitter: `https://twitter.com/${faker.internet.userName()}`,
-          facebook: `https://facebook.com/${faker.internet.userName()}`,
-          instagram: `https://instagram.com/${faker.internet.userName()}`,
-          linkedin: `https://linkedin.com/in/${faker.internet.userName()}`
+          twitter: `https://twitter.com/${faker.internet.username()}`,
+          facebook: `https://facebook.com/${faker.internet.username()}`,
+          instagram: `https://instagram.com/${faker.internet.username()}`,
+          linkedin: `https://linkedin.com/in/${faker.internet.username()}`
         },
         preferences: {
           emailNotifications: faker.datatype.boolean(),

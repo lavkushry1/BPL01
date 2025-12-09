@@ -34,26 +34,49 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const reservationController = __importStar(require("../controllers/reservationController"));
 const auth_1 = require("../middleware/auth");
 const validate_1 = require("../middleware/validate");
+const prisma_1 = require("../db/prisma");
 const paymentValidation = __importStar(require("../validations/payment.validation"));
 const router = (0, express_1.Router)();
 // UTR verification endpoints
-router.post('/verify', auth_1.authenticate, (0, validate_1.validate)(paymentValidation.verifyPaymentUtrSchema), (req, res) => {
-    // TODO: Implement actual UTR verification logic
-    res.json({
-        utr: req.body.utr_number,
-        isValid: true,
-        verifiedAt: new Date()
-    });
-});
-router.get('/status/:utr', auth_1.authenticate, (req, res) => {
-    // TODO: Retrieve verification status from database
-    res.json({
-        utr: req.params.utr,
-        status: 'verified',
-        eventId: 'EVENT_123'
-    });
+router.post('/verify', auth_1.authenticate, (0, validate_1.validate)(paymentValidation.verifyPaymentUtrSchema), reservationController.verifyUTR);
+router.get('/status/:utr', auth_1.authenticate, async (req, res) => {
+    try {
+        const payment = await prisma_1.prisma.bookingPayment.findFirst({
+            where: { utrNumber: req.params.utr },
+            include: {
+                booking: {
+                    include: {
+                        event: {
+                            select: {
+                                id: true,
+                                title: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        if (!payment) {
+            return res.status(404).json({
+                error: 'UTR not found',
+                utr: req.params.utr
+            });
+        }
+        res.json({
+            utr: req.params.utr,
+            status: payment.status,
+            eventId: payment.booking.eventId,
+            eventTitle: payment.booking.event?.title,
+            amount: Number(payment.amount),
+            verifiedAt: payment.updatedAt
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 // Health check endpoint
 router.get('/health', (req, res) => {

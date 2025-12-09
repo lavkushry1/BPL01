@@ -1,15 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userModel = exports.loginSchema = exports.userSchema = void 0;
+exports.userModel = exports.loginSchema = exports.userSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 const db_1 = require("../db");
 const uuid_1 = require("uuid");
-// Schema for validation
-exports.userSchema = zod_1.z.object({
+// Schemas for validation
+const passwordSchema = zod_1.z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must include an uppercase letter')
+    .regex(/[a-z]/, 'Password must include a lowercase letter')
+    .regex(/[0-9]/, 'Password must include a number');
+const baseUserSchema = zod_1.z.object({
     name: zod_1.z.string().min(2).max(100),
     email: zod_1.z.string().email(),
-    password: zod_1.z.string().min(8),
-    role: zod_1.z.enum(['admin', 'user']).default('user'),
+    password: passwordSchema
+});
+// Registration input should not allow caller-controlled roles
+exports.registerSchema = baseUserSchema;
+// Internal/user management schema where role can be set by trusted callers
+exports.userSchema = baseUserSchema.extend({
+    role: zod_1.z.enum(['USER', 'ADMIN', 'MANAGER']).default('USER'),
 });
 exports.loginSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
@@ -28,6 +38,7 @@ class UserModel {
         // Generate a UUID for the user
         const userWithId = {
             ...user,
+            role: user.role || 'USER',
             id: (0, uuid_1.v4)(),
             createdAt: new Date(),
             updatedAt: new Date()
