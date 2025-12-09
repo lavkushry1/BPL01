@@ -50,11 +50,11 @@ export const getPaymentSchema = z.object({
 });
 
 export const getPaymentByBookingIdSchema = z.object({
-  body: z.object({}),
+  body: z.any().optional(),
   params: z.object({
     bookingId: z.string().min(1, 'Booking ID is required')
   }),
-  query: z.object({})
+  query: z.any().optional()
 });
 
 export const getAllPaymentsSchema = z.object({

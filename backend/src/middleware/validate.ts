@@ -94,13 +94,7 @@ export const validate = (schema: ZodSchema, cacheKey?: string) => {
       }
 
       // Validate with Zod
-      try {
-        await schema.parseAsync(sanitizedData);
-      } catch (err) {
-        console.log('Sanitized Data:', JSON.stringify(sanitizedData, null, 2));
-        console.log('Schema Error:', err);
-        throw err;
-      }
+      await schema.parseAsync(sanitizedData);
 
       // Cache successful validation result if cacheKey is provided
       if (cacheKey) {
