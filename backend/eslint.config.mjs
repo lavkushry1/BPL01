@@ -36,7 +36,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.js', 'scripts/**/*.ts', 'prisma/**/*.ts', '**/*.mjs'],
+    files: ['**/*.js', 'scripts/**/*.ts', 'prisma/**/*.ts', '**/*.mjs', 'src/__tests__/**/*.ts'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-var-requires': 'off',

@@ -5,6 +5,7 @@ import { ApiError } from '../utils/apiError';
 import { logger } from '../utils/logger';
 
 // Extend Express Request interface to include the user
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Express {
     interface Request {
@@ -12,6 +13,7 @@ declare global {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-namespace */
 
 type PublicEndpoint =
   | { path: string; methods?: string[] }

@@ -3,29 +3,26 @@
  * @description Provides methods for managing bookings and delivery details in the Eventia system.
  * This service acts as an interface between the frontend components and the Express backend API,
  * handling all booking-related operations including creation, retrieval, and status updates.
- * 
+ *
  * @dataFlow
  * - Used by EventDetail page to create bookings when users select tickets
  * - Used by BookingConfirmation page to display booking details
  * - Used by BookingHistory page to display user's past bookings
  * - Integrated with PaymentApi for handling payment status updates
- * 
+ *
  * @backendModels
  * Maps to:
  * - 'bookings' table in database (id, user_id, event_id, ticket_type, quantity, status, etc.)
  * - 'delivery_details' table in database (id, booking_id, address, city, postal_code, etc.)
- * 
+ *
  * @statusFlow
  * Booking Status: 'pending' → 'payment_initiated' → 'payment_completed' → 'confirmed' → 'delivered'
  */
 
-import type { PrismaClient } from '@prisma/client';
-import { Booking, DeliveryDetails } from '../models';
 import { db } from '../db';
 import { prisma } from '../db/prisma';
+import { Booking, DeliveryDetails } from '../models';
 import { ApiError } from '../utils/apiError';
-import { v4 as uuidv4 } from 'uuid';
-import * as ticketService from './ticket.service';
 
 export const bookingService = {
   /**
@@ -35,7 +32,6 @@ export const bookingService = {
    * @throws Error if the API operation fails
    */
   async createBooking(booking: any) {
-    try {
       const { event_id, quantity, discount_code, user_id } = booking;
 
       // Validate event exists
@@ -54,10 +50,7 @@ export const bookingService = {
         created_at: new Date()
       }).returning('*');
 
-      return createdBooking as Booking;
-    } catch (error) {
-      throw error;
-    }
+    return createdBooking as Booking;
   },
 
   /**
@@ -67,7 +60,6 @@ export const bookingService = {
    * @throws Error if the booking is not found or operation fails
    */
   async getBookingById(id: string) {
-    try {
       const booking = await db('bookings')
         .where({ id })
         .first();
@@ -85,9 +77,6 @@ export const bookingService = {
         ...booking,
         deliveryDetails: deliveryDetails || null
       } as Booking;
-    } catch (error) {
-      throw error;
-    }
   },
 
   /**
@@ -97,15 +86,11 @@ export const bookingService = {
    * @throws Error if the API operation fails
    */
   async getBookingsByUserId(userId: string) {
-    try {
       const bookings = await db('bookings')
         .where({ user_id: userId })
         .orderBy('created_at', 'desc');
 
-      return bookings as Booking[];
-    } catch (error) {
-      throw error;
-    }
+    return bookings as Booking[];
   },
 
   /**
@@ -116,7 +101,6 @@ export const bookingService = {
    * @throws Error if the booking is not found or operation fails
    */
   async updateBookingStatus(id: string, status: Booking['status']) {
-    try {
       const [updatedBooking] = await db('bookings')
         .where({ id })
         .update({
@@ -129,10 +113,7 @@ export const bookingService = {
         throw new ApiError(404, 'Booking not found');
       }
 
-      return updatedBooking as Booking;
-    } catch (error) {
-      throw error;
-    }
+    return updatedBooking as Booking;
   },
 
   /**
@@ -142,7 +123,6 @@ export const bookingService = {
    * @throws Error if the API operation fails
    */
   async addDeliveryDetails(deliveryDetails: any) {
-    try {
       const { booking_id, name, email, phone, address, city, pincode } = deliveryDetails;
 
       // Check if booking exists
@@ -189,9 +169,6 @@ export const bookingService = {
 
         return createdDetails as DeliveryDetails;
       }
-    } catch (error) {
-      throw error;
-    }
   },
 
   /**
@@ -201,7 +178,6 @@ export const bookingService = {
    * @throws Error if no delivery details exist or operation fails
    */
   async getDeliveryDetailsByBookingId(bookingId: string) {
-    try {
       const deliveryDetails = await db('delivery_details')
         .where({ booking_id: bookingId })
         .first();
@@ -210,10 +186,7 @@ export const bookingService = {
         throw new ApiError(404, 'No delivery details found for this booking');
       }
 
-      return deliveryDetails as DeliveryDetails;
-    } catch (error) {
-      throw error;
-    }
+    return deliveryDetails as DeliveryDetails;
   }
 };
 
@@ -278,7 +251,6 @@ export const createBookingFromPaymentIntent = async (prisma: PrismaClient, payme
  * @returns Booking with related data
  */
 export const getBookingById = async (bookingId: string) => {
-  try {
     // Using "any" type to bypass type checking limitations in our current schema
     const booking = await (prisma as any).booking.findUnique({
       where: { id: bookingId },
@@ -288,11 +260,7 @@ export const getBookingById = async (bookingId: string) => {
       }
     });
 
-    return booking;
-  } catch (error) {
-    console.error(`Error getting booking ${bookingId}:`, error);
-    throw error;
-  }
+  return booking;
 };
 
 /**

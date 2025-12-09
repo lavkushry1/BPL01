@@ -5,53 +5,37 @@ export const authService = {
    * Sign in with email and password
    */
   async signIn(email: string, password: string) {
-    try {
       const data = await login(email, password);
-      return data;
-    } catch (error) {
-      throw error;
-    }
+    return data;
   },
 
   /**
    * Sign up with email and password
    */
   async signUp(email: string, password: string) {
-    try {
       const data = await register(email, password, ''); // Name would need to be provided in a real implementation
-      return data;
-    } catch (error) {
-      throw error;
-    }
+    return data;
   },
 
   /**
    * Sign out the current user
    */
   async signOut() {
-    try {
-      await logout();
-    } catch (error) {
-      throw error;
-    }
+    await logout();
   },
 
   /**
    * Get the current session
    */
   async getSession() {
-    try {
       const data = await refreshToken();
-      return data;
-    } catch (error) {
-      throw error;
-    }
+    return data;
   },
 
   /**
    * Check if a user is an admin
    */
-  async isAdmin(email: string) {
+  async isAdmin() {
     try {
       const user = await getCurrentUser();
       return user && user.role === 'admin';

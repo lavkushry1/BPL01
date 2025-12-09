@@ -206,7 +206,7 @@ async function main() {
     const rows = ['A', 'B', 'C', 'D', 'E'];
     const seatsPerRow = 10;
 
-    let seatPromises = [];
+    const seatPromises = [];
 
     // Main Floor seats (General)
     for (let r = 0; r < 2; r++) {

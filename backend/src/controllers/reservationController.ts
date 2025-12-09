@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
-import PDFDocument from 'pdfkit';
-import qrCode from 'qrcode';
 import { paymentService } from '../services/payment.service';
 import { reservationService } from '../services/reservation.service';
 import { ApiError } from '../utils/apiError';
@@ -74,7 +72,7 @@ export const updateReservation = async (req: Request, res: Response) => {
 
 export const processPayment = async (req: Request, res: Response) => {
   // Payment processing logic placeholder
-  res.status(501).json({ message: 'Not implemented' });
+  res.status(501).json({});
 };
 
 export const verifyUTR = async (req: Request, res: Response) => {
@@ -165,37 +163,4 @@ export const generateTickets = async (req: Request, res: Response) => {
   }
 };
 
-const generateTicketPDF = async (reservation: any) => {
-  return new Promise<Buffer>(async (resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 50 });
-      const buffers: any[] = [];
-
-      doc.on('data', (chunk: any) => buffers.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(buffers)));
-
-      // Generate QR Code
-      const qrData = `EventID:${reservation.eventId}|Email:${reservation.userEmail}`;
-      const qrImage = await qrCode.toBuffer(qrData);
-
-      // Create ticket for each category
-      if (reservation.tickets) {
-        Object.entries(reservation.tickets).forEach(([category, quantity]: [string, any]) => {
-          for (let i = 0; i < quantity; i++) {
-            doc.fontSize(18).text(`Event: ${reservation.eventTitle}`);
-            doc.fontSize(12).text(`Category: ${category}`);
-            doc.text(`Ticket ${i + 1} of ${quantity}`);
-            doc.image(qrImage, { width: 100 });
-            doc.moveDown(2);
-          }
-        });
-      } else {
-        doc.text('No seat details available');
-      }
-
-      doc.end();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
+// @ts-expect-error - User is attached by auth middleware

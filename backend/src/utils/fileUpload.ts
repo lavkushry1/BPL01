@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
-import * as multer from 'multer';
 
 // Types for file upload
 export interface FileUploadResult {
@@ -24,10 +23,10 @@ export const saveBase64Image = async (
 ): Promise<FileUploadResult> => {
   try {
     // Extract the base64 data if it has a data URI prefix
-    const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    const matches = base64Data.match(new RegExp('^data:([A-Za-z-+/]+);base64,(.+)$'));
     let cleanedBase64: string;
     let fileExtension: string;
-    
+
     if (matches && matches.length === 3) {
       // It's a data URI
       const mimeType = matches[1];
@@ -38,28 +37,28 @@ export const saveBase64Image = async (
       cleanedBase64 = base64Data;
       fileExtension = 'jpg'; // Default to jpg
     }
-    
+
     // Create a unique filename
     const fileName = `${uuidv4()}.${fileExtension}`;
-    
+
     // Ensure the directory exists
     const publicDir = path.join(process.cwd(), 'public');
     const targetDir = path.join(publicDir, directory);
-    
+
     if (!fs.existsSync(publicDir)) {
       fs.mkdirSync(publicDir);
     }
-    
+
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
-    
+
     // File path
     const filePath = path.join(targetDir, fileName);
-    
+
     // Write file
     fs.writeFileSync(filePath, Buffer.from(cleanedBase64, 'base64'));
-    
+
     // Return result
     const fileUrl = `/public/${directory}/${fileName}`;
     return {
@@ -92,25 +91,25 @@ export const saveUploadedFile = async (
     // Create a unique filename
     const fileExtension = path.extname(file.originalname).slice(1);
     const fileName = `${uuidv4()}.${fileExtension}`;
-    
+
     // Ensure the directory exists
     const publicDir = path.join(process.cwd(), 'public');
     const targetDir = path.join(publicDir, directory);
-    
+
     if (!fs.existsSync(publicDir)) {
       fs.mkdirSync(publicDir);
     }
-    
+
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
-    
+
     // File path
     const filePath = path.join(targetDir, fileName);
-    
+
     // Write file
     fs.writeFileSync(filePath, file.buffer);
-    
+
     // Return result
     const fileUrl = `/public/${directory}/${fileName}`;
     return {
@@ -145,4 +144,4 @@ export const deleteFile = async (filePath: string): Promise<boolean> => {
     logger.error('Error deleting file:', error);
     return false;
   }
-}; 
+};

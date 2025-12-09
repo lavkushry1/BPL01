@@ -1,5 +1,5 @@
-import { Discount } from '../models/discount.model';
 import { db } from '../db';
+import { Discount } from '../models/discount.model';
 import { ApiError } from '../utils/apiError';
 
 export const discountService = {
@@ -7,16 +7,12 @@ export const discountService = {
    * Get all active discounts
    */
   async getAllActiveDiscounts() {
-    try {
       const discounts = await db('discounts')
         .select('*')
         .where({ is_active: true })
         .orderBy('created_at', 'desc');
-      
-      return discounts;
-    } catch (error) {
-      throw error;
-    }
+
+    return discounts;
   },
 
   /**
@@ -30,14 +26,14 @@ export const discountService = {
         .whereRaw('UPPER(code) = ?', [code.toUpperCase()])
         .where({ is_active: true })
         .first();
-      
+
       if (!discount) {
-        return { 
-          valid: false, 
-          message: 'Invalid discount code' 
+        return {
+          valid: false,
+          message: 'Invalid discount code'
         };
       }
-      
+
       // Check if discount has expired
       const now = new Date();
       if (discount.expiry_date && new Date(discount.expiry_date) < now) {
@@ -46,7 +42,7 @@ export const discountService = {
           message: 'This discount code has expired'
         };
       }
-      
+
       // Check if the discount has reached its maximum usage
       if (discount.max_uses > 0 && discount.uses_count >= discount.max_uses) {
         return {
@@ -54,9 +50,9 @@ export const discountService = {
           message: 'This discount code has reached its maximum usage limit'
         };
       }
-      
-      return { 
-        valid: true, 
+
+      return {
+        valid: true,
         discount
       };
     } catch (error) {
@@ -68,17 +64,16 @@ export const discountService = {
    * Apply a discount code (increment uses_count)
    */
   async applyDiscountCode(id: string) {
-    try {
       // Get the current discount
       const discount = await db('discounts')
         .select('*')
         .where({ id })
         .first();
-      
+
       if (!discount) {
         throw new ApiError(404, 'Discount not found');
       }
-      
+
       // Increment uses count
       const [updatedDiscount] = await db('discounts')
         .where({ id })
@@ -87,41 +82,33 @@ export const discountService = {
           updated_at: new Date()
         })
         .returning('*');
-      
-      return updatedDiscount;
-    } catch (error) {
-      throw error;
-    }
+
+    return updatedDiscount;
   },
 
   /**
    * Check if an auto-apply discount already exists for an event
    */
   async checkExistingAutoApplyDiscount(eventId: string, currentDiscountId?: string) {
-    try {
       const query = db('discounts')
         .where({
           auto_apply: true,
           is_active: true,
           event_id: eventId
         });
-      
+
       if (currentDiscountId) {
         query.whereNot({ id: currentDiscountId });
       }
-      
+
       const existingDiscount = await query.first();
-      return !!existingDiscount;
-    } catch (error) {
-      throw error;
-    }
+    return !!existingDiscount;
   },
 
   /**
    * Create a new discount code
    */
   async createDiscountCode(discount: Omit<Discount, 'id' | 'created_at' | 'uses_count'>) {
-    try {
       // If this is an auto-apply discount, check if one already exists for this event
       if (discount.auto_apply && discount.event_id) {
         const hasExisting = await this.checkExistingAutoApplyDiscount(discount.event_id);
@@ -129,7 +116,7 @@ export const discountService = {
           throw new ApiError(400, 'An auto-apply discount already exists for this event. Only one auto-apply discount per event is allowed.');
         }
       }
-      
+
       // Create the discount
       const [createdDiscount] = await db('discounts')
         .insert({
@@ -147,18 +134,14 @@ export const discountService = {
           updated_at: new Date()
         })
         .returning('*');
-      
-      return createdDiscount;
-    } catch (error) {
-      throw error;
-    }
+
+    return createdDiscount;
   },
 
   /**
    * Update an existing discount code
    */
   async updateDiscountCode(id: string, discount: Partial<Discount>) {
-    try {
       // If this is an auto-apply discount, check if one already exists for this event
       if (discount.auto_apply && discount.event_id) {
         const hasExisting = await this.checkExistingAutoApplyDiscount(discount.event_id, id);
@@ -166,10 +149,10 @@ export const discountService = {
           throw new ApiError(400, 'An auto-apply discount already exists for this event. Only one auto-apply discount per event is allowed.');
         }
       }
-      
+
       // Update fields that are provided
       const updateData: Record<string, any> = { updated_at: new Date() };
-      
+
       if (discount.code !== undefined) updateData.code = discount.code.toUpperCase();
       if (discount.amount !== undefined) updateData.amount = discount.amount;
       if (discount.max_uses !== undefined) updateData.max_uses = discount.max_uses;
@@ -179,39 +162,32 @@ export const discountService = {
       if (discount.auto_apply !== undefined) updateData.auto_apply = discount.auto_apply;
       if (discount.event_id !== undefined) updateData.event_id = discount.event_id;
       if (discount.priority !== undefined) updateData.priority = discount.priority;
-      
+
       const [updatedDiscount] = await db('discounts')
         .where({ id })
         .update(updateData)
         .returning('*');
-        
+
       if (!updatedDiscount) {
         throw new ApiError(404, 'Discount not found');
       }
-      
-      return updatedDiscount;
-    } catch (error) {
-      throw error;
-    }
+
+    return updatedDiscount;
   },
 
   /**
    * Delete a discount code
    */
   async deleteDiscountCode(id: string) {
-    try {
       const deleted = await db('discounts')
         .where({ id })
         .delete();
-        
+
       if (!deleted) {
         throw new ApiError(404, 'Discount not found');
       }
-      
-      return true;
-    } catch (error) {
-      throw error;
-    }
+
+    return true;
   },
 
   /**
@@ -228,22 +204,22 @@ export const discountService = {
           is_active: true
         })
         .first();
-      
+
       if (!discount) {
         return null;
       }
-      
+
       // Check if discount has expired
       const now = new Date();
       if (discount.expiry_date && new Date(discount.expiry_date) < now) {
         return null;
       }
-      
+
       // Check if the discount has reached its maximum usage
       if (discount.max_uses > 0 && discount.uses_count >= discount.max_uses) {
         return null;
       }
-      
+
       return discount;
     } catch (error) {
       return null;
@@ -259,22 +235,22 @@ export const discountService = {
         .select('*')
         .where({ id: discountId })
         .first();
-      
+
       if (!discount || !discount.is_active || !discount.auto_apply) {
         return null;
       }
-      
+
       // Check if discount has expired
       const now = new Date();
       if (discount.expiry_date && new Date(discount.expiry_date) < now) {
         return null;
       }
-      
+
       // Check if the discount has reached its maximum usage
       if (discount.max_uses > 0 && discount.uses_count >= discount.max_uses) {
         return null;
       }
-      
+
       return discount;
     } catch (error) {
       return null;
