@@ -486,6 +486,7 @@ model Ticket {
   price            Decimal      @db.Decimal(10, 2)
   checkedIn        Boolean      @default(false) @map("checked_in")
   checkedInAt      DateTime?    @map("checked_in_at")
+  lastScannedAt    DateTime?    @map("last_scanned_at")
   isDeleted        Boolean      @default(false) @map("is_deleted")
   deletedAt        DateTime?    @map("deleted_at")
   createdAt        DateTime     @default(now())
@@ -495,6 +496,8 @@ model Ticket {
   ticketCategory   TicketCategory @relation(fields: [ticketCategoryId], references: [id], onDelete: Cascade)
   seat             Seat?        @relation(fields: [seatId], references: [id])
   user             User?        @relation(fields: [userId], references: [id])
+  ticketScans      TicketScan[]
+  statusLogs       TicketStatusLog[]
 
   @@index([code])
   @@index([bookingId])
@@ -505,6 +508,54 @@ model Ticket {
   @@index([ticketCategoryId])
   @@index([seatId])
   @@map("tickets")
+}
+
+model TicketScan {
+  id          String   @id @default(uuid())
+  ticketId    String   @map("ticket_id")
+  scannedAt   DateTime @default(now()) @map("scanned_at")
+  scannedBy   String?  @map("scanned_by")
+  location    String?
+  deviceInfo  String?  @map("device_info")
+  isValid     Boolean  @default(true) @map("is_valid")
+  notes       String?
+  createdAt   DateTime @default(now())
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([scannedAt])
+  @@map("ticket_scans")
+}
+
+model TicketStatusLog {
+  id           String       @id @default(uuid())
+  ticketId     String       @map("ticket_id")
+  fromStatus   TicketStatus @map("from_status")
+  toStatus     TicketStatus @map("to_status")
+  changedBy    String?      @map("changed_by")
+  reason       String?
+  createdAt    DateTime     @default(now())
+  ticket       Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_status_logs")
+}
+
+model ReconciliationLog {
+  id              String   @id @default(uuid())
+  paymentId       String   @map("payment_id")
+  transactionId   String?  @map("transaction_id")
+  amount          Decimal  @db.Decimal(10, 2)
+  status          String   @default("pending")
+  reconciliatedAt DateTime? @map("reconciliated_at")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([paymentId])
+  @@index([transactionId])
+  @@index([status])
+  @@map("reconciliation_logs")
 }
 
 model EventSummary {

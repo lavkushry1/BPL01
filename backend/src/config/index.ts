@@ -89,6 +89,7 @@ interface StripeConfig {
   publicKey: string;
 }
 
+
 interface AppConfig {
   nodeEnv: string;
   port: number;
@@ -103,6 +104,7 @@ interface AppConfig {
   email: EmailConfig;
   tasks: TasksConfig;
   stripe: StripeConfig;
+  razorpay: RazorpayConfig;
   cors: {
     origin: string;
   };
@@ -215,6 +217,13 @@ export const config: AppConfig = {
     secretKey: process.env.STRIPE_SECRET_KEY || (process.env.NODE_ENV === 'production' ? '' : 'sk_test_dummy_key_for_development'),
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'whsec_dummy_key_for_development'),
     publicKey: process.env.STRIPE_PUBLIC_KEY || (process.env.NODE_ENV === 'production' ? '' : 'pk_test_dummy_key_for_development'),
+  },
+
+  // Razorpay payment configuration
+  razorpay: {
+    keyId: process.env.RAZORPAY_KEY_ID || (process.env.NODE_ENV === 'production' ? '' : 'rzp_test_dummy_key'),
+    keySecret: process.env.RAZORPAY_KEY_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'rzp_secret_dummy_key'),
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'webhook_secret_razorpay'),
   },
 
   // Cors origins as array for socket.io
