@@ -6,6 +6,11 @@ module.exports = {
   testMatch: [
     '**/__tests__/**/*.test.ts'
   ],
+  transform: {
+    '^.+\\.[tj]sx?$': ['ts-jest', {
+      useESM: true,
+    }],
+  },
   coverageDirectory: '<rootDir>/coverage',
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -21,5 +26,8 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testTimeout: 60000,
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)'
+  ],
   verbose: true,
 };

@@ -46,8 +46,14 @@ describe('Booking Controller', () => {
     // Setup mock request and response
     mockRequest = {
       body: {},
-      params: {}
-    };
+      params: {},
+      user: {
+        id: '22222222-2222-2222-2222-222222222222',
+        role: 'USER',
+        name: 'Test User',
+        email: 'test@example.com'
+      }
+    } as any;
 
     mockResponse = {
       status: jest.fn().mockReturnThis() as any,
@@ -154,7 +160,7 @@ describe('Booking Controller', () => {
       expect(mockDbInstance.update).toHaveBeenCalledWith({
         status: SeatStatus.BOOKED,
         booking_id: 'test-uuid',
-        updated_at: expect.any(Date)
+        updatedAt: expect.any(Date)
       });
       expect(mockDbInstance.whereIn).toHaveBeenCalledWith('id', ['44444444-4444-4444-4444-444444444444', '55555555-5555-5555-5555-555555555555']);
       expect(WebsocketService.notifySeatStatusChange).toHaveBeenCalledWith(
@@ -258,7 +264,7 @@ describe('Booking Controller', () => {
       mockDbInstance.returning.mockResolvedValue([{
         id: '33333333-3333-3333-3333-333333333333',
         status: 'CONFIRMED',
-        updated_at: new Date('2023-01-01T00:00:00.000Z')
+        updatedAt: new Date('2023-01-01T00:00:00.000Z')
       }]);
     });
 
@@ -272,7 +278,7 @@ describe('Booking Controller', () => {
       expect(mockDbInstance.where).toHaveBeenCalledWith('id', '33333333-3333-3333-3333-333333333333');
       expect(mockDbInstance.update).toHaveBeenCalledWith({
         status: 'CONFIRMED',
-        updated_at: new Date('2023-01-01T00:00:00.000Z')
+        updatedAt: new Date('2023-01-01T00:00:00.000Z')
       });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
