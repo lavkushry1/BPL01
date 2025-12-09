@@ -146,7 +146,7 @@ export class PaymentReconciliationService {
     transactionId: string;
   }): Promise<void> {
     try {
-      await prisma.reconciliationLog.create({
+      await (prisma as any).reconciliationLog.create({
         data: {
           paymentId: issueData.paymentId,
           transactionId: issueData.transactionId,
@@ -182,13 +182,13 @@ export class PaymentReconciliationService {
     if (filter.type) where.type = filter.type;
 
     const [logs, total] = await Promise.all([
-      prisma.reconciliationLog.findMany({
+      (prisma as any).reconciliationLog.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
       }),
-      prisma.reconciliationLog.count({ where })
+      (prisma as any).reconciliationLog.count({ where })
     ]);
 
     return {
@@ -209,7 +209,7 @@ export class PaymentReconciliationService {
     status: string,
     resolution?: string
   ): Promise<any> {
-    return prisma.reconciliationLog.update({
+    return (prisma as any).reconciliationLog.update({
       where: { id: logId },
       data: {
         status,
