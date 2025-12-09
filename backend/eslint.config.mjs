@@ -10,13 +10,21 @@ export default tseslint.config(
     ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'prisma/**/*.js'],
   },
   {
-    files: ['**/*.ts'],
+    files: ['**/*.ts', '**/*.js', '**/*.mjs'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       parserOptions: {
-        project: './tsconfig.json',
+        project: './tsconfig.eslint.json',
       },
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        Buffer: 'readonly'
+      }
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
@@ -24,6 +32,16 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       'no-console': 'off',
+      'no-undef': 'off' // TypeScript handles this
     },
+  },
+  {
+    files: ['**/*.js', 'scripts/**/*.ts', 'prisma/**/*.ts', '**/*.mjs'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+      'no-undef': 'off',
+      '@typescript-eslint/no-explicit-any': 'off'
+    }
   }
 );

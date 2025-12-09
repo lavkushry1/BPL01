@@ -56,7 +56,7 @@ export const metricsController = {
       
       // Calculate date range based on timeframe
       const now = new Date();
-      let startDate = new Date(now);
+      const startDate = new Date(now);
       
       switch (timeframe) {
         case '1h':
