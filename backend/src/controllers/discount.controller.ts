@@ -93,7 +93,7 @@ export class DiscountController {
         limit,
         totalPages: Math.ceil(filteredDiscounts.length / limit)
       });
-    } catch (error) {
+    } catch (_) {
       throw new ApiError(500, 'Failed to get discounts');
     }
   });

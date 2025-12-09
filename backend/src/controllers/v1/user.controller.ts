@@ -153,7 +153,7 @@ export class UserControllerV1 {
   /**
    * Get user tickets
    */
-  static getUserTickets = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static getUserTickets = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const userId = req.user?.id;
 
     if (!userId) {
@@ -187,7 +187,7 @@ export class UserControllerV1 {
   /**
    * Get all users (Admin only)
    */
-  static getAllUsers = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static getAllUsers = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     // Check if admin
     if (req.user?.role !== 'ADMIN') {
       throw new ApiError(403, 'Forbidden', 'FORBIDDEN');
@@ -243,7 +243,7 @@ export class UserControllerV1 {
   /**
    * Get user by ID (Admin only)
    */
-  static getUserById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static getUserById = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     // Check if admin
     if (req.user?.role !== 'ADMIN') {
       throw new ApiError(403, 'Forbidden', 'FORBIDDEN');
@@ -276,7 +276,7 @@ export class UserControllerV1 {
   /**
    * Update user (Admin only)
    */
-  static updateUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static updateUser = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     // Check if admin
     if (req.user?.role !== 'ADMIN') {
       throw new ApiError(403, 'Forbidden', 'FORBIDDEN');
@@ -329,7 +329,7 @@ export class UserControllerV1 {
   /**
    * Delete user (Admin only)
    */
-  static deleteUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static deleteUser = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     // Check if admin
     if (req.user?.role !== 'ADMIN') {
       throw new ApiError(403, 'Forbidden', 'FORBIDDEN');

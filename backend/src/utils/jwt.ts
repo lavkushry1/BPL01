@@ -72,7 +72,7 @@ export const verifyToken = (token: string): Record<string, unknown> | null => {
         // Log first few characters of token for debugging
         const tokenPreview = token.substring(0, 20) + '...';
         logger.debug(`Malformed token starts with: ${tokenPreview}`);
-      } catch (e) {
+      } catch (_) {
         logger.debug('Could not log token preview');
       }
     }
@@ -89,7 +89,7 @@ export const verifyToken = (token: string): Record<string, unknown> | null => {
 export const decodeToken = (token: string): unknown | null => {
   try {
     return jwt.decode(token);
-  } catch (error) {
+  } catch (_) {
     return null;
   }
 };
