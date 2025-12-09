@@ -214,7 +214,7 @@ export class BookingControllerV1 {
     }
 
     // User can only access their own bookings unless they're an admin
-    if (booking.userId !== userId && req.user.role !== 'ADMIN') {
+    if (booking.userId !== userId && req.user?.role !== 'ADMIN') {
       throw new ApiError(403, 'Forbidden', ErrorCode.FORBIDDEN);
     }
 
@@ -242,7 +242,7 @@ export class BookingControllerV1 {
     }
 
     // User can only cancel their own bookings unless they're an admin
-    if (booking.userId !== userId && req.user.role !== 'ADMIN') {
+    if (booking.userId !== userId && req.user?.role !== 'ADMIN') {
       throw new ApiError(403, 'Forbidden', ErrorCode.FORBIDDEN);
     }
 

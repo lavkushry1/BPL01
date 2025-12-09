@@ -16,8 +16,8 @@ RUN npm ci
 COPY . .
 
 # Build the application
-RUN npm run build
 RUN npm run prisma:generate
+RUN npm run build
 
 # Production image
 FROM node:20-alpine

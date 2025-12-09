@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
+import PDFDocument from 'pdfkit';
+import qrCode from 'qrcode';
 import { paymentService } from '../services/payment.service';
 import { reservationService } from '../services/reservation.service';
 import { ApiError } from '../utils/apiError';
@@ -22,7 +24,10 @@ export const createReservation = async (req: Request, res: Response) => {
 
     const { eventId, tickets, totalAmount } = req.body;
 
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const booking = await reservationService.createReservation({
       userId,
@@ -170,10 +175,10 @@ const generateTicketPDF = async (reservation: any): Promise<Buffer> => {
   return new Promise<Buffer>((resolve, reject) => {
     doc.on('data', (chunk: any) => buffers.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(buffers)));
-    doc.on('error', (err) => reject(err));
+    doc.on('error', (err: any) => reject(err));
 
     qrCode.toBuffer(`EventID:${reservation.eventId}|Email:${reservation.userEmail}`)
-      .then(qrImage => {
+      .then((qrImage: any) => {
         if (reservation.tickets) {
           Object.entries(reservation.tickets).forEach(([category, quantity]: [string, any]) => {
             for (let i = 0; i < quantity; i++) {

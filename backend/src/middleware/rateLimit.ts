@@ -28,7 +28,7 @@ const createRedisStore = (prefix: string) => {
       });
 
       return new RedisStore({
-        // @ts-expect-error - Type definitions issue with redis 4.x
+        // Type definitions issue with redis 4.x
         sendCommand: (...args: string[]) => redisClient.sendCommand(args),
         prefix
       });
