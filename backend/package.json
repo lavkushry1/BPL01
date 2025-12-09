@@ -87,6 +87,7 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^20.17.32",
     "@types/node-cache": "^4.2.5",
+    "@types/nodemailer": "^7.0.4",
     "@types/pdfkit": "^0.17.4",
     "@types/qrcode": "^1.5.5",
     "@types/supertest": "^6.0.2",

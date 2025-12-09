@@ -1,12 +1,11 @@
-import CacheService from './cacheService';
 import { logger } from '../utils/logger';
+import { cacheService } from './cacheService';
 
 /**
  * Service for managing seat locking with Redis
  * Provides concurrency control for seat selection during booking process
  */
 export class SeatLockingService {
-  private static cacheService = new CacheService();
   private static readonly LOCK_EXPIRY = 10 * 60; // 10 minutes in seconds
   private static readonly PREFIX = 'seat_lock:';
 
@@ -35,7 +34,7 @@ export class SeatLockingService {
       // Check if any seats are already locked by someone else
       for (const seatId of seatIds) {
         const key = this.getLockKey(eventId, seatId);
-        const existingLock = await this.cacheService.get(key);
+        const existingLock = await cacheService.get(key);
 
         if (existingLock && existingLock !== userId) {
           // Seat is locked by another user
@@ -48,7 +47,7 @@ export class SeatLockingService {
       if (failedSeats.length > 0) {
         // Release any locks we might have acquired in this process
         await this.releaseSeats(lockedSeats, userId, eventId);
-        
+
         return {
           success: false,
           message: `Some seats are already locked: ${failedSeats.join(', ')}`
@@ -58,7 +57,7 @@ export class SeatLockingService {
       // Lock all seats for the user
       for (const seatId of seatIds) {
         const key = this.getLockKey(eventId, seatId);
-        await this.cacheService.set(key, userId, duration);
+        await cacheService.set(key, userId, duration);
       }
 
       return {
@@ -93,11 +92,11 @@ export class SeatLockingService {
 
       for (const seatId of seatIds) {
         const key = this.getLockKey(eventId, seatId);
-        const existingLock = await this.cacheService.get(key);
+        const existingLock = await cacheService.get(key);
 
         // Only allow the user who locked the seat to release it
         if (existingLock && existingLock === userId) {
-          await this.cacheService.del(key);
+          await cacheService.del(key);
         } else if (existingLock) {
           failedSeats.push(seatId);
         }
@@ -136,7 +135,7 @@ export class SeatLockingService {
 
       for (const seatId of seatIds) {
         const key = this.getLockKey(eventId, seatId);
-        const lockOwner = await this.cacheService.get(key);
+        const lockOwner = await cacheService.get(key);
 
         if (lockOwner) {
           lockedSeats.push(seatId);
@@ -178,11 +177,11 @@ export class SeatLockingService {
 
       for (const seatId of seatIds) {
         const key = this.getLockKey(eventId, seatId);
-        const existingLock = await this.cacheService.get(key);
+        const existingLock = await cacheService.get(key);
 
         // Only allow the user who locked the seat to extend it
         if (existingLock && existingLock === userId) {
-          await this.cacheService.set(key, userId, duration);
+          await cacheService.set(key, userId, duration);
         } else {
           failedSeats.push(seatId);
         }
@@ -222,24 +221,24 @@ export class SeatLockingService {
     try {
       // First check if all seats are locked by this user
       const lockStatus = await this.checkSeatsLocked(seatIds, eventId);
-      
+
       const notLockedByUser = seatIds.filter(seatId => {
         return !lockStatus.lockedBy[seatId] || lockStatus.lockedBy[seatId] !== userId;
       });
-      
+
       if (notLockedByUser.length > 0) {
         return {
           success: false,
           message: `Some seats are not locked by this user: ${notLockedByUser.join(', ')}`
         };
       }
-      
+
       // Release the locks as they are now confirmed in the database
       await this.releaseSeats(seatIds, userId, eventId);
-      
+
       // In a real implementation, you would update the database to mark these seats as booked
       // This is handled by the booking service, so we just return success here
-      
+
       return {
         success: true,
         message: `Successfully confirmed ${seatIds.length} seats for booking ${bookingId}`

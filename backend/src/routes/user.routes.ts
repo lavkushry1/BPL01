@@ -1,7 +1,7 @@
 import express from 'express';
 import { UserController } from '../controllers/user.controller';
 import { authenticate, authorize } from '../middleware/auth';
-import { databaseMiddleware } from '../middleware/database';
+import { databaseMiddleware, DatabaseRequest } from '../middleware/database';
 import { validate } from '../middleware/validate';
 import * as userValidation from '../validations/user.validation';
 
