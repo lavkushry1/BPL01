@@ -1,6 +1,6 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../db/prisma';
 import { ApiError } from '../utils/apiError';
-import { Prisma } from '@prisma/client';
 
 /**
  * BookingPayment interface representing a payment in the database
@@ -9,10 +9,10 @@ export interface BookingPayment {
   id: string;
   bookingId: string;
   amount: Prisma.Decimal;
-  utrNumber?: string;
-  status: 'pending' | 'verified' | 'rejected' | 'refunded';
-  paymentDate?: Date;
-  verifiedBy?: string;
+  utrNumber: string | null;
+  status: string;
+  paymentDate: Date | null;
+  verifiedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,7 +23,7 @@ export interface BookingPayment {
 export interface UpiSetting {
   id: string;
   upivpa: string; // Changed from vpa to upivpa to match schema
-  discountamount: number; // Changed from discountAmount to discountamount
+  discountamount: Prisma.Decimal; // Changed to Prisma.Decimal to match schema
   isactive: boolean; // Changed from isActive to isactive
   created_at: Date; // Changed from createdAt to created_at
   updated_at: Date; // Changed from updatedAt to updated_at
@@ -41,7 +41,7 @@ export class BookingPaymentRepository {
       const payment = await prisma.bookingPayment.findUnique({
         where: { id }
       });
-      
+
       return payment;
     } catch (error) {
       console.error('Error finding payment by ID:', error);
@@ -57,7 +57,7 @@ export class BookingPaymentRepository {
       const payment = await prisma.bookingPayment.findFirst({
         where: { bookingId }
       });
-      
+
       return payment;
     } catch (error) {
       console.error('Error finding payment by booking ID:', error);
@@ -73,7 +73,7 @@ export class BookingPaymentRepository {
       const payment = await prisma.bookingPayment.findFirst({
         where: { utrNumber }
       });
-      
+
       return payment;
     } catch (error) {
       console.error('Error finding payment by UTR number:', error);
@@ -89,7 +89,7 @@ export class BookingPaymentRepository {
       const payment = await prisma.bookingPayment.create({
         data
       });
-      
+
       return payment;
     } catch (error) {
       console.error('Error creating payment:', error);
@@ -106,7 +106,7 @@ export class BookingPaymentRepository {
         where: { id },
         data
       });
-      
+
       return payment;
     } catch (error) {
       console.error('Error updating payment:', error);
@@ -128,7 +128,7 @@ export class BookingPaymentRepository {
           updatedAt: new Date()
         }
       });
-      
+
       return payment;
     } catch (error) {
       console.error('Error verifying payment:', error);
@@ -149,7 +149,7 @@ export class BookingPaymentRepository {
           updatedAt: new Date()
         }
       });
-      
+
       return payment;
     } catch (error) {
       console.error('Error rejecting payment:', error);
@@ -163,7 +163,7 @@ export class BookingPaymentRepository {
   async findAll({ skip, take, status }: { skip: number; take: number; status?: string }) {
     try {
       const where = status ? { status } : {};
-      
+
       const [payments, total] = await Promise.all([
         prisma.bookingPayment.findMany({
           where,
@@ -176,7 +176,7 @@ export class BookingPaymentRepository {
         }),
         prisma.bookingPayment.count({ where })
       ]);
-      
+
       return { payments, total };
     } catch (error) {
       console.error('Error finding payments:', error);
@@ -197,7 +197,7 @@ export class UpiSettingsRepository {
       const settings = await prisma.upiSettings.findFirst({
         where: { isactive: true } // Updated field name
       });
-      
+
       return settings;
     } catch (error) {
       console.error('Error finding active UPI settings:', error);
@@ -214,7 +214,7 @@ export class UpiSettingsRepository {
       await prisma.upiSettings.updateMany({
         data: { isactive: false } // Updated field name
       });
-      
+
       // Create new settings
       const settings = await prisma.upiSettings.create({
         data: {
@@ -223,7 +223,7 @@ export class UpiSettingsRepository {
           updated_at: new Date()
         }
       });
-      
+
       return settings;
     } catch (error) {
       console.error('Error creating UPI settings:', error);
@@ -243,7 +243,7 @@ export class UpiSettingsRepository {
           updated_at: new Date() // Updated field name
         }
       });
-      
+
       return settings;
     } catch (error) {
       console.error('Error updating UPI settings:', error);
