@@ -3,7 +3,7 @@ import { ApiError } from '../utils/apiError';
 
 /**
  * Payment Reconciliation Service
- * 
+ *
  * This service handles the process of matching incoming bank transactions
  * with booking payments in the system, especially for UPI and bank transfers
  * where payment confirmation might come through different channels.
@@ -28,10 +28,10 @@ export class PaymentReconciliationService {
     message: string;
   }> {
     // Extract UTR number or reference ID from transaction
-    const utrOrRef = transactionData.utrNumber || 
-                     transactionData.bankRef || 
+    const utrOrRef = transactionData.utrNumber ||
+      transactionData.bankRef ||
                      transactionData.beneficiaryRef;
-    
+
     if (!utrOrRef) {
       return {
         matched: false,
@@ -45,11 +45,10 @@ export class PaymentReconciliationService {
         where: {
           OR: [
             { utrNumber: utrOrRef },
-            { transactionId: transactionData.transactionId }
           ],
           // Only match pending or unverified payments
           status: 'pending'
-        },
+        } as any,
         include: {
           booking: true
         }
@@ -65,7 +64,7 @@ export class PaymentReconciliationService {
       }
 
       // Check if amount matches
-      const amountDifference = Math.abs(payment.amount - transactionData.amount);
+      const amountDifference = Math.abs(Number(payment.amount) - transactionData.amount);
       const isAmountMatching = amountDifference <= 1; // Allow 1 unit difference for rounding
 
       if (!isAmountMatching) {
@@ -73,7 +72,7 @@ export class PaymentReconciliationService {
           paymentId: payment.id,
           bookingId: payment.bookingId,
           issue: 'AMOUNT_MISMATCH',
-          expectedAmount: payment.amount,
+          expectedAmount: Number(payment.amount),
           receivedAmount: transactionData.amount,
           transactionId: transactionData.transactionId
         });
@@ -91,11 +90,9 @@ export class PaymentReconciliationService {
         where: { id: payment.id },
         data: {
           status: 'verified',
-          transactionId: transactionData.transactionId,
           utrNumber: transactionData.utrNumber || payment.utrNumber,
-          verifiedAt: new Date(),
           updatedAt: new Date()
-        }
+        } as any
       });
 
       // Update booking status
@@ -122,16 +119,14 @@ export class PaymentReconciliationService {
    */
   private static async logUnmatchedTransaction(transactionData: any): Promise<void> {
     try {
-      await prisma.reconciliationLog.create({
+      await (prisma as any).reconciliationLog.create({
         data: {
-          type: 'UNMATCHED_TRANSACTION',
+          paymentId: transactionData.transactionId || 'unknown',
           transactionId: transactionData.transactionId,
           amount: transactionData.amount,
-          referenceId: transactionData.utrNumber || transactionData.bankRef,
-          details: JSON.stringify(transactionData),
-          status: 'PENDING_REVIEW',
-          createdAt: new Date()
-        }
+          notes: JSON.stringify(transactionData),
+          status: 'pending'
+        } as any
       });
     } catch (error) {
       console.error('Error logging unmatched transaction:', error);
@@ -153,15 +148,12 @@ export class PaymentReconciliationService {
     try {
       await prisma.reconciliationLog.create({
         data: {
-          type: 'RECONCILIATION_ISSUE',
           paymentId: issueData.paymentId,
-          bookingId: issueData.bookingId,
           transactionId: issueData.transactionId,
           amount: issueData.receivedAmount,
-          details: JSON.stringify(issueData),
-          status: 'PENDING_REVIEW',
-          createdAt: new Date()
-        }
+          notes: JSON.stringify(issueData),
+          status: 'pending'
+        } as any
       });
     } catch (error) {
       console.error('Error logging reconciliation issue:', error);
@@ -184,7 +176,7 @@ export class PaymentReconciliationService {
     pages: number;
   }> {
     const skip = (page - 1) * limit;
-    
+
     const where: any = {};
     if (filter.status) where.status = filter.status;
     if (filter.type) where.type = filter.type;
@@ -221,9 +213,9 @@ export class PaymentReconciliationService {
       where: { id: logId },
       data: {
         status,
-        resolution,
+        notes: resolution,
         updatedAt: new Date()
-      }
+      } as any
     });
   }
 
@@ -234,10 +226,10 @@ export class PaymentReconciliationService {
   static scheduleReconciliationJob(schedulePattern = '0 */2 * * *'): void {
     // In a real implementation, this would use a job scheduler like node-cron
     console.log(`Payment reconciliation job scheduled with pattern: ${schedulePattern}`);
-    
+
     // Example of what the scheduled job would do:
     // 1. Fetch new transactions from bank API
     // 2. For each transaction, call reconcileTransaction()
     // 3. Generate a reconciliation report
   }
-} 
+}

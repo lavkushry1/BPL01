@@ -93,6 +93,8 @@ interface RazorpayConfig {
   keyId: string;
   keySecret: string;
   webhookSecret: string;
+  merchantUpiId: string;
+  merchantName: string;
 }
 
 interface AppConfig {
@@ -229,6 +231,8 @@ export const config: AppConfig = {
     keyId: process.env.RAZORPAY_KEY_ID || (process.env.NODE_ENV === 'production' ? '' : 'rzp_test_dummy_key'),
     keySecret: process.env.RAZORPAY_KEY_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'rzp_secret_dummy_key'),
     webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'webhook_secret_razorpay'),
+    merchantUpiId: process.env.UPI_MERCHANT_ID || '9122036484@hdfc',
+    merchantName: process.env.UPI_MERCHANT_NAME || 'Eventia Tickets',
   },
 
   // Cors origins as array for socket.io
