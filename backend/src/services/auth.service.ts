@@ -1,5 +1,4 @@
-import { User, Admin } from '../models';
-import { login, register, logout, getCurrentUser, refreshToken } from '@/services/api/authApi';
+import { getCurrentUser, login, logout, refreshToken, register } from './api/authApi';
 
 export const authService = {
   /**
@@ -13,7 +12,7 @@ export const authService = {
       throw error;
     }
   },
-  
+
   /**
    * Sign up with email and password
    */
@@ -25,7 +24,7 @@ export const authService = {
       throw error;
     }
   },
-  
+
   /**
    * Sign out the current user
    */
@@ -36,7 +35,7 @@ export const authService = {
       throw error;
     }
   },
-  
+
   /**
    * Get the current session
    */
@@ -48,7 +47,7 @@ export const authService = {
       throw error;
     }
   },
-  
+
   /**
    * Check if a user is an admin
    */

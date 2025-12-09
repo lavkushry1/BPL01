@@ -139,8 +139,8 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
     });
   });
 
-  // Handle 404 routes
-  app.use('*', (req: Request, _res: Response, next: NextFunction) => {
+  // Handle 404 routes - Express 5 requires named wildcards
+  app.use('/{*splat}', (req: Request, _res: Response, next: NextFunction) => {
     next(ApiError.notFound(`Cannot find ${req.originalUrl} on this server`));
   });
 

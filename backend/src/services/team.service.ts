@@ -1,5 +1,5 @@
 import { Team } from '../models';
-import { defaultApiClient } from '@/services/api/apiUtils';
+import { defaultApiClient } from './api/apiUtils';
 
 export const teamService = {
   /**
@@ -13,7 +13,7 @@ export const teamService = {
       throw error;
     }
   },
-  
+
   /**
    * Get team by ID
    */
@@ -25,7 +25,7 @@ export const teamService = {
       throw error;
     }
   },
-  
+
   /**
    * Create a new team
    */
@@ -37,7 +37,7 @@ export const teamService = {
       throw error;
     }
   },
-  
+
   /**
    * Update a team
    */
