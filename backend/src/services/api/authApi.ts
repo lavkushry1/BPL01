@@ -1,6 +1,6 @@
 import { defaultApiClient, handleApiError, handleApiResponse } from './apiUtils';
 
-interface AuthResponse {
+export interface AuthResponse {
   token: string;
   refreshToken?: string;
   user: {

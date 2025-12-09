@@ -135,11 +135,11 @@ export class SeatLockingService {
 
       for (const seatId of seatIds) {
         const key = this.getLockKey(eventId, seatId);
-        const lockOwner = await cacheService.get(key);
+        const lockOwner = await cacheService.get<string>(key);
 
         if (lockOwner) {
           lockedSeats.push(seatId);
-          lockedBy[seatId] = lockOwner;
+          lockedBy[seatId] = lockOwner as string;
         }
       }
 
