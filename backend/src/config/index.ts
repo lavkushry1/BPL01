@@ -89,6 +89,11 @@ interface StripeConfig {
   publicKey: string;
 }
 
+interface RazorpayConfig {
+  keyId: string;
+  keySecret: string;
+  webhookSecret: string;
+}
 
 interface AppConfig {
   nodeEnv: string;

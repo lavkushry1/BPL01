@@ -205,7 +205,11 @@ export default class DynamicPricingService {
           // Demand could be measured by recent bookings
           const recentBookingCount = await prisma.booking.count({
             where: {
-              ticketCategoryId,
+              tickets: {
+                some: {
+                  ticketCategoryId
+                }
+              },
               createdAt: {
                 gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
               }
@@ -317,8 +321,8 @@ export default class DynamicPricingService {
     try {
       return await prisma.pricingRule.update({
         where: { id },
-        data
-      });
+        data: data as any
+      }) as PricingRule;
     } catch (error) {
       logger.error(`Error updating pricing rule ${id}:`, error);
       throw new ApiError(500, 'Failed to update pricing rule');

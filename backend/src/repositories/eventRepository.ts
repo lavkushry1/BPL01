@@ -4,7 +4,13 @@ import { ApiError } from '../utils/apiError';
 
 export type EventWithRelations = Prisma.EventGetPayload<{
   include: {
-    organizer: true;
+    organizer: {
+      select: {
+        id: true;
+        name: true;
+        email: true;
+      }
+    };
     categories: true;
     _count: {
       select: {

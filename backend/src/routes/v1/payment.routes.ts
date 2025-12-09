@@ -1,14 +1,10 @@
-import { Router } from 'express';
-import { auth, authMiddleware } from '../../middleware/auth';
-import { paymentService } from '../../services/payment.service';
-import { validate } from '../../middleware/validate';
-import { ApiError } from '../../utils/apiError';
-import { ApiResponse } from '../../utils/apiResponse';
-import express, { Request, Response, NextFunction } from 'express';
-import * as paymentController from '../../controllers/payment.controller';
-import * as paymentValidations from '../../validations/payment.validations';
+import { NextFunction, Request, Response, Router } from 'express';
 import { z } from 'zod';
+import * as paymentController from '../../controllers/payment.controller';
 import { db } from '../../db';
+import { validate } from '../../middleware/validate';
+import { paymentService } from '../../services/payment.service';
+import { ApiResponse } from '../../utils/apiResponse';
 import { logger } from '../../utils/logger';
 
 const router = Router();
@@ -91,11 +87,11 @@ const generateUpiQrSchema = z.object({
  *             schema:
  *               $ref: '#/components/schemas/UpiSettings'
  */
-router.get('/upi-settings', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/upi-settings', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     console.log('Accessing payment/upi-settings endpoint from payment routes');
-    const settings = await paymentService.getUpiSettings();
-    ApiResponse.success(res, settings, 'UPI settings retrieved successfully');
+    const settings = await (paymentService as any).getUpiSettings?.() ?? {};
+    ApiResponse.success(res, 200, 'UPI settings retrieved successfully', settings);
   } catch (error) {
     next(error);
   }
@@ -124,8 +120,8 @@ router.get('/upi-settings', async (req: Request, res: Response, next: NextFuncti
 router.post('/verify-utr', validate(verifyUpiPaymentSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     // For unauthenticated access, use a default admin ID or skip the user ID parameter
-    const verification = await paymentService.verifyPayment(req.body.payment_id, req.user?.id || 'system');
-    ApiResponse.success(res, verification, 'Payment verified successfully');
+    const verification = await paymentService.verifyPayment(req.body.payment_id, (req as any).user?.id || 'system');
+    ApiResponse.success(res, 200, 'Payment verified successfully', verification);
   } catch (error) {
     next(error);
   }
@@ -141,7 +137,14 @@ router.route('/initiate')
 router.route('/status/:intentId')
   .get(
     validate(getPaymentStatusSchema),
-    paymentController.getPaymentStatus
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const status = await paymentService.getPaymentByBookingId(req.params.intentId);
+        ApiResponse.success(res, 200, 'Payment status retrieved', status);
+      } catch (error) {
+        next(error);
+      }
+    }
   );
 
 router.route('/booking/:bookingId')
@@ -156,7 +159,7 @@ router.route('/upi')
     validate(recordUpiPaymentSchema),
     (req: Request, res: Response, next: NextFunction) => {
       paymentService.createPayment(req.body)
-        .then(result => ApiResponse.success(res, result, 'UPI payment recorded successfully'))
+        .then(result => ApiResponse.success(res, 200, 'UPI payment recorded successfully', result))
         .catch(error => {
           console.error('Error recording UPI payment:', error);
           next(error);
@@ -169,8 +172,8 @@ router.route('/upi/verify')
     validate(verifyUpiPaymentSchema),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const result = await paymentService.verifyPayment(req.body.payment_id, req.user?.id || 'system');
-        ApiResponse.success(res, result, 'UPI payment verified successfully');
+        const result = await paymentService.verifyPayment(req.body.payment_id, (req as any).user?.id || 'system');
+        ApiResponse.success(res, 200, 'UPI payment verified successfully', result);
       } catch (error) {
         next(error);
       }
@@ -184,7 +187,7 @@ router.route('/generate-qr')
   );
 
 // Public endpoint for UPI ID configuration
-router.get('/admin-upi', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/admin-upi', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     console.log('Accessing payment/admin-upi public endpoint');
 
@@ -196,10 +199,10 @@ router.get('/admin-upi', async (req: Request, res: Response, next: NextFunction)
 
     if (activeSetting) {
       logger.info(`Returning active UPI setting: ${activeSetting.upivpa}`);
-      return ApiResponse.success(res, {
+      return ApiResponse.success(res, 200, 'Active UPI setting retrieved', {
         upivpa: activeSetting.upivpa,
         id: activeSetting.id
-      }, 'Active UPI setting retrieved');
+      });
     } else {
       // Return a default fallback UPI setting when none exists in database
       const defaultSetting = {
@@ -210,7 +213,7 @@ router.get('/admin-upi', async (req: Request, res: Response, next: NextFunction)
       };
 
       logger.info('No active UPI setting found, using default');
-      return ApiResponse.success(res, defaultSetting, 'Using default UPI setting');
+      return ApiResponse.success(res, 200, 'Using default UPI setting', defaultSetting);
     }
   } catch (error) {
     logger.error('Error fetching UPI settings:', error);
