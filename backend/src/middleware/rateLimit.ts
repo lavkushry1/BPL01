@@ -1,9 +1,9 @@
+import { Request } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
 import { config } from '../config';
 import { logger } from '../utils/logger';
-import { Request } from 'express';
 
 const createRedisStore = (prefix: string) => {
   if (config.isProduction || config.redis.host) {
@@ -13,7 +13,7 @@ const createRedisStore = (prefix: string) => {
         password: config.redis.password || undefined,
         database: config.redis.db
       });
-      
+
       // Connect to Redis
       redisClient.connect().catch(err => {
         logger.error('Redis connection error for rate limiting:', err);
@@ -26,9 +26,9 @@ const createRedisStore = (prefix: string) => {
         }
         return null;
       });
-      
+
       return new RedisStore({
-        // @ts-ignore - Type definitions issue with redis 4.x
+        // @ts-expect-error - Type definitions issue with redis 4.x
         sendCommand: (...args: string[]) => redisClient.sendCommand(args),
         prefix
       });
@@ -77,7 +77,7 @@ export const apiKeyLimiter = rateLimit({
     if (apiKey) {
       return apiKey;
     }
-    
+
     // If no API key, use the IP address
     // Return a default value instead of undefined
     return req.ip || 'unknown-ip';
@@ -133,4 +133,4 @@ export default {
   strictLimiter,
   loginLimiter,
   authLimiter
-}; 
+};

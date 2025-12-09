@@ -174,9 +174,9 @@ export class EventRepository {
 
       // Remove isDeleted from data if it exists to avoid Prisma errors
       const safeData = { ...data };
-      // @ts-ignore
+      // @ts-expect-error
       if (safeData.isDeleted !== undefined) {
-        // @ts-ignore
+        // @ts-expect-error
         delete safeData.isDeleted;
       }
 
@@ -206,9 +206,9 @@ export class EventRepository {
 
       // Remove isDeleted from data if it exists to avoid Prisma errors
       const safeData = { ...data };
-      // @ts-ignore
+      // @ts-expect-error
       if (safeData.isDeleted !== undefined) {
-        // @ts-ignore
+        // @ts-expect-error
         delete safeData.isDeleted;
       }
 

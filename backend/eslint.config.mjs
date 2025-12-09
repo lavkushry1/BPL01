@@ -7,7 +7,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettierConfig,
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'prisma/**/*.js'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'prisma/**/*.js', 'src/utils/fix-queries.js'],
   },
   {
     files: ['**/*.ts', '**/*.js', '**/*.mjs'],

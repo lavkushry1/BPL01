@@ -98,7 +98,7 @@ export class DynamicPricingService {
             }
             break;
 
-          case 'INVENTORY_BASED':
+          case 'INVENTORY_BASED': {
             // Example: If less than 20% of tickets remain, increase price
             const soldTickets = await prisma.ticket.count({
               where: { ticketCategoryId }
@@ -111,8 +111,9 @@ export class DynamicPricingService {
               isApplicable = remainingPercentage <= conditions.remainingPercentageThreshold;
             }
             break;
+          }
 
-          case 'DEMAND_BASED':
+          case 'DEMAND_BASED': {
             // Example: If more than 10 purchases in the last hour, increase price
             if (conditions.timeWindowHours !== undefined && conditions.salesThreshold !== undefined) {
               const recentSalesTimeWindow = new Date();
@@ -128,6 +129,7 @@ export class DynamicPricingService {
               isApplicable = recentSales >= conditions.salesThreshold;
             }
             break;
+          }
 
           case 'CUSTOM':
             // Custom rules can have special logic

@@ -21,7 +21,7 @@ export const createReservation = async (req: Request, res: Response) => {
     }
 
     const { eventId, tickets, totalAmount } = req.body;
-    // @ts-ignore - User is attached by auth middleware
+    // @ts-expect-error - User is attached by auth middleware
     const userId = req.user.id;
 
     const booking = await reservationService.createReservation({
@@ -163,4 +163,32 @@ export const generateTickets = async (req: Request, res: Response) => {
   }
 };
 
-// @ts-expect-error - User is attached by auth middleware
+const generateTicketPDF = async (reservation: any): Promise<Buffer> => {
+  const doc = new PDFDocument({ margin: 50 });
+  const buffers: any[] = [];
+
+  return new Promise<Buffer>((resolve, reject) => {
+    doc.on('data', (chunk: any) => buffers.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(buffers)));
+    doc.on('error', (err) => reject(err));
+
+    qrCode.toBuffer(`EventID:${reservation.eventId}|Email:${reservation.userEmail}`)
+      .then(qrImage => {
+        if (reservation.tickets) {
+          Object.entries(reservation.tickets).forEach(([category, quantity]: [string, any]) => {
+            for (let i = 0; i < quantity; i++) {
+              doc.fontSize(18).text(`Event: ${reservation.eventTitle}`);
+              doc.fontSize(12).text(`Category: ${category}`);
+              doc.text(`Ticket ${i + 1} of ${quantity}`);
+              doc.image(qrImage, { width: 100 });
+              doc.moveDown(2);
+            }
+          });
+        } else {
+          doc.text('No seat details available');
+        }
+        doc.end();
+      })
+      .catch(reject);
+  });
+};

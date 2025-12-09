@@ -104,7 +104,6 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
  * Get all bookings for the authenticated user
  */
 export const getUserBookings = asyncHandler(async (req: Request, res: Response) => {
-  try {
     const userId = req.user?.id;
 
     if (!userId) {
@@ -123,10 +122,7 @@ export const getUserBookings = asyncHandler(async (req: Request, res: Response) 
       .where('user_id', userId)
       .orderBy('createdAt', 'desc');
 
-    return ApiResponse.success(res, 200, 'Bookings fetched successfully', bookings);
-  } catch (error) {
-    throw error;
-  }
+  return ApiResponse.success(res, 200, 'Bookings fetched successfully', bookings);
 });
 
 /**
@@ -253,7 +249,7 @@ export const updateBookingStatus = asyncHandler(async (req: Request, res: Respon
  */
 export const cancelBooking = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { } = cancelBookingSchema.parse({ params: req.params, body: req.body });
+  cancelBookingSchema.parse({ params: req.params, body: req.body });
 
   // Check if booking exists
   const booking = await db('bookings')
@@ -358,6 +354,8 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
   try {
     WebsocketService.notifyBookingUpdate(id, 'cancelled');
   } catch (error) {
+    // Ignore websocket errors during cancellation
+    console.error('Websocket notification failed:', error);
   }
 
   return ApiResponse.success(res, 200, 'Booking cancelled successfully', {
