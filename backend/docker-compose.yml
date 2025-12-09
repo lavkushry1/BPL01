@@ -10,6 +10,8 @@ services:
       - "4000:4000"
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/eventia?schema=public
     depends_on:
       - postgres
     networks:

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../../utils/logger';
 
 // Mock validation function (in a real app, use a validation library like Joi/Zod)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const validateEventInput = (data: any) => {
   // This is a simple validation - in a production app, use a proper validation library
   if (!data.title || !data.start_date) {
@@ -160,6 +161,7 @@ export const createEvent = async (req: Request, res: Response) => {
         teams: teams ? JSON.stringify(teams) : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         images: images.map((image: any) => ({
           id: uuidv4(),
           event_id: eventId,
@@ -167,6 +169,7 @@ export const createEvent = async (req: Request, res: Response) => {
           alt_text: image.alt_text || null,
           is_featured: image.is_featured || false
         })),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ticket_types: ticket_types.map((ticket: any) => ({
           id: uuidv4(),
           event_id: eventId,

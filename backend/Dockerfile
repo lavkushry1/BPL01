@@ -23,7 +23,7 @@ RUN npm run prisma:generate
 FROM node:20-alpine
 
 # Install necessary runtime dependencies
-RUN apk add --no-cache tzdata 
+RUN apk add --no-cache tzdata
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -53,7 +53,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 # Copy necessary files like migrations and public directories
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src/db/migrations ./dist/db/migrations
-COPY --from=builder /app/src/db/seeds ./dist/db/seeds
+
 
 # Create and set permissions for storage directories
 RUN mkdir -p public/tickets public/qrcodes logs \
