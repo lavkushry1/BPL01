@@ -1,6 +1,6 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import { logger } from '../utils/logger';
+import { Prisma } from '@prisma/client';
 import { ApiError } from '../utils/apiError';
+import { logger } from '../utils/logger';
 
 /**
  * Isolation level for transactions
@@ -75,10 +75,12 @@ export class TransactionService {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       });
-      
+
       // Map Prisma-specific errors to domain errors
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        switch (error.code) {
+      // Map Prisma-specific errors to domain errors
+      if (error instanceof Prisma.PrismaClientKnownRequestError || (error as any).name === 'PrismaClientKnownRequestError') {
+        const errorCode = (error as any).code;
+        switch (errorCode) {
           case 'P2025':
             throw ApiError.notFound('Resource not found');
           case 'P2002':
@@ -90,10 +92,10 @@ export class TransactionService {
           case 'P2024':
             throw ApiError.internal('Transaction timeout occurred');
           default:
-            throw ApiError.internal(`Database error: ${error.code}`);
+            throw ApiError.internal(`Database error: ${errorCode}`);
         }
       }
-      
+
       // For non-Prisma errors, just rethrow
       throw error;
     }
@@ -102,7 +104,7 @@ export class TransactionService {
   /**
    * Execute operations with automatic retries on conflicts or deadlocks
    * Useful for operations that might fail due to concurrent updates
-   * 
+   *
    * @param operation Function to execute with retry logic
    * @param maxRetries Maximum number of retry attempts
    * @param baseDelay Base delay between retries in ms (will be multiplied by attempt number)
@@ -114,35 +116,35 @@ export class TransactionService {
     baseDelay: number = 100
   ): Promise<T> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error as Error;
-        
+
         // Only retry on specific errors
         const shouldRetry = this.shouldRetryOperation(error);
-        
+
         if (shouldRetry && attempt < maxRetries) {
           // Log retry attempt
           logger.warn(`Retry attempt ${attempt}/${maxRetries}`, {
             error: error instanceof Error ? error.message : 'Unknown error',
             errorCode: error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined
           });
-          
+
           // Exponential backoff with jitter
           const jitter = Math.random() * 0.3 + 0.85; // Random value between 0.85 and 1.15
           const delay = Math.min(baseDelay * Math.pow(2, attempt - 1) * jitter, 5000);
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
-        
+
         // For other errors or if max retries reached, throw immediately
         throw error;
       }
     }
-    
+
     // If we've exhausted all retries, throw the last error
     logger.error(`Failed after ${maxRetries} retry attempts`);
     throw lastError;
@@ -154,29 +156,30 @@ export class TransactionService {
    * @returns True if the operation should be retried
    */
   private shouldRetryOperation(error: unknown): boolean {
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError || (error as any).name === 'PrismaClientKnownRequestError') {
+      const errorCode = (error as any).code;
       // Retry on these Prisma error codes:
       // P2002: Unique constraint violation (may be temporary if other tx rolls back)
       // P2034: Transaction failed due to conflict
       // P2024: Timed out fetching a connection from DB connection pool
       // P2028: Transaction API error (may be recoverable)
-      return ['P2002', 'P2034', 'P2024', 'P2028'].includes(error.code);
+      return ['P2002', 'P2034', 'P2024', 'P2028'].includes(errorCode);
     }
-    
+
     // Retry on database connection errors
-    if (error instanceof Prisma.PrismaClientRustPanicError) {
+    if (error instanceof Prisma.PrismaClientRustPanicError || (error as any).name === 'PrismaClientRustPanicError') {
       return true;
     }
-    
+
     // Retry on initialization errors (may be temporary)
-    if (error instanceof Prisma.PrismaClientInitializationError) {
+    if (error instanceof Prisma.PrismaClientInitializationError || (error as any).name === 'PrismaClientInitializationError') {
       return true;
     }
-    
+
     return false;
   }
 }
 
 // Create and export singleton instance
 import prisma from '../db/prisma';
-export const transactionService = new TransactionService(prisma); 
+export const transactionService = new TransactionService(prisma);

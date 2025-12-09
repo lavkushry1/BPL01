@@ -81,8 +81,17 @@ export const validate = (schema: ZodSchema, cacheKey?: string) => {
 
       // Apply sanitized data back to request
       req.body = sanitizedData.body;
-      req.query = sanitizedData.query;
-      req.params = sanitizedData.params;
+      // req.query is a getter-only property in some environments, so we mutate the object
+      if (req.query && typeof req.query === 'object') {
+        Object.keys(req.query).forEach(key => delete (req.query as any)[key]);
+        Object.assign(req.query, sanitizedData.query);
+      }
+
+      // Same for params which might be read-only
+      if (req.params && typeof req.params === 'object') {
+        Object.keys(req.params).forEach(key => delete (req.params as any)[key]);
+        Object.assign(req.params, sanitizedData.params);
+      }
 
       // Validate with Zod
       await schema.parseAsync(sanitizedData);

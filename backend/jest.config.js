@@ -27,7 +27,7 @@ module.exports = {
   },
   testTimeout: 60000,
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid)/)'
+    'node_modules/(?!(uuid|@faker-js/faker)/)'
   ],
   verbose: true,
 };

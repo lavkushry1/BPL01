@@ -37,8 +37,8 @@ describe('Auth Middleware', () => {
       cookies: {},
     };
     mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis() as any,
+      json: jest.fn().mockReturnThis() as any,
     };
     nextFunction = jest.fn();
 
@@ -70,7 +70,7 @@ describe('Auth Middleware', () => {
       authenticate(mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(nextFunction.mock.calls[0][0].statusCode).toBe(401);
+      expect((nextFunction.mock.calls[0][0] as any).statusCode).toBe(401);
     });
 
     it('should accept token from authorization header', () => {
@@ -140,7 +140,7 @@ describe('Auth Middleware', () => {
 
       expect(jwt.verify).toHaveBeenCalledWith('expired-token', 'test-secret');
       expect(nextFunction).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(nextFunction.mock.calls[0][0].code).toBe('TOKEN_EXPIRED');
+      expect((nextFunction.mock.calls[0][0] as any).code).toBe('TOKEN_EXPIRED');
     });
 
     it('should handle invalid tokens', () => {
@@ -159,7 +159,7 @@ describe('Auth Middleware', () => {
 
       expect(jwt.verify).toHaveBeenCalledWith('invalid-token', 'test-secret');
       expect(nextFunction).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(nextFunction.mock.calls[0][0].statusCode).toBe(401);
+      expect((nextFunction.mock.calls[0][0] as any).statusCode).toBe(401);
     });
 
     it('should handle missing JWT secret', () => {
@@ -185,7 +185,7 @@ describe('Auth Middleware', () => {
       });
 
       expect(nextFunction).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(nextFunction.mock.calls[0][0].statusCode).toBe(500);
+      expect((nextFunction.mock.calls[0][0] as any).statusCode).toBe(500);
     });
   });
 
@@ -224,7 +224,7 @@ describe('Auth Middleware', () => {
       authorizeAdmin(mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(nextFunction.mock.calls[0][0].statusCode).toBe(403);
+      expect((nextFunction.mock.calls[0][0] as any).statusCode).toBe(403);
     });
 
     it('should reject when user has no role', () => {
@@ -233,7 +233,7 @@ describe('Auth Middleware', () => {
       authorizeUser(mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(nextFunction.mock.calls[0][0].statusCode).toBe(403);
+      expect((nextFunction.mock.calls[0][0] as any).statusCode).toBe(403);
     });
 
     it('should reject when no user in request', () => {
@@ -242,7 +242,7 @@ describe('Auth Middleware', () => {
       authorizeUser(mockRequest as Request, mockResponse as Response, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(nextFunction.mock.calls[0][0].statusCode).toBe(403);
+      expect((nextFunction.mock.calls[0][0] as any).statusCode).toBe(403);
     });
   });
 });
