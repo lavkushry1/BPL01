@@ -169,7 +169,7 @@ export class EventControllerV1 {
   /**
    * Create a new event (Admin only)
    */
-  static createEvent = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static createEvent = asyncHandler(async (req: Request, res: Response) => {
     const {
       title,
       description,
@@ -217,7 +217,7 @@ export class EventControllerV1 {
   /**
    * Update an existing event (Admin only)
    */
-  static updateEvent = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static updateEvent = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const {
       title,
@@ -271,7 +271,7 @@ export class EventControllerV1 {
   /**
    * Delete an event (Admin only)
    */
-  static deleteEvent = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static deleteEvent = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Get the authenticated user's ID
@@ -302,7 +302,7 @@ export class EventControllerV1 {
   /**
    * Get event stats (Admin only)
    */
-  static getEventStats = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  static getEventStats = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Check if event exists using dataloader

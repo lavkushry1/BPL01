@@ -60,7 +60,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const response = await defaultApiClient.get('/auth/me');
     return handleApiResponse<User>(response);
-  } catch (error) {
+  } catch (_) {
     return null;
   }
 };
@@ -72,7 +72,7 @@ export const refreshToken = async (): Promise<AuthResponse | null> => {
   try {
     const response = await defaultApiClient.post('/auth/refresh');
     return handleApiResponse<AuthResponse>(response);
-  } catch (error) {
+  } catch (_) {
     return null;
   }
 };

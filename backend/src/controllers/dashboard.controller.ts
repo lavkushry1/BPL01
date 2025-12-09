@@ -82,12 +82,12 @@ export class DashboardController {
           days = 30;
           break;
         case 'year':
-          dateFormat = 'YYYY-MM';
+
           groupBy = 'month';
           days = 365;
           break;
         default:
-          dateFormat = 'YYYY-MM-DD';
+
           groupBy = 'day';
           days = 7;
       }

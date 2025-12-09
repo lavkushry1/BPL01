@@ -1,9 +1,9 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
+import { z } from 'zod';
 import { EventController, listCategories } from '../controllers/event.controller';
 import { authenticate } from '../middleware/auth';
+import { uploadSingle } from '../middleware/upload';
 import { validate } from '../middleware/validate';
-import { upload, uploadSingle } from '../middleware/upload';
-import { z } from 'zod';
 
 // Create validation schemas using Zod
 const createEventSchema = z.object({
@@ -469,4 +469,4 @@ router.post('/upload-image', authenticate, uploadSingle, EventController.uploadE
 // Add this route to expose /api/v1/events/categories
 router.get('/categories', listCategories);
 
-export default router; 
+export default router;

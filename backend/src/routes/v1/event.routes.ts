@@ -154,7 +154,7 @@ router.get('/:id/tickets',
   standardLimiter,
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // Get event ID from URL params
-    const { id } = req.params;
+
 
     try {
       // This would normally call a service to get ticket data
@@ -182,7 +182,7 @@ router.get('/:id/seats',
   standardLimiter,
   asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // Get event ID from URL params
-    const { id } = req.params;
+
 
     try {
       // This would normally call a service to get seat map data

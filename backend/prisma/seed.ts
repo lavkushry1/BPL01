@@ -264,7 +264,7 @@ async function main() {
   });
 
   // Create payment for the booking
-  const payment = await prisma.payment.create({
+  await prisma.payment.create({
     data: {
       bookingId: booking.id,
       amount: booking.finalAmount,
@@ -274,7 +274,7 @@ async function main() {
   });
 
   // Create booking payment with UTR details
-  const bookingPayment = await prisma.bookingPayment.create({
+  await prisma.bookingPayment.create({
     data: {
       bookingId: booking.id,
       amount: booking.finalAmount,
@@ -286,7 +286,7 @@ async function main() {
   });
 
   // Create delivery details for the booking
-  const deliveryDetails = await prisma.deliveryDetails.create({
+  await prisma.deliveryDetails.create({
     data: {
       bookingId: booking.id,
       name: regularUser.name,
