@@ -10,8 +10,8 @@ import { asyncHandler } from '../utils/asyncHandler';
 /**
  * Create a new booking
  */
-import { cancelBookingSchema, createBookingSchema, saveDeliveryDetailsSchema, updateBookingStatusSchema } from '@/validations/booking.validation';
 import { ApiResponse } from '../utils/apiResponse';
+import { cancelBookingSchema, createBookingSchema, saveDeliveryDetailsSchema, updateBookingStatusSchema } from '../validations/booking.validation';
 
 /**
  * Create a new booking

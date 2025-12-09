@@ -1,6 +1,5 @@
-import { Stadium, Seat } from '../models';
-import axios from 'axios';
-import { getApiUrl, defaultApiClient } from '@/services/api/apiUtils';
+import { Stadium } from '../models';
+import { defaultApiClient } from './api/apiUtils';
 
 export const stadiumService = {
   /**
@@ -14,7 +13,7 @@ export const stadiumService = {
       throw error;
     }
   },
-  
+
   /**
    * Get stadium by ID
    */
@@ -26,7 +25,7 @@ export const stadiumService = {
       throw error;
     }
   },
-  
+
   /**
    * Create a new stadium
    */
@@ -38,7 +37,7 @@ export const stadiumService = {
       throw error;
     }
   },
-  
+
   /**
    * Update a stadium
    */
@@ -50,7 +49,7 @@ export const stadiumService = {
       throw error;
     }
   },
-  
+
   /**
    * Get seats by stadium ID
    */
@@ -62,7 +61,7 @@ export const stadiumService = {
       throw error;
     }
   },
-  
+
   /**
    * Lock seats (mark as unavailable)
    */
@@ -74,7 +73,7 @@ export const stadiumService = {
       throw error;
     }
   },
-  
+
   /**
    * Unlock seats (mark as available)
    */
