@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import PageTransition from '@/components/ui/page-transition';
 import IPLMatchCard from '@/components/events/IPLMatchCard';
-import { Badge } from '@/components/ui/badge';
+import Footer from '@/components/layout/Footer';
+import Navbar from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
-import { motion } from 'framer-motion';
-import { getIPLMatches, IPLMatch as ApiIPLMatch, Event } from '@/services/api/eventApi';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import PageTransition from '@/components/ui/page-transition';
+import { IPLMatch as ApiIPLMatch, Event, getIPLMatches } from '@/services/api/eventApi';
+import { getCitiesWithMatches, getIplTeams } from '@/services/api/iplApi';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { MapPin, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // Type to handle API data format
 type IPLMatch = ApiIPLMatch;
@@ -18,6 +19,7 @@ type IPLMatch = ApiIPLMatch;
 const IPLTickets = () => {
   const { t } = useTranslation();
   const [filter, setFilter] = useState('all');
+  const [, setCityFilter] = useState('all');
 
   // Check for localStorage stored admin events
   const [localEvents, setLocalEvents] = useState<Event[]>([]);
@@ -105,6 +107,20 @@ const IPLTickets = () => {
     staleTime: 30 * 1000,
     retry: 2,
     refetchInterval: 60 * 1000
+  });
+
+  // Fetch cities with upcoming matches for district filter
+  const { data: citiesData } = useQuery({
+    queryKey: ['iplCities'],
+    queryFn: getCitiesWithMatches,
+    staleTime: 60 * 1000
+  });
+
+  // Fetch IPL teams for team filter
+  const { data: teamsData } = useQuery({
+    queryKey: ['iplTeams'],
+    queryFn: () => getIplTeams(false),
+    staleTime: 60 * 1000
   });
 
   // Convert local events to IPL match format
@@ -228,27 +244,68 @@ const IPLTickets = () => {
             <LanguageSwitcher />
           </div>
 
+          {/* Filter by city (District-based filtering) */}
+          <div className="mb-4 overflow-x-auto pb-2">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center text-sm font-medium text-muted-foreground mr-2">
+                <MapPin className="w-4 h-4 mr-1" />
+                City:
+              </div>
+              <Button
+                variant={cityFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                className="whitespace-nowrap"
+                onClick={() => setCityFilter('all')}
+              >
+                All Cities
+              </Button>
+              {citiesData?.map((city) => (
+                <Button
+                  key={city.city}
+                  variant={cityFilter === city.city ? 'default' : 'outline'}
+                  size="sm"
+                  className="whitespace-nowrap"
+                  onClick={() => setCityFilter(city.city)}
+                >
+                  {city.city} ({city.matchCount})
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {/* Filter by team */}
           <div className="mb-6 overflow-x-auto pb-2">
             <div className="flex items-center gap-2">
+              <div className="flex items-center text-sm font-medium text-muted-foreground mr-2">
+                <Users className="w-4 h-4 mr-1" />
+                Team:
+              </div>
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
+                size="sm"
                 className="whitespace-nowrap"
                 onClick={() => setFilter('all')}
               >
-                {t('iplTickets.allMatches')}
+                All Teams
               </Button>
 
-              {teams.map((team) => (
-                <Button
-                  key={team}
-                  variant={filter === team ? 'default' : 'outline'}
-                  className="whitespace-nowrap"
-                  onClick={() => setFilter(team)}
-                >
-                  {team}
-                </Button>
-              ))}
+              {/* Use API teams if available, fallback to parsed team names */}
+              {(teamsData || teams).map((team) => {
+                const teamName = typeof team === 'string' ? team : team.shortName;
+                const teamColor = typeof team === 'string' ? undefined : team.primaryColor;
+                return (
+                  <Button
+                    key={typeof team === 'string' ? team : team.id}
+                    variant={filter === teamName ? 'default' : 'outline'}
+                    size="sm"
+                    className="whitespace-nowrap"
+                    style={teamColor && filter === teamName ? { backgroundColor: teamColor, borderColor: teamColor } : {}}
+                    onClick={() => setFilter(teamName)}
+                  >
+                    {typeof team === 'string' ? team : team.shortName}
+                  </Button>
+                );
+              })}
             </div>
           </div>
 
