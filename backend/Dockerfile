@@ -22,8 +22,8 @@ RUN npm run build
 # Production image
 FROM node:20-alpine
 
-# Install necessary runtime dependencies
-RUN apk add --no-cache tzdata
+# Install necessary runtime dependencies including OpenSSL 1.1 for Prisma
+RUN apk add --no-cache tzdata openssl1.1-compat
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

@@ -361,6 +361,46 @@ export class SeatController {
       next(error);
     }
   }
+
+  /**
+   * Get stadium layout with block-level availability
+   * @route GET /api/v1/events/:eventId/stadium-layout
+   */
+  static async getStadiumLayout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { eventId } = req.params;
+
+      const layout = await SeatService.getStadiumLayout(eventId);
+
+      if (!layout) {
+        throw new ApiError(404, 'Event not found or has no seats configured');
+      }
+
+      ApiResponse.success(res, 200, 'Stadium layout retrieved successfully', layout);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get individual seats for a specific block/section
+   * @route GET /api/v1/events/:eventId/blocks/:section/seats
+   */
+  static async getBlockSeats(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { eventId, section } = req.params;
+
+      const blockSeats = await SeatService.getBlockSeats(eventId, section);
+
+      if (!blockSeats) {
+        throw new ApiError(404, 'Block not found or has no seats');
+      }
+
+      ApiResponse.success(res, 200, 'Block seats retrieved successfully', blockSeats);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default SeatController;

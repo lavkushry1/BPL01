@@ -1,8 +1,8 @@
-import { db } from '../db';
-import { Seat, SeatStatus } from '../models/seat';
-import { WebsocketService } from './websocket.service';
 import { v4 as uuidv4 } from 'uuid';
+import { db } from '../db';
+import { SeatStatus } from '../models/seat';
 import { ApiError } from '../utils/apiError';
+import { WebsocketService } from './websocket.service';
 
 /**
  * Service for seat-related operations
@@ -525,7 +525,7 @@ export class SeatService {
   /**
    * Schedule a seat reservation to expire after a certain time
    * This is a more reliable replacement for setTimeout directly in the controller
-   * 
+   *
    * @param reservationId The ID of the reservation to expire
    * @param seatIds Array of seat IDs in the reservation
    * @param userId User ID who made the reservation
@@ -580,7 +580,7 @@ export class SeatService {
   /**
    * Release a specific reservation
    * Used by both manual release and automatic expiration
-   * 
+   *
    * @param reservationId Reservation ID
    * @param seatIds Seat IDs to release
    * @param userId User ID who made the reservation
@@ -714,6 +714,194 @@ export class SeatService {
     } catch (error) {
       console.error('Error getting unavailable seats:', error);
       return [];
+    }
+  }
+
+  /**
+   * Get stadium layout with block-level availability for an event
+   * Used for BookMyShow-style seat selection UI
+   * @param eventId Event ID
+   * @returns Stadium layout with blocks and availability
+   */
+  static async getStadiumLayout(eventId: string): Promise<{
+    eventId: string;
+    eventName: string;
+    eventDate: string;
+    venueName: string;
+    priceCategories: { price: number; color: string; label: string; blocks: string[] }[];
+    blocks: {
+      id: string;
+      name: string;
+      section: string;
+      priceCategory: number;
+      totalSeats: number;
+      availableSeats: number;
+      bookedSeats: number;
+      lockedSeats: number;
+      color: string;
+    }[];
+    lockDurationSeconds: number;
+    totalSeats: number;
+    availableSeats: number;
+  } | null> {
+    try {
+      // Get event details
+      const event = await db('events')
+        .where('id', eventId)
+        .first();
+
+      if (!event) {
+        return null;
+      }
+
+      // Aggregate seats by section (block)
+      const blockStats = await db('seats')
+        .where('event_id', eventId)
+        .where('is_deleted', false)
+        .select('section')
+        .select(db.raw('COUNT(*) as total_seats'))
+        .select(db.raw("SUM(CASE WHEN status = 'AVAILABLE' THEN 1 ELSE 0 END) as available_seats"))
+        .select(db.raw("SUM(CASE WHEN status = 'BOOKED' THEN 1 ELSE 0 END) as booked_seats"))
+        .select(db.raw("SUM(CASE WHEN status = 'LOCKED' THEN 1 ELSE 0 END) as locked_seats"))
+        .select(db.raw('MIN(price) as price'))
+        .groupBy('section');
+
+      // Get ticket categories for price colors
+      const ticketCategories = await db('ticket_categories')
+        .where('event_id', eventId)
+        .where('is_deleted', false)
+        .select('id', 'name', 'price');
+
+      // Define color palette for price tiers
+      const priceColors: { [key: number]: string } = {
+        900: '#E8E8E8',
+        1000: '#B8D4E3',
+        1500: '#E91E63',
+        2000: '#9C27B0',
+        2500: '#673AB7',
+        3000: '#3F51B5'
+      };
+
+      // Build blocks array
+      const blocks = blockStats.map((block, index) => {
+        const price = Number(block.price) || 1500;
+        const color = priceColors[price] || '#' + Math.floor(Math.random() * 16777215).toString(16);
+
+        return {
+          id: `block-${index}`,
+          name: block.section || `Block ${index + 1}`,
+          section: block.section || `SECTION_${index + 1}`,
+          priceCategory: price,
+          totalSeats: Number(block.total_seats) || 0,
+          availableSeats: Number(block.available_seats) || 0,
+          bookedSeats: Number(block.booked_seats) || 0,
+          lockedSeats: Number(block.locked_seats) || 0,
+          color
+        };
+      });
+
+      // Group blocks by price for price categories
+      const priceMap = new Map<number, string[]>();
+      blocks.forEach(block => {
+        if (!priceMap.has(block.priceCategory)) {
+          priceMap.set(block.priceCategory, []);
+        }
+        priceMap.get(block.priceCategory)!.push(block.id);
+      });
+
+      const priceCategories = Array.from(priceMap.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([price, blockIds]) => ({
+          price,
+          color: priceColors[price] || '#CCCCCC',
+          label: `₹${price}`,
+          blocks: blockIds
+        }));
+
+      // Calculate totals
+      const totalSeats = blocks.reduce((sum, b) => sum + b.totalSeats, 0);
+      const availableSeats = blocks.reduce((sum, b) => sum + b.availableSeats, 0);
+
+      return {
+        eventId,
+        eventName: event.title,
+        eventDate: event.start_date,
+        venueName: event.location,
+        priceCategories,
+        blocks,
+        lockDurationSeconds: 240, // 4 minutes like BookMyShow
+        totalSeats,
+        availableSeats
+      };
+    } catch (error) {
+      console.error('Error getting stadium layout:', error);
+      throw new ApiError(500, 'Error getting stadium layout');
+    }
+  }
+
+  /**
+   * Get individual seats for a specific block/section
+   * @param eventId Event ID
+   * @param section Section/Block name
+   * @returns List of seats in the block with availability
+   */
+  static async getBlockSeats(eventId: string, section: string): Promise<{
+    blockName: string;
+    section: string;
+    price: number;
+    seats: {
+      id: string;
+      row: string;
+      seatNumber: string;
+      label: string;
+      status: string;
+      price: number;
+      lockedBy?: string;
+      lockedUntil?: string;
+    }[];
+    totalSeats: number;
+    availableSeats: number;
+  } | null> {
+    try {
+      // Get seats for this section
+      const seats = await db('seats')
+        .where('event_id', eventId)
+        .where('section', section)
+        .where('is_deleted', false)
+        .select('id', 'row', 'seat_number', 'label', 'status', 'price', 'locked_by', 'lock_expires_at')
+        .orderBy('row')
+        .orderBy('seat_number');
+
+      if (seats.length === 0) {
+        return null;
+      }
+
+      const seatList = seats.map(seat => ({
+        id: seat.id,
+        row: seat.row || '',
+        seatNumber: seat.seat_number || '',
+        label: seat.label || `${seat.row || ''}-${seat.seat_number || ''}`,
+        status: seat.status,
+        price: Number(seat.price) || 0,
+        lockedBy: seat.locked_by || undefined,
+        lockedUntil: seat.lock_expires_at ? new Date(seat.lock_expires_at).toISOString() : undefined
+      }));
+
+      const avgPrice = seatList.length > 0
+        ? seatList.reduce((sum, s) => sum + s.price, 0) / seatList.length
+        : 0;
+
+      return {
+        blockName: section,
+        section,
+        price: avgPrice,
+        seats: seatList,
+        totalSeats: seatList.length,
+        availableSeats: seatList.filter(s => s.status === 'AVAILABLE').length
+      };
+    } catch (error) {
+      console.error('Error getting block seats:', error);
+      throw new ApiError(500, 'Error getting block seats');
     }
   }
 }

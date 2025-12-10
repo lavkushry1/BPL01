@@ -187,4 +187,55 @@ router.post(
   SeatController.bulkCheckAvailability
 );
 
+/**
+ * @swagger
+ * /api/v1/events/{eventId}/stadium-layout:
+ *   get:
+ *     summary: Get stadium layout with block-level availability
+ *     tags: [Seats]
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Stadium layout retrieved successfully
+ *       404:
+ *         description: Event not found
+ */
+router.get(
+  '/events/:eventId/stadium-layout',
+  SeatController.getStadiumLayout
+);
+
+/**
+ * @swagger
+ * /api/v1/events/{eventId}/blocks/{section}/seats:
+ *   get:
+ *     summary: Get individual seats for a specific block/section
+ *     tags: [Seats]
+ *     parameters:
+ *       - in: path
+ *         name: eventId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: section
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Block seats retrieved successfully
+ *       404:
+ *         description: Block not found
+ */
+router.get(
+  '/events/:eventId/blocks/:section/seats',
+  SeatController.getBlockSeats
+);
+
 export default router;
