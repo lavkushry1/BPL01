@@ -19,6 +19,7 @@ import authRoutes from './auth.routes';
 import eventRoutes from './event.routes';
 import userRoutes from './user.routes';
 
+import iplRoutes from '../ipl.routes';
 import upiSettingsRoutes from '../upiSettings.routes';
 
 const router = Router();
@@ -38,7 +39,8 @@ const resourceRoutes = {
   'payment-initialize': paymentInitializeRoutes,
   'verify-utr': utrVerificationRoutes,
   'health': healthRoutes,
-  'state-sync': stateSyncRoutes
+  'state-sync': stateSyncRoutes,
+  'ipl': iplRoutes
 };
 
 // Register all resource routes
