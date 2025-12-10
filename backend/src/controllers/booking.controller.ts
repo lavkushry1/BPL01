@@ -53,7 +53,9 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
         })
         .returning('*');
 
-      // 4. Handle Seats or General Admission
+      const allBookedSeatIds: string[] = [];
+
+      // 4a. Handle Specific Seat Selection
       if (seat_ids && seat_ids.length > 0) {
         // Pessimistically lock requested seats to prevent double booking
         const seats = await trx('seats')
@@ -83,9 +85,30 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           })
           .whereIn('id', seat_ids);
 
+        allBookedSeatIds.push(...seat_ids);
+      }
+
+      // 4b. Handle General Admission / Section Booking (Tickets Array)
+      if (validatedData.tickets && validatedData.tickets.length > 0) {
+        // Import SeatService here to avoid circular dependencies if any
+        const { SeatService } = await import('../services/seat.service');
+
+        for (const ticket of validatedData.tickets) {
+          const bookedIds = await SeatService.bookSeatsBySection(
+            trx,
+            event_id,
+            ticket.categoryId,
+            ticket.quantity,
+            booking_id
+          );
+          allBookedSeatIds.push(...bookedIds);
+        }
+      }
+
+      if (allBookedSeatIds.length > 0) {
         // Notify other clients that seats have been booked
         WebsocketService.notifySeatStatusChange(
-          seat_ids,
+          allBookedSeatIds,
           SeatStatus.BOOKED
         );
       }

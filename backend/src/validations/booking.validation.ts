@@ -4,6 +4,11 @@ export const createBookingSchema = z.object({
   body: z.object({
     event_id: z.string().uuid('Invalid event ID format'),
     seat_ids: z.array(z.string().uuid('Invalid seat ID format')).optional(),
+    tickets: z.array(z.object({
+      categoryId: z.string(), // This maps to Section Name/ID
+      quantity: z.number().positive(),
+      price: z.number().optional()
+    })).optional(),
     amount: z.number().positive('Amount must be positive'),
     payment_method: z.enum(['STRIPE', 'UPI', 'CASH', 'CARD']).optional().default('STRIPE'),
   }),

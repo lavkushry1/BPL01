@@ -904,4 +904,64 @@ export class SeatService {
       throw new ApiError(500, 'Error getting block seats');
     }
   }
+
+  /**
+   * Atomically book random available seats in a specific section
+   * Used for General Admission style booking where user picks "2 tickets in West Stand"
+   *
+   * @param trx Knex transaction instance
+   * @param eventId Event ID
+   * @param section Section/Block identifier (should match one of the section codes)
+   * @param quantity Number of seats to book
+   * @param bookingId Booking ID to assign
+   * @returns Array of booked seat IDs
+   */
+  static async bookSeatsBySection(
+    trx: any,
+    eventId: string,
+    section: string,
+    quantity: number,
+    bookingId: string
+  ): Promise<string[]> {
+    try {
+      // 1. Find available seats IDs (Row locking for concurrency safety)
+      // This is Postgres specific syntax for "SELECT ... FOR UPDATE SKIP LOCKED"
+      // which is best for concurrent ticket booking
+      const availableSeats = await trx('seats')
+        .select('id')
+        .where({
+          event_id: eventId,
+          status: SeatStatus.AVAILABLE,
+          is_deleted: false
+          // Note: In a real app we might match section name loosely or strictly
+        })
+        .whereRaw('LOWER(section) = ?', [section.toLowerCase()])
+        .limit(quantity)
+        .forUpdate()
+        .skipLocked();
+
+      if (availableSeats.length < quantity) {
+        throw new ApiError(409, `Not enough available seats in ${section}. Requested: ${quantity}, Available: ${availableSeats.length}`);
+      }
+
+      const seatIds = availableSeats.map((s: any) => s.id);
+
+      // 2. Update status to BOOKED
+      await trx('seats')
+        .whereIn('id', seatIds)
+        .update({
+          status: SeatStatus.BOOKED,
+          booking_id: bookingId,
+          updatedAt: trx.fn.now()
+        });
+
+      return seatIds;
+    } catch (error) {
+      // Re-throw API errors (like 409 Conflict)
+      if (error instanceof ApiError) throw error;
+
+      console.error('Book seats by section error:', error);
+      throw new ApiError(500, 'Failed to book seats in section');
+    }
+  }
 }

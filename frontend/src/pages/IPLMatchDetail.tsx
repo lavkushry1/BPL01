@@ -133,7 +133,30 @@ const IPLMatchDetail = () => {
       return;
     }
 
-    navigate(`/checkout/${id}?category=${selectedCategory}&quantity=${ticketQuantity}`);
+    const category = getSelectedCategoryDetails();
+    if (!category) return;
+
+    // Prepare booking data with rich visuals for Trusted UI in Checkout
+    const bookingDetails = {
+      eventId: match.id,
+      eventTitle: match.title,
+      eventDate: match.date,
+      eventTime: match.time,
+      venue: match.venue,
+      bannerImage: match.bannerImage || `/assets/stadiums/${match.venue.replace(/\s+/g, '-').toLowerCase()}.jpg`,
+      teams: match.teams,
+      tickets: [{
+        category: category.name,
+        categoryId: category.id,
+        quantity: ticketQuantity,
+        price: category.price,
+        subtotal: category.price * ticketQuantity
+      }],
+      totalAmount: category.price * ticketQuantity
+    };
+
+    sessionStorage.setItem('bookingData', JSON.stringify(bookingDetails));
+    navigate(`/checkout/${id}`);
   };
 
   const handleJoinWaitlist = async () => {

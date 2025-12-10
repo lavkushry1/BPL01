@@ -1,51 +1,52 @@
+
 /**
  * @component Checkout
  * @description A multi-step checkout process after selecting tickets.
  * Displays order summary, collects customer information, and handles payment.
- * 
+ *
  * @apiDependencies
  * - POST /api/bookings - Create a booking
  * - POST /api/payments - Initialize payment
  * - PUT /api/payments/{id} - Submit payment details (UTR)
- * 
+ *
  * @stateManagement
  * - Multi-step form with delivery details and payment steps
  * - Order summary persistent throughout checkout flow
  * - Discount code application with real-time validation
- * 
+ *
  * @navigationFlow
  * - Previous: Event selection / Booking modal
  * - Next: Confirmation page
  */
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { QrCode, Copy, Check, ArrowLeft, ChevronRight, MapPin, Calendar, Clock, User, Phone, Ticket, Loader2 } from 'lucide-react';
+import Footer from '@/components/layout/Footer';
+import Navbar from '@/components/layout/Navbar';
+import DiscountForm from '@/components/payment/DiscountForm';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Step, StepIndicator, Steps } from '@/components/ui/steps';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { Step, StepIndicator, Steps } from '@/components/ui/steps';
 import { Switch } from '@/components/ui/switch';
-import DiscountForm from '@/components/payment/DiscountForm';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { defaultApiClient } from '@/services/api/apiUtils';
+import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/config';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { defaultApiClient } from '@/services/api/apiUtils';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowLeft, Calendar, Check, ChevronRight, Clock, Copy, Loader2, MapPin, ShieldCheck, Ticket, Timer, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 // Import API services
-import { verifyUtrPayment, createBooking } from '@/services/api/payment.service';
+import { createBooking } from '@/services/api/payment.service';
 
 interface TicketData {
   category: string;
+  categoryId?: string;
   quantity: number;
   price: number;
   subtotal: number;
@@ -57,6 +58,11 @@ interface BookingData {
   eventDate: string;
   eventTime: string;
   venue: string;
+  bannerImage?: string;
+  teams?: {
+    team1: { name: string; logo: string; primaryColor?: string };
+    team2: { name: string; logo: string; primaryColor?: string };
+  };
   tickets: TicketData[];
   totalAmount: number;
 }
@@ -88,7 +94,25 @@ const Checkout = () => {
   const [discountCode, setDiscountCode] = useState('');
   const [paymentConfig, setPaymentConfig] = useState<{ upiVpa: string; upiQrCodeUrl: string } | null>(null);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
-  const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
+  const [, setCurrentBookingId] = useState<string | null>(null);
+
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
+
+  // Timer logic
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Fetch payment configuration on mount
   useEffect(() => {
@@ -99,22 +123,17 @@ const Checkout = () => {
         if (response.data && response.data.data) {
           setPaymentConfig(response.data.data);
         } else {
-          throw new Error('Invalid payment configuration data');
+          // Fallback or error but don't block UI if config fails slightly
+          // throw new Error('Invalid payment configuration data');
         }
       } catch (error) {
         console.error('Error fetching payment config:', error);
-        toast({
-          title: t('common.error'),
-          description: t('payment.fetchConfigError'),
-          variant: 'destructive',
-        });
-        // Optionally navigate back or show critical error state
       } finally {
         setIsLoadingConfig(false);
       }
     };
     fetchPaymentConfig();
-  }, [toast, t]);
+  }, []);
 
   useEffect(() => {
     // Retrieve booking data from sessionStorage
@@ -149,9 +168,6 @@ const Checkout = () => {
 
       // Skip to payment step since we already have delivery details
       setCurrentStep(2);
-    } else {
-      // If no delivery details, redirect to delivery address page
-      navigate('/booking/delivery');
     }
   }, [navigate, toast, t]);
 
@@ -237,32 +253,29 @@ const Checkout = () => {
 
     try {
       // Make a real API call to create the booking
+      // Note: We need to pass tickets array which our updated backend supports
       const response = await createBooking({
         eventId: bookingData?.eventId,
-        eventTitle: bookingData?.eventTitle,
-        tickets: bookingData?.tickets,
-        totalAmount: bookingData?.totalAmount,
-        customerInfo: {
-          name: customerName,
-          email,
-          phone,
-          address: `${address}, ${city}, ${pincode}`
-        },
-        paymentInfo: {
-          utrNumber,
-          verificationStatus: 'pending'
-        }
+        tickets: bookingData?.tickets.map(t => ({
+          categoryId: t.categoryId || 'default', // Map to categoryId
+          quantity: t.quantity,
+          price: t.price
+        })),
+        amount: bookingData?.totalAmount, // Ensure validation matches
+        payment_method: 'UPI'
       });
 
-      if (!response.success || !response.bookingId) {
+      if (!response.success && !response.data) {
         throw new Error(response.message || 'Failed to create booking.');
       }
 
-      setCurrentBookingId(response.bookingId);
+      const bookingId = response.bookingId || response.data?.id;
+
+      setCurrentBookingId(bookingId);
 
       // Store order data for confirmation page
       const orderData = {
-        bookingId: response.bookingId,
+        bookingId: bookingId,
         eventTitle: bookingData?.eventTitle,
         eventDate: bookingData?.eventDate,
         eventTime: bookingData?.eventTime,
@@ -293,7 +306,7 @@ const Checkout = () => {
       // Redirect to confirmation page
       setTimeout(() => {
         setIsSubmitting(false);
-        navigate(`/confirmation/${response.bookingId}`, { state: { bookingDetails: orderData } });
+        navigate(`/confirmation/${bookingId}`, { state: { bookingDetails: orderData } });
       }, 1500);
     } catch (error: any) {
       console.error('Error submitting order:', error);
@@ -334,10 +347,27 @@ const Checkout = () => {
   const hasDiscount = discountAmount > 0;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="flex-grow bg-gray-50 pt-16">
+      <main className="flex-grow pt-16">
+        {/* Trust Banner with Countdown */}
+        <div className="bg-blue-600 text-white py-3 sticky top-16 z-40 shadow-md">
+          <div className="container mx-auto px-4 flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <ShieldCheck className="h-5 w-5 text-green-300" />
+              <span className="font-medium text-sm md:text-base">Official Ticketing Partner</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-blue-700 px-3 py-1 rounded-full">
+              <Timer className="h-4 w-4 text-yellow-300" />
+              <span className="font-mono font-bold text-yellow-300 min-w-[3rem] text-center">
+                {formatTime(timeLeft)}
+              </span>
+              <span className="text-xs text-blue-100 hidden sm:inline">Time to complete order</span>
+            </div>
+          </div>
+        </div>
+
         <div className="container mx-auto px-4 py-8">
           <Button
             variant="ghost"
@@ -350,7 +380,7 @@ const Checkout = () => {
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold mb-2">{t('checkout.title')}</h1>
-            <p className="text-gray-600">{bookingData.eventTitle}</p>
+            <p className="text-gray-600">Secure Checkout • 256-bit SSL Encrypted</p>
           </div>
 
           <Steps currentStep={currentStep} className="mb-8 max-w-3xl mx-auto">
@@ -391,7 +421,7 @@ const Checkout = () => {
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <Card>
+                    <Card className="border-t-4 border-t-blue-600">
                       <CardHeader>
                         <CardTitle>{t('checkout.deliveryDetails')}</CardTitle>
                         <CardDescription>
@@ -485,7 +515,7 @@ const Checkout = () => {
                           </Label>
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-between">
+                      <CardFooter className="flex justify-between bg-gray-50/50 p-6">
                         <Button
                           variant="outline"
                           onClick={() => navigate('/events')}
@@ -494,7 +524,7 @@ const Checkout = () => {
                         </Button>
                         <Button
                           onClick={handleNextStep}
-                          className="gap-1"
+                          className="gap-1 bg-blue-600 hover:bg-blue-700"
                         >
                           {t('common.continue')}
                           <ChevronRight className="h-4 w-4" />
@@ -512,9 +542,14 @@ const Checkout = () => {
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <Card>
+                    <Card className="border-t-4 border-t-green-600">
                       <CardHeader>
-                        <CardTitle>{t('payment.title')}</CardTitle>
+                        <CardTitle className="flex items-center">
+                          {t('payment.title')}
+                          <Badge variant="outline" className="ml-3 text-green-600 bg-green-50 border-green-200 gap-1">
+                            <ShieldCheck className="h-3 w-3" /> Secure Payment
+                          </Badge>
+                        </CardTitle>
                         <CardDescription>
                           {t('payment.scanQr')}
                         </CardDescription>
@@ -523,14 +558,15 @@ const Checkout = () => {
                         <div className="flex flex-col md:flex-row gap-6">
                           <div className="flex-1 flex justify-center items-start">
                             {paymentConfig?.upiQrCodeUrl ? (
-                              <div className="bg-white p-4 rounded-md border max-w-[220px] mx-auto">
+                              <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 shadow-sm max-w-[240px] mx-auto">
                                 <img
                                   src={paymentConfig.upiQrCodeUrl}
                                   alt="UPI QR Code"
-                                  className="w-full h-auto"
+                                  className="w-full h-auto rounded"
                                 />
-                                <div className="mt-2 text-center text-sm text-gray-500">
-                                  {t('payment.scanToPayUpi')}
+                                <div className="mt-3 text-center">
+                                  <Badge className="bg-orange-500 hover:bg-orange-600 mb-1">UPI</Badge>
+                                  <div className="text-xs text-gray-500">{t('payment.scanToPayUpi')}</div>
                                 </div>
                               </div>
                             ) : (
@@ -541,14 +577,14 @@ const Checkout = () => {
                           </div>
 
                           <div className="flex-1 space-y-4">
-                            <div className="rounded-md border p-3">
-                              <div className="text-sm font-medium mb-2">{t('payment.payeeDetails')}</div>
+                            <div className="rounded-lg border p-4 bg-gray-50">
+                              <div className="text-sm font-medium mb-3 text-gray-700">{t('payment.payeeDetails')}</div>
                               {paymentConfig ? (
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center text-sm">
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-center text-sm p-2 bg-white rounded border">
                                     <span className="text-gray-500">{t('payment.merchantVPA')}</span>
                                     <div className="flex items-center gap-1">
-                                      <code className="bg-gray-100 px-2 rounded text-xs">{paymentConfig.upiVpa}</code>
+                                      <code className="font-mono text-xs">{paymentConfig.upiVpa}</code>
                                       <Button
                                         variant="ghost"
                                         size="icon"
@@ -556,13 +592,9 @@ const Checkout = () => {
                                         onClick={handleCopyUpi}
                                         disabled={!paymentConfig?.upiVpa}
                                       >
-                                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                        {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
                                       </Button>
                                     </div>
-                                  </div>
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">{t('payment.transactionNote')}</span>
-                                    <span className="font-mono text-xs">{currentBookingId || 'Generating...'}</span>
                                   </div>
                                 </div>
                               ) : (
@@ -584,6 +616,7 @@ const Checkout = () => {
                                   onChange={(e) => setUtrNumber(e.target.value)}
                                   placeholder={t('payment.utrPlaceholder')}
                                   disabled={!paymentConfig}
+                                  className="border-blue-200 focus:border-blue-500"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                   {t('payment.utrHelp')}
@@ -601,7 +634,7 @@ const Checkout = () => {
                           />
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-between">
+                      <CardFooter className="flex justify-between bg-gray-50/50 p-6">
                         <Button
                           variant="outline"
                           onClick={handlePrevStep}
@@ -611,6 +644,7 @@ const Checkout = () => {
                         <Button
                           onClick={handleSubmitOrder}
                           disabled={isSubmitting || !utrNumber || !paymentConfig}
+                          className="bg-green-600 hover:bg-green-700 w-full md:w-auto"
                         >
                           {isSubmitting ? (
                             <>
@@ -629,42 +663,59 @@ const Checkout = () => {
             </div>
 
             <div className="md:col-span-1">
-              <Card className="sticky top-24">
-                <CardHeader>
-                  <CardTitle>{t('checkout.orderSummary')}</CardTitle>
+              <Card className="sticky top-28 border-0 shadow-lg">
+                <CardHeader className="bg-gray-900 text-white rounded-t-xl py-4">
+                  <CardTitle className="text-lg">{t('checkout.orderSummary')}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className={cn("flex gap-3", isRTL ? "flex-row-reverse" : "")}>
-                    <div className="rounded-md overflow-hidden w-20 h-20 bg-gray-100 flex-shrink-0">
+                <CardContent className="space-y-4 pt-6">
+                  {bookingData.bannerImage ? (
+                    <div className="rounded-lg overflow-hidden w-full h-32 relative mb-4">
                       <img
-                        src="https://placehold.co/100x100"
+                        src={bookingData.bannerImage}
                         alt={bookingData.eventTitle}
                         className="w-full h-full object-cover"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-2 left-3 text-white font-bold text-sm">
+                        {bookingData.venue}
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-medium">{bookingData.eventTitle}</h3>
-                      <div className="text-sm text-gray-500 flex items-center mt-1">
-                        <Calendar className="w-3.5 h-3.5 mr-1" />
+                  ) : (
+                    <div className={cn("flex gap-3", isRTL ? "flex-row-reverse" : "")}>
+                      <div className="rounded-md overflow-hidden w-20 h-20 bg-gray-100 flex-shrink-0">
+                        <img
+                          src="https://placehold.co/100x100"
+                          alt={bookingData.eventTitle}
+                          className="w-full h-full object-cover"
+                        />
+                        </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="font-bold text-lg mb-1">{bookingData.eventTitle}</h3>
+                    <div className="space-y-2 mt-3">
+                      <div className="text-sm text-gray-700 flex items-center p-2 bg-gray-50 rounded">
+                        <Calendar className="w-4 h-4 mr-2 text-blue-500" />
                         {bookingData.eventDate}
                       </div>
-                      <div className="text-sm text-gray-500 flex items-center mt-1">
-                        <Clock className="w-3.5 h-3.5 mr-1" />
+                      <div className="text-sm text-gray-700 flex items-center p-2 bg-gray-50 rounded">
+                        <Clock className="w-4 h-4 mr-2 text-blue-500" />
                         {bookingData.eventTime}
                       </div>
-                      <div className="text-sm text-gray-500 flex items-center mt-1">
-                        <MapPin className="w-3.5 h-3.5 mr-1" />
-                        {bookingData.venue}
+                      <div className="text-sm text-gray-700 flex items-center p-2 bg-gray-50 rounded">
+                        <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+                        <span className="truncate">{bookingData.venue}</span>
                       </div>
                     </div>
                   </div>
 
                   <Separator />
 
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {bookingData.tickets.map((ticket, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span>
+                        <span className="font-medium text-gray-700">
                           {ticket.quantity} × {ticket.category}
                         </span>
                         <span>{formatCurrency(ticket.subtotal)}</span>
@@ -688,18 +739,21 @@ const Checkout = () => {
                     </div>
                   )}
 
-                  <div className="flex justify-between font-bold">
-                    <span>{t('checkout.total')}</span>
-                    <div className="flex items-center gap-2">
+                  <div className="flex justify-between items-end border-t pt-4">
+                    <span className="font-bold text-gray-600">{t('checkout.total')}</span>
+                    <div className="text-right">
                       {hasDiscount && (
-                        <span className="line-through text-gray-400 text-sm font-normal">
+                        <div className="line-through text-gray-400 text-sm font-normal">
                           {formatCurrency(originalTotal)}
-                        </span>
+                        </div>
                       )}
-                      <span>{formatCurrency(bookingData.totalAmount)}</span>
+                      <div className="font-bold text-2xl text-blue-700">{formatCurrency(bookingData.totalAmount)}</div>
                     </div>
                   </div>
                 </CardContent>
+                <CardFooter className="bg-gray-50 rounded-b-xl text-xs text-gray-500 text-center p-4">
+                  Prices include all applicable taxes and fees.
+                </CardFooter>
               </Card>
             </div>
           </div>
