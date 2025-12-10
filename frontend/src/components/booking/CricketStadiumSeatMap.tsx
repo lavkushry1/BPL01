@@ -29,7 +29,7 @@ export interface StadiumSection {
 }
 
 // Default cricket stadium sections
-const defaultStadiumSections: StadiumSection[] = [
+export const defaultStadiumSections: StadiumSection[] = [
   {
     id: 'pavilion',
     name: 'Pavilion Stand',

@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 // Component imports
 import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/Navbar';
+import Navbar from '@/components/layout/PublicNavbar'; // Ensure correct Navbar import
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,34 +13,37 @@ import { toast } from '@/hooks/use-toast';
 // Icons
 import { ArrowLeft, BadgeCheck, Calendar, Clock, MapPin, Shield, Verified } from 'lucide-react';
 
+import CricketStadiumSeatMap, { defaultStadiumSections } from '@/components/booking/CricketStadiumSeatMap';
 import IPLMatchCard from '@/components/events/IPLMatchCard';
-import CricketStadiumSeatMap from '../components/booking/CricketStadiumSeatMap';
 
 const IPLMatchDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   useTranslation();
-  const [match, setMatch] = useState(null);
+  const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState('overview');
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
+  const [stadiumSections, setStadiumSections] = useState(defaultStadiumSections);
 
   useEffect(() => {
     const fetchMatchDetails = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/matches/${id}`);
+        const response = await fetch(`/api/v1/ipl/matches/${id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch match details');
         }
         const data = await response.json();
-        setMatch(data);
-        if (data.ticketCategories && data.ticketCategories.length > 0) {
+        setMatch(data.data || data); // Handle potential API wrapper
+        if (data.data?.ticketCategories && data.data.ticketCategories.length > 0) {
+          setSelectedCategory(data.data.ticketCategories[0].id);
+        } else if (data.ticketCategories && data.ticketCategories.length > 0) {
           setSelectedCategory(data.ticketCategories[0].id);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching match details:', err);
         setError(err.message);
       } finally {
@@ -52,110 +55,6 @@ const IPLMatchDetail = () => {
       fetchMatchDetails();
     }
   }, [id]);
-
-  const handleBookNow = () => {
-    if (!selectedCategory) {
-      toast({
-        title: "Please select a ticket category",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    navigate(`/checkout/${id}?category=${selectedCategory}&quantity=${ticketQuantity}`);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow pt-16 pb-12">
-          <div className="container mx-auto px-4">
-            <Button
-              variant="ghost"
-              className="mb-6 pl-0 hover:bg-transparent"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to all matches
-            </Button>
-
-            {/* Loading skeleton for match banner */}
-            <div className="mb-8">
-              <Skeleton className="h-64 w-full rounded-xl" />
-            </div>
-
-            {/* Loading skeleton for match info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="md:col-span-2">
-                <Skeleton className="h-10 w-3/4 mb-4" />
-                <Skeleton className="h-6 w-1/2 mb-2" />
-                <Skeleton className="h-6 w-1/3 mb-6" />
-
-                <div className="grid grid-cols-3 gap-4 mb-8">
-                  <Skeleton className="h-24 rounded-lg" />
-                  <Skeleton className="h-24 rounded-lg" />
-                  <Skeleton className="h-24 rounded-lg" />
-                </div>
-
-                <Skeleton className="h-8 w-1/3 mb-4" />
-                <Skeleton className="h-32 w-full rounded-lg" />
-              </div>
-              <div>
-                <Skeleton className="h-80 w-full rounded-xl" />
-              </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow pt-16 pb-12">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Match Details</h2>
-            <p className="mb-4">{error}</p>
-            <Button onClick={() => navigate('/events')}>
-              View All Events
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!match) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow pt-16 pb-12">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl font-bold mb-4">Match Not Found</h2>
-            <p className="mb-4">The match you're looking for doesn't exist or has been removed.</p>
-            <Button onClick={() => navigate('/events')}>
-              View All Events
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  const getSelectedCategoryDetails = () => {
-    return match.ticketCategories.find(cat => cat.id === selectedCategory);
-  };
-
-  const calculateTotalPrice = () => {
-    const category = getSelectedCategoryDetails();
-    return category ? category.price * ticketQuantity : 0;
-  };
 
   // Fetch dynamic pricing and stadium status
   useEffect(() => {
@@ -225,6 +124,144 @@ const IPLMatchDetail = () => {
     }
   }, [id, selectedSection]);
 
+  const handleBookNow = () => {
+    if (!selectedCategory) {
+      toast({
+        title: "Please select a ticket category",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigate(`/checkout/${id}?category=${selectedCategory}&quantity=${ticketQuantity}`);
+  };
+
+  const handleJoinWaitlist = async () => {
+    if (!selectedCategory) return;
+
+    // In a real app, get user email from auth context or show a dialog
+    const email = prompt("Enter your email to join the waitlist:");
+    if (!email) return;
+
+    try {
+      const response = await fetch('/api/v1/ipl/waitlist/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          matchId: id,
+          sectionId: selectedCategory,
+          userId: 'guest' // or auth.user.id
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "Joined Waitlist",
+          description: "We'll notify you when tickets become available!",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to join waitlist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getSelectedCategoryDetails = () => {
+    if (!match?.ticketCategories) return null;
+    return match.ticketCategories.find((cat: any) => cat.id === selectedCategory);
+  };
+
+  const calculateTotalPrice = () => {
+    const category = getSelectedCategoryDetails();
+    return category ? category.price * ticketQuantity : 0;
+  };
+
+  const selectedSectionData = stadiumSections.find(s => s.id === selectedCategory);
+  const isSoldOut = selectedSectionData?.availableSeats === 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-16 pb-12">
+          <div className="container mx-auto px-4">
+            <Button
+              variant="ghost"
+              className="mb-6 pl-0 hover:bg-transparent"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to all matches
+            </Button>
+            <div className="mb-8">
+              <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2">
+                <Skeleton className="h-10 w-3/4 mb-4" />
+                <Skeleton className="h-6 w-1/2 mb-2" />
+                <Skeleton className="h-6 w-1/3 mb-6" />
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                  <Skeleton className="h-24 rounded-lg" />
+                  <Skeleton className="h-24 rounded-lg" />
+                  <Skeleton className="h-24 rounded-lg" />
+                </div>
+                <Skeleton className="h-8 w-1/3 mb-4" />
+                <Skeleton className="h-32 w-full rounded-lg" />
+              </div>
+              <div>
+                <Skeleton className="h-80 w-full rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-16 pb-12">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Match Details</h2>
+            <p className="mb-4">{error}</p>
+            <Button onClick={() => navigate('/events')}>
+              View All Events
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!match) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-16 pb-12">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-2xl font-bold mb-4">Match Not Found</h2>
+            <p className="mb-4">The match you're looking for doesn't exist or has been removed.</p>
+            <Button onClick={() => navigate('/events')}>
+              View All Events
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -253,8 +290,8 @@ const IPLMatchDetail = () => {
                 <div className="flex items-center space-x-6">
                   <div className="w-20 h-20 rounded-full bg-white p-1 shadow-lg">
                     <img
-                      src={match.teams.team1.logo}
-                      alt={match.teams.team1.name}
+                      src={match.teams?.team1?.logo || '/placeholder.svg'}
+                      alt={match.teams?.team1?.name || 'Team 1'}
                       className="w-full h-full object-contain"
                       onError={(e) => {
                         e.currentTarget.src = '/placeholder.svg';
@@ -264,8 +301,8 @@ const IPLMatchDetail = () => {
                   <div className="text-white text-3xl font-bold">VS</div>
                   <div className="w-20 h-20 rounded-full bg-white p-1 shadow-lg">
                     <img
-                      src={match.teams.team2.logo}
-                      alt={match.teams.team2.name}
+                      src={match.teams?.team2?.logo || '/placeholder.svg'}
+                      alt={match.teams?.team2?.name || 'Team 2'}
                       className="w-full h-full object-contain"
                       onError={(e) => {
                         e.currentTarget.src = '/placeholder.svg';
@@ -278,7 +315,7 @@ const IPLMatchDetail = () => {
                   <div className="text-sm opacity-80">Starting from</div>
                   <div className="text-3xl font-bold">
                     ₹{match.ticketCategories && match.ticketCategories.length > 0
-                      ? new Intl.NumberFormat('en-IN').format(Math.min(...match.ticketCategories.map(tc => tc.price)))
+                      ? new Intl.NumberFormat('en-IN').format(Math.min(...match.ticketCategories.map((tc: any) => tc.price)))
                       : '0'}
                   </div>
                 </div>
@@ -409,34 +446,34 @@ const IPLMatchDetail = () => {
                         <div className="flex items-center space-x-3 mb-3">
                           <div className="w-12 h-12 rounded-full bg-white p-1 shadow-sm">
                             <img
-                              src={match.teams.team1.logo}
-                              alt={match.teams.team1.name}
+                              src={match.teams?.team1?.logo || '/placeholder.svg'}
+                              alt={match.teams?.team1?.name || 'Team 1'}
                               className="w-full h-full object-contain"
                               onError={(e) => {
                                 e.currentTarget.src = '/placeholder.svg';
                               }}
                             />
                           </div>
-                          <h4 className="font-bold">{match.teams.team1.name}</h4>
+                          <h4 className="font-bold">{match.teams?.team1?.name}</h4>
                         </div>
-                        <p className="text-sm text-gray-700">{match.teams.team1.description || 'Team details will be updated soon.'}</p>
+                        <p className="text-sm text-gray-700">{match.teams?.team1?.description || 'Team details will be updated soon.'}</p>
                       </div>
 
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="flex items-center space-x-3 mb-3">
                           <div className="w-12 h-12 rounded-full bg-white p-1 shadow-sm">
                             <img
-                              src={match.teams.team2.logo}
-                              alt={match.teams.team2.name}
+                              src={match.teams?.team2?.logo || '/placeholder.svg'}
+                              alt={match.teams?.team2?.name || 'Team 2'}
                               className="w-full h-full object-contain"
                               onError={(e) => {
                                 e.currentTarget.src = '/placeholder.svg';
                               }}
                             />
                           </div>
-                          <h4 className="font-bold">{match.teams.team2.name}</h4>
+                          <h4 className="font-bold">{match.teams?.team2?.name}</h4>
                         </div>
-                        <p className="text-sm text-gray-700">{match.teams.team2.description || 'Team details will be updated soon.'}</p>
+                        <p className="text-sm text-gray-700">{match.teams?.team2?.description || 'Team details will be updated soon.'}</p>
                       </div>
                     </div>
                   </div>
@@ -454,7 +491,7 @@ const IPLMatchDetail = () => {
                     Select Ticket Category
                   </label>
                   <div className="space-y-2">
-                    {match.ticketCategories && match.ticketCategories.map((category) => (
+                    {match.ticketCategories && match.ticketCategories.map((category: any) => (
                       <div
                         key={category.id}
                         className={`border rounded-lg p-3 cursor-pointer ${
@@ -516,12 +553,12 @@ const IPLMatchDetail = () => {
                 </div>
 
                 <Button
-                  className="w-full"
+                  className={isSoldOut ? "w-full bg-amber-600 hover:bg-amber-700" : "w-full"}
                   size="lg"
-                  onClick={handleBookNow}
+                  onClick={isSoldOut ? handleJoinWaitlist : handleBookNow}
                   disabled={!selectedCategory}
                 >
-                  Book Now
+                  {isSoldOut ? 'Join Waitlist' : 'Book Now'}
                 </Button>
 
                 <div className="mt-4 text-center text-xs text-gray-500">
@@ -536,7 +573,7 @@ const IPLMatchDetail = () => {
             <div className="mt-12">
               <h2 className="text-2xl font-bold mb-6">More IPL Matches</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {match.relatedMatches.map((relatedMatch) => (
+                {match.relatedMatches.map((relatedMatch: any) => (
                   <IPLMatchCard
                     key={relatedMatch.id}
                     id={relatedMatch.id}
