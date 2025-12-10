@@ -12,6 +12,10 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/eventia?schema=public
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=eventia
     depends_on:
       - postgres
     networks:
@@ -28,16 +32,16 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-eventia}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: eventia
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - eventia-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
