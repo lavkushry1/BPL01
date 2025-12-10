@@ -2,6 +2,26 @@
 version: '3.8'
 
 services:
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:4001
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - eventia-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   api:
     build:
       context: .
@@ -16,8 +36,14 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=eventia
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - FRONTEND_URL=http://localhost:5173
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - eventia-network
     restart: unless-stopped
@@ -26,6 +52,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 60s
 
   postgres:
     image: postgres:15-alpine
@@ -46,9 +73,25 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - eventia-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   eventia-network:
     driver: bridge
 
 volumes:
   postgres-data:
+  redis-data:

@@ -35,7 +35,7 @@ RUN echo 'server { \
     add_header X-Content-Type-Options "nosniff"; \
     add_header X-Frame-Options "DENY"; \
     add_header X-XSS-Protection "1; mode=block"; \
-    add_header Content-Security-Policy "default-src '\''self'\''; connect-src '\''self'\'' http://localhost:4000 ws://localhost:4000; img-src '\''self'\'' data: https:; style-src '\''self'\'' '\''unsafe-inline'\'' https:; script-src '\''self'\'' '\''unsafe-inline'\'' '\''unsafe-eval'\''"; \
+    add_header Content-Security-Policy "default-src '\''self'\''; connect-src '\''self'\'' http://localhost:4001 ws://localhost:4001; img-src '\''self'\'' data: https:; style-src '\''self'\'' '\''unsafe-inline'\'' https:; script-src '\''self'\'' '\''unsafe-inline'\'' '\''unsafe-eval'\''"; \
     add_header Referrer-Policy "strict-origin-when-cross-origin"; \
     \
     # Handle SPA routing \
@@ -59,8 +59,23 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
+# Create nginx cache directories and fix permissions for non-root
+RUN mkdir -p /var/cache/nginx/client_temp \
+    /var/cache/nginx/proxy_temp \
+    /var/cache/nginx/fastcgi_temp \
+    /var/cache/nginx/uwsgi_temp \
+    /var/cache/nginx/scgi_temp \
+    /tmp/nginx \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chmod -R 755 /var/cache/nginx \
+    && chown -R nginx:nginx /var/run \
+    && chmod -R 755 /var/run \
+    && touch /run/nginx.pid \
+    && chown nginx:nginx /run/nginx.pid \
+    && chown -R nginx:nginx /usr/share/nginx/html
+
 # Copy built app from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # Use non-root user from the nginx image
 USER nginx
