@@ -157,6 +157,74 @@ const IPLMatchDetail = () => {
     return category ? category.price * ticketQuantity : 0;
   };
 
+  // Fetch dynamic pricing and stadium status
+  useEffect(() => {
+    const fetchPricingAndStatus = async () => {
+      try {
+        const response = await fetch(`/api/v1/ipl/matches/${id}/pricing`);
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Transform API data to stadium sections format
+          const apiSections = data.data.sections.map((s: any) => {
+            // Find matching default section to get SVG path/color
+            const defaultSection = defaultStadiumSections.find(ds => ds.name === s.name);
+            return {
+              ...defaultSection,
+              id: defaultSection?.id || s.name.toLowerCase().replace(/\s+/g, '-'),
+              basePrice: s.basePrice,
+              availableSeats: s.available,
+              priceCategory: defaultSection?.priceCategory || 'general' // fallback
+            };
+          }).filter((s: any) => s.path); // Only keep sections we have SVG paths for
+
+          if (apiSections.length > 0) {
+            setStadiumSections(apiSections);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch pricing:', error);
+      }
+    };
+
+    if (id && selectedSection === 'stadium') {
+      fetchPricingAndStatus();
+
+      // Connect to WebSocket
+      const socket = new WebSocket('ws://localhost:4001/ws');
+      socket.onopen = () => {
+        socket.send(JSON.stringify({ type: 'join:event', eventId: id }));
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'section_status_changed' && data.event_id === id) {
+            setStadiumSections(prev => prev.map(section => {
+              if (section.id === data.section_id) {
+                return {
+                  ...section,
+                  availableSeats: data.available_seats
+                };
+              }
+              return section;
+            }));
+
+            toast({
+              title: "Seat Update",
+              description: `${data.section_id} status updated: ${data.status}`,
+            });
+          }
+        } catch (e) {
+          console.error('Socket message parse error', e);
+        }
+      };
+
+      return () => {
+        socket.close();
+      };
+    }
+  }, [id, selectedSection]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -316,6 +384,7 @@ const IPLMatchDetail = () => {
                     <h3 className="text-xl font-semibold mb-4">Stadium Seat Selection</h3>
                     <CricketStadiumSeatMap
                       venueName={match.venue}
+                      sections={stadiumSections}
                       selectedSection={selectedCategory}
                       onSectionSelect={(sectionId) => {
                         if (sectionId) {

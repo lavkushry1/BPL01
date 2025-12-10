@@ -1,8 +1,8 @@
-import { Server as SocketServer } from 'socket.io';
 import { Server } from 'http';
+import { Server as SocketServer } from 'socket.io';
+import config from '../config';
 import { SeatStatus } from '../models/seat';
 import { logger } from '../utils/logger';
-import config from '../config';
 
 /**
  * WebSocket service for real-time notifications and updates
@@ -136,6 +136,38 @@ export class WebsocketService {
       logger.debug(`Global notification of seat status change: ${seatIds.length} seats changed to ${status}`);
     } catch (error) {
       logger.error('Error sending seat status change notification:', error);
+    }
+  }
+
+  /**
+   * Notify about section availability changes
+   * @param eventId Event ID
+   * @param sectionId Section or Category ID
+   * @param status 'AVAILABLE' | 'SELLING_FAST' | 'SOLD_OUT'
+   * @param availableSeats Remaining seats
+   */
+  static notifySectionStatusChange(
+    eventId: string,
+    sectionId: string,
+    status: string,
+    availableSeats: number
+  ): void {
+    if (!this.io || !eventId) return;
+
+    try {
+      this.io.to(`event:${eventId}`).emit('section_status_changed', {
+        event_id: eventId,
+        section_id: sectionId,
+        status,
+        available_seats: availableSeats,
+        timestamp: new Date().toISOString()
+      });
+
+      logger.debug(`Broadcast section update for event ${eventId}: Section ${sectionId} is ${status} (${availableSeats} left)`);
+
+      // Also notify waitlist if sold out -> This is now handled by WaitlistService
+    } catch (error) {
+      logger.error('Error broadcasting section update:', error);
     }
   }
 

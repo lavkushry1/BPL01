@@ -305,4 +305,96 @@ router.get('/high-demand', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/ipl/waitlist/join:
+ *   post:
+ *     summary: Join waitlist for a specific match section
+ *     tags: [IPL]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, matchId, sectionId]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               matchId:
+ *                 type: string
+ *               sectionId:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Successfully joined waitlist
+ */
+router.post('/waitlist/join', async (req: Request, res: Response) => {
+  try {
+    const { email, matchId, sectionId, userId } = req.body;
+
+    if (!email || !matchId || !sectionId) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const { WaitlistService } = await import('../services/waitlist.service');
+    const result = await WaitlistService.joinWaitlist(email, matchId, sectionId, userId);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error joining waitlist:', error);
+    res.status(500).json({ success: false, error: 'Failed to join waitlist' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/ipl/waitlist/status:
+ *   get:
+ *     summary: Check waitlist status
+ *     tags: [IPL]
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Waitlist status
+ */
+router.get('/waitlist/status', async (req: Request, res: Response) => {
+  try {
+    const { email, matchId, sectionId } = req.query;
+
+    if (!email || !matchId || !sectionId) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters' });
+    }
+
+    const { WaitlistService } = await import('../services/waitlist.service');
+    const status = await WaitlistService.checkStatus(
+      email as string,
+      matchId as string,
+      sectionId as string
+    );
+
+    res.json({ success: true, data: status });
+  } catch (error) {
+    console.error('Error checking waitlist status:', error);
+    res.status(500).json({ success: false, error: 'Failed to check status' });
+  }
+});
+
 export default router;

@@ -708,7 +708,7 @@ model IplMatch {
   matchDate    DateTime    @map("match_date")
   matchTime    String      @map("match_time") // "7:30 PM IST"
   status       MatchStatus @default(UPCOMING)
-  eventId           String? // Link to generic Event model for booking system
+  eventId           String? @unique // Link to generic Event model for booking system
   event             Event?      @relation("EventToIplMatch", fields: [eventId], references: [id])
   waitlistEntries   WaitlistEntry[]
   priceMultiplier Decimal  @default(1.0) @map("price_multiplier") @db.Decimal(3, 2)

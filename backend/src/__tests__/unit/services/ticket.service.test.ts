@@ -60,7 +60,7 @@ describe('TicketService', () => {
         });
 
       // Mock db for updating failed queue items
-      (db as jest.Mocked<any>).mockImplementation((table) => {
+      (db as jest.Mocked<any>).mockImplementation((table: any) => {
         if (table === 'ticket_generation_queue') {
           return {
             where: jest.fn().mockReturnThis(),
