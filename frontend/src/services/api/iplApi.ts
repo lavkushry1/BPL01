@@ -3,7 +3,8 @@
  * Frontend API client for IPL teams, matches, venues, and city filtering
  */
 
-import apiClient from './axios-client';
+import { defaultApiClient } from './apiUtils';
+import { unwrapApiResponse } from './responseUtils';
 
 // IPL Team Type
 export interface IplTeam {
@@ -52,45 +53,58 @@ export interface CityWithMatches {
   matchCount: number;
 }
 
-// API Response wrapper
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  error?: { code: string; message: string };
-}
-
 /**
  * Get all IPL teams
  */
 export const getIplTeams = async (includeVenue = false): Promise<IplTeam[]> => {
-  const { data } = await apiClient.get<ApiResponse<IplTeam[]>>('/ipl/teams', {
-    params: { includeVenue }
-  });
-  return data.data;
+  try {
+    const response = await defaultApiClient.get('/ipl/teams', {
+      params: { includeVenue }
+    });
+    return unwrapApiResponse<IplTeam[]>(response) || [];
+  } catch (error) {
+    console.error('Error fetching IPL teams:', error);
+    return [];
+  }
 };
 
 /**
  * Get a team by ID or short name
  */
-export const getIplTeamById = async (id: string): Promise<IplTeam> => {
-  const { data } = await apiClient.get<ApiResponse<IplTeam>>(`/ipl/teams/${id}`);
-  return data.data;
+export const getIplTeamById = async (id: string): Promise<IplTeam | null> => {
+  try {
+    const response = await defaultApiClient.get(`/ipl/teams/${id}`);
+    return unwrapApiResponse<IplTeam>(response) || null;
+  } catch (error) {
+    console.error('Error fetching team:', error);
+    return null;
+  }
 };
 
 /**
  * Get all IPL venues
  */
 export const getIplVenues = async (): Promise<IplVenue[]> => {
-  const { data } = await apiClient.get<ApiResponse<IplVenue[]>>('/ipl/venues');
-  return data.data;
+  try {
+    const response = await defaultApiClient.get('/ipl/venues');
+    return unwrapApiResponse<IplVenue[]>(response) || [];
+  } catch (error) {
+    console.error('Error fetching venues:', error);
+    return [];
+  }
 };
 
 /**
  * Get a venue by ID or city
  */
-export const getIplVenueById = async (id: string): Promise<IplVenue> => {
-  const { data } = await apiClient.get<ApiResponse<IplVenue>>(`/ipl/venues/${id}`);
-  return data.data;
+export const getIplVenueById = async (id: string): Promise<IplVenue | null> => {
+  try {
+    const response = await defaultApiClient.get(`/ipl/venues/${id}`);
+    return unwrapApiResponse<IplVenue>(response) || null;
+  } catch (error) {
+    console.error('Error fetching venue:', error);
+    return null;
+  }
 };
 
 /**
@@ -101,36 +115,56 @@ export const getIplMatches = async (filters?: {
   team?: string;
   status?: 'UPCOMING' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
 }): Promise<IplMatch[]> => {
-  const { data } = await apiClient.get<ApiResponse<IplMatch[]>>('/ipl/matches', {
-    params: filters
-  });
-  return data.data;
+  try {
+    const response = await defaultApiClient.get('/ipl/matches', {
+      params: filters
+    });
+    return unwrapApiResponse<IplMatch[]>(response) || [];
+  } catch (error) {
+    console.error('Error fetching matches:', error);
+    return [];
+  }
 };
 
 /**
  * Get upcoming matches for homepage
  */
 export const getUpcomingIplMatches = async (limit = 5): Promise<IplMatch[]> => {
-  const { data } = await apiClient.get<ApiResponse<IplMatch[]>>('/ipl/matches/upcoming', {
-    params: { limit }
-  });
-  return data.data;
+  try {
+    const response = await defaultApiClient.get('/ipl/matches/upcoming', {
+      params: { limit }
+    });
+    return unwrapApiResponse<IplMatch[]>(response) || [];
+  } catch (error) {
+    console.error('Error fetching upcoming matches:', error);
+    return [];
+  }
 };
 
 /**
  * Get a match by ID
  */
-export const getIplMatchById = async (id: string): Promise<IplMatch> => {
-  const { data } = await apiClient.get<ApiResponse<IplMatch>>(`/ipl/matches/${id}`);
-  return data.data;
+export const getIplMatchById = async (id: string): Promise<IplMatch | null> => {
+  try {
+    const response = await defaultApiClient.get(`/ipl/matches/${id}`);
+    return unwrapApiResponse<IplMatch>(response) || null;
+  } catch (error) {
+    console.error('Error fetching match:', error);
+    return null;
+  }
 };
 
 /**
  * Get cities with upcoming matches (for district filter)
  */
 export const getCitiesWithMatches = async (): Promise<CityWithMatches[]> => {
-  const { data } = await apiClient.get<ApiResponse<CityWithMatches[]>>('/ipl/cities');
-  return data.data;
+  try {
+    const response = await defaultApiClient.get('/ipl/cities');
+    return unwrapApiResponse<CityWithMatches[]>(response) || [];
+  } catch (error) {
+    console.error('Error fetching cities:', error);
+    return [];
+  }
 };
 
 export default {
