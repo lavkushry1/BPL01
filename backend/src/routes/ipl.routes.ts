@@ -248,4 +248,61 @@ router.get('/cities', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/ipl/matches/{id}/pricing:
+ *   get:
+ *     summary: Get dynamic pricing for all sections of a match
+ *     tags: [IPL]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Match ID
+ *     responses:
+ *       200:
+ *         description: Pricing preview for all stadium sections
+ */
+router.get('/matches/:id/pricing', async (req: Request, res: Response) => {
+  try {
+    // Lazy import to avoid circular dependencies
+    const { IplPricingService } = await import('../services/iplPricing.service');
+    const pricing = await IplPricingService.getMatchPricingPreview(req.params.id);
+    res.json({ success: true, data: pricing });
+  } catch (error) {
+    console.error('Error calculating match pricing:', error);
+    res.status(500).json({ success: false, error: 'Failed to calculate pricing' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/ipl/high-demand:
+ *   get:
+ *     summary: Get high-demand matches for featured section
+ *     tags: [IPL]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *     responses:
+ *       200:
+ *         description: List of high-demand match IDs
+ */
+router.get('/high-demand', async (req: Request, res: Response) => {
+  try {
+    const { IplPricingService } = await import('../services/iplPricing.service');
+    const limit = parseInt(req.query.limit as string) || 5;
+    const matchIds = await IplPricingService.getHighDemandMatches(limit);
+    res.json({ success: true, data: matchIds });
+  } catch (error) {
+    console.error('Error fetching high-demand matches:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch high-demand matches' });
+  }
+});
+
 export default router;

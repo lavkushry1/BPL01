@@ -1,9 +1,9 @@
-import { bookingService } from '../../../../services/booking.service';
-import { db } from '../../../../db';
-import { ApiError } from '../../../../utils/apiError';
+import { bookingService } from '../../../services/booking.service';
+import { db } from '../../../db';
+import { ApiError } from '../../../utils/apiError';
 
 // Mock Knex
-jest.mock('../../../../db', () => {
+jest.mock('../../../db', () => {
   const mockQueryBuilder = {
     where: jest.fn().mockReturnThis(),
     first: jest.fn().mockReturnThis(),

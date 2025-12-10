@@ -635,6 +635,24 @@ enum MatchStatus {
   POSTPONED
 }
 
+// Waitlist for sold out matches/sections
+model WaitlistEntry {
+  id               String   @id @default(uuid())
+  email            String
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id])
+  iplMatchId       String
+  iplMatch         IplMatch @relation(fields: [iplMatchId], references: [id])
+  sectionId        String?  // References specific stadium section
+  ticketCategoryId String?  // References TicketCategory id
+  status           String   @default("PENDING") // PENDING, NOTIFIED, CONVERTED, CANCELLED
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([email])
+  @@index([iplMatchId])
+}
+
 model IplTeam {
   id             String     @id @default(uuid())
   name           String     // "Chennai Super Kings"
@@ -689,8 +707,9 @@ model IplMatch {
   matchDate    DateTime    @map("match_date")
   matchTime    String      @map("match_time") // "7:30 PM IST"
   status       MatchStatus @default(UPCOMING)
-  eventId      String?     @unique @map("event_id")
-  event        Event?      @relation(fields: [eventId], references: [id])
+  eventId           String? // Link to generic Event model for booking system
+  event             Event?      @relation("EventToIplMatch", fields: [eventId], references: [id])
+  waitlistEntries   WaitlistEntry[]
   priceMultiplier Decimal  @default(1.0) @map("price_multiplier") @db.Decimal(3, 2)
   isPlayoff    Boolean     @default(false) @map("is_playoff")
   createdAt    DateTime    @default(now()) @map("created_at")

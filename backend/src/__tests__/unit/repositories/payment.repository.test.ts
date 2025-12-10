@@ -1,9 +1,9 @@
-import { BookingPaymentRepository } from '../../../../repositories/paymentRepository';
-import prisma from '../../../../db/prisma';
-import { ApiError } from '../../../../utils/apiError';
+import { BookingPaymentRepository } from '../../../repositories/paymentRepository';
+import prisma from '../../../db/prisma';
+import { ApiError } from '../../../utils/apiError';
 
 // Mock Prisma
-jest.mock('../../../../db/prisma', () => ({
+jest.mock('../../../db/prisma', () => ({
   bookingPayment: {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
