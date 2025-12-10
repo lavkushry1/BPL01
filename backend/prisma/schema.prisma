@@ -28,6 +28,7 @@ model User {
   eventsUpdatedBy   Event[]          @relation("EventUpdater")
   tickets           Ticket[]
   profile           UserProfile?
+  waitlistEntries   WaitlistEntry[]
 
   @@index([isDeleted])
   @@index([role])
@@ -78,7 +79,7 @@ model Event {
   discounts        Discount[]       @relation("EventDiscounts")
   tickets          Ticket[]
   eventSummary     EventSummary?
-  iplMatch         IplMatch?
+  iplMatch         IplMatch?        @relation("EventToIplMatch")
 
   @@index([organizerId])
   @@index([status])
