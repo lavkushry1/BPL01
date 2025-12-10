@@ -1,7 +1,6 @@
 
-import React from 'react';
+import { Facebook, Instagram, Mail, Phone, Ticket, Twitter } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Ticket, Facebook, Twitter, Instagram, Mail, Phone } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -12,7 +11,7 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center mb-4">
               <Ticket className="h-8 w-8 text-secondary" />
-              <span className="ml-2 text-xl font-bold">Eventia</span>
+              <span className="ml-2 text-xl font-bold">IPL 2026</span>
             </div>
             <p className="text-gray-400 mb-4">Your go-to platform for booking IPL matches and other exciting events. No login required!</p>
             <div className="flex space-x-4">
@@ -72,7 +71,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li className="flex items-center text-gray-400">
                 <Mail size={16} className="mr-2" />
-                <span>support@eventia.com</span>
+                <span>support@ipl2026tickets.com</span>
               </li>
               <li className="flex items-center text-gray-400">
                 <Phone size={16} className="mr-2" />
@@ -84,7 +83,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-800 mt-8 pt-8">
           <p className="text-center text-gray-400">
-            &copy; {new Date().getFullYear()} Eventia. All rights reserved.
+            &copy; {new Date().getFullYear()} IPL 2026 Tickets. All rights reserved.
           </p>
         </div>
       </div>

@@ -62,6 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// IPL Team Colors
+				ipl: {
+					primary: '#1e3a5f',
+					secondary: '#f97316',
+					csk: { primary: '#FDB913', secondary: '#1C1C1C' },
+					mi: { primary: '#004BA0', secondary: '#D4AF37' },
+					rcb: { primary: '#EC1C24', secondary: '#000000' },
+					kkr: { primary: '#3A225D', secondary: '#FFD700' },
+					dc: { primary: '#0078BC', secondary: '#EF1C25' },
+					srh: { primary: '#FF822A', secondary: '#000000' },
+					pbks: { primary: '#ED1B24', secondary: '#A7A9AC' },
+					rr: { primary: '#EA1A85', secondary: '#254AA5' },
+					gt: { primary: '#1C1C1C', secondary: '#B09862' },
+					lsg: { primary: '#ACE5EE', secondary: '#A72056' }
 				}
 			},
 			borderRadius: {

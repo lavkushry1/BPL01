@@ -1,6 +1,6 @@
 /**
- * Configuration management for the Eventia frontend application
- * 
+ * Configuration management for the IPL 2026 Tickets frontend application
+ *
  * This file centralizes all environment-specific configuration values
  * and provides type-safe access to them throughout the application.
  */
@@ -53,7 +53,7 @@ const currentEnv = (import.meta.env.MODE || 'development') as Environment;
 // Default configuration values
 const defaultConfig: AppConfig = {
   environment: currentEnv,
-  appName: 'Eventia',
+  appName: 'IPL 2026',
   api: {
     baseUrl: '/api/v1',
     wsUrl: 'ws://localhost:4000',
@@ -61,8 +61,8 @@ const defaultConfig: AppConfig = {
     retryAttempts: 3
   },
   auth: {
-    accessTokenKey: 'eventia_access_token',
-    refreshTokenKey: 'eventia_refresh_token',
+    accessTokenKey: 'ipl2026_access_token',
+    refreshTokenKey: 'ipl2026_refresh_token',
     accessTokenExpiry: '15m',
     refreshTokenExpiry: '7d'
   },
@@ -156,13 +156,13 @@ const config = mergeConfig(defaultConfig, environmentConfig[currentEnv]);
 
 // Validate the configuration in development and test modes
 if (config.environment !== 'production') {
-  console.log(`Eventia Frontend (${config.environment} mode) configuration:`, config);
+  console.log(`IPL 2026 Tickets (${config.environment} mode) configuration:`, config);
 
   // Basic validation
   if (!config.api.baseUrl) {
     console.warn('API base URL is not set!');
   }
-  
+
   if (config.features.useMockData) {
     console.warn('Using mock data - not suitable for production use!');
   }

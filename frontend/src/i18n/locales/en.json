@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Eventia"
+    "name": "IPL 2026"
   },
   "common": {
     "home": "Home",
@@ -70,7 +70,7 @@
   },
   "footer": {
     "followUs": "Follow Us",
-    "copyright": "© 2025 Eventia. All rights reserved.",
+    "copyright": "© 2025 IPL 2026 Tickets. All rights reserved.",
     "privacyPolicy": "Privacy Policy",
     "terms": "Terms of Service",
     "contactUs": "Contact Us"
@@ -88,7 +88,7 @@
     "title": "Discover, Book, and Experience",
     "subtitle": "Find the most exciting events happening near you",
     "browse": "Browse Events",
-    "iplTickets": "IPL 2025 Tickets",
+    "iplTickets": "IPL 2026 Tickets",
     "search": "Search events",
     "when": "dd/mm/yyyy",
     "where": "Where",
@@ -122,8 +122,8 @@
     "for": "for"
   },
   "ipl": {
-    "title": "IPL 2025 Tickets",
-    "subtitle": "Book official tickets for Indian Premier League matches",
+    "title": "IPL 2026 Tickets",
+    "subtitle": "Book official tickets for Indian Premier League 2026 matches",
     "heroSubtitle": "Book official tickets for all IPL matches. Experience the thrill live!",
     "vipPackages": "VIP Packages",
     "allMatches": "All Matches",

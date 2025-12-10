@@ -1,12 +1,11 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Ticket, Calendar, Home, Shield } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Calendar, Home, Shield, Ticket } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 const PublicNavbar = () => {
   const location = useLocation();
-  
+
   // Main navigation links
   const navLinks = [
     { name: 'Home', path: '/', icon: <Home className="h-4 w-4 mr-2" /> },
@@ -20,7 +19,7 @@ const PublicNavbar = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <Ticket className="h-6 w-6 text-primary" />
-            <span className="hidden font-bold sm:inline-block">Eventia</span>
+            <span className="hidden font-bold sm:inline-block">IPL 2026</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -56,4 +55,4 @@ const PublicNavbar = () => {
   );
 };
 
-export default PublicNavbar; 
+export default PublicNavbar;
