@@ -22,8 +22,8 @@ RUN npm run build
 # Production image
 FROM node:20-alpine
 
-# Install necessary runtime dependencies
-RUN apk add --no-cache tzdata openssl
+# Install necessary runtime dependencies including curl for health checks
+RUN apk add --no-cache tzdata openssl curl
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
