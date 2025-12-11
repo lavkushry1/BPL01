@@ -44,7 +44,7 @@ export class SeatService {
       // Get the seats
       const seats = await db('seats')
         .whereIn('id', seatIds)
-        .select('id', 'status', 'lockedBy as locked_by', 'lock_expires_at');
+        .select('id', 'status', 'locked_by', 'lock_expires_at');
 
       // Check if all requested seats exist
       if (seats.length !== seatIds.length) {
@@ -153,7 +153,7 @@ export class SeatService {
           .whereIn('id', seatIds)
           .update({
             status: SeatStatus.LOCKED,
-            lockedBy: userId,
+            locked_by: userId,
             lock_expires_at: expiresAt
           });
 
@@ -209,7 +209,7 @@ export class SeatService {
       // Verify that the user has locked these seats
       const seats = await db('seats')
         .whereIn('id', seatIds)
-        .where('lockedBy', userId)
+        .where('locked_by', userId)
         .select('id');
 
       if (seats.length !== seatIds.length) {
@@ -231,10 +231,10 @@ export class SeatService {
         // Update seat status to AVAILABLE
         await trx('seats')
           .whereIn('id', seatIds)
-          .where('lockedBy', userId)
+          .where('locked_by', userId)
           .update({
             status: SeatStatus.AVAILABLE,
-            lockedBy: null,
+            locked_by: null,
             lock_expires_at: null
           });
 
@@ -298,7 +298,7 @@ export class SeatService {
         .update({
           status: SeatStatus.BOOKED,
           booking_id: bookingId,
-          lockedBy: null,
+          locked_by: null,
           lock_expires_at: null
         });
 
@@ -411,7 +411,7 @@ export class SeatService {
       const expiredLocks = await db('seats')
         .where('status', SeatStatus.LOCKED)
         .where('lock_expires_at', '<', now)
-        .select('id', 'lockedBy as locked_by');
+        .select('id', 'locked_by');
 
       const expiredSeatIds = expiredLocks.map(lock => lock.id);
 
@@ -447,7 +447,7 @@ export class SeatService {
           .whereIn('id', expiredSeatIds)
           .update({
             status: SeatStatus.AVAILABLE,
-            lockedBy: null,
+            locked_by: null,
             lock_expires_at: null
           });
 
@@ -503,7 +503,7 @@ export class SeatService {
     try {
       const seat = await db('seats')
         .where('id', seatId)
-        .select('status', 'lockedBy as locked_by', 'lock_expires_at', 'booking_id')
+        .select('status', 'locked_by', 'lock_expires_at', 'booking_id')
         .first();
 
       if (!seat) {
@@ -603,10 +603,10 @@ export class SeatService {
         // Release the seats
         await trx('seats')
           .whereIn('id', seatIds)
-          .where('lockedBy', userId)
+          .where('locked_by', userId)
           .update({
             status: SeatStatus.AVAILABLE,
-            lockedBy: null,
+            locked_by: null,
             lock_expires_at: null
           });
 
@@ -864,7 +864,7 @@ export class SeatService {
         .where('event_id', eventId)
         .where('section', section)
         .where('is_deleted', false)
-        .select('id', 'row', 'seat_number', 'label', 'status', 'price', 'lockedBy as locked_by', 'lock_expires_at')
+        .select('id', 'row', 'seat_number', 'label', 'status', 'price', 'locked_by', 'lock_expires_at')
         .orderBy('row')
         .orderBy('seat_number');
 

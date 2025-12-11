@@ -236,7 +236,7 @@ export const config: AppConfig = {
   },
 
   // Cors origins as array for socket.io
-  corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5173'],
+  corsOrigins: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
 
   // Common derived properties
   isProduction: process.env.NODE_ENV === 'production',

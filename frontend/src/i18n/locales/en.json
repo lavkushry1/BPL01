@@ -215,8 +215,6 @@
     "merchantVPA": "UPI ID",
     "transactionNote": "Transaction Note",
     "submitUTR": "Submit UTR/Reference ID",
-    "utrDescription": "After payment, enter the UTR or reference ID from your UPI app",
-    "utrPlaceholder": "Enter UTR/Reference ID",
     "confirmPayment": "Confirm Payment",
     "haveDiscount": "Have a discount code?",
     "enterDiscountCode": "Enter discount code",

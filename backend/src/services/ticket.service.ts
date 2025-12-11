@@ -1,13 +1,11 @@
-import { db } from '../db';
-import { v4 as uuidv4 } from 'uuid';
-import QRCode from 'qrcode';
-import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
-import { WebsocketService } from './websocket.service';
-import { PrismaClient } from '@prisma/client';
-import config from '../config';
+import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
+import { v4 as uuidv4 } from 'uuid';
+import { db } from '../db';
 import prisma from '../db/prisma';
+import { WebsocketService } from './websocket.service';
 
 /**
  * Ticket service for generating tickets, QR codes and PDFs
@@ -440,7 +438,7 @@ export class TicketService {
 
   /**
    * Generate tickets for a booking after payment verification
-   * @param bookingId Booking ID 
+   * @param bookingId Booking ID
    * @param adminId Admin ID who verified the payment
    * @returns Array of generated ticket IDs
    */
@@ -565,7 +563,22 @@ export class TicketService {
       // Process each queued item
       for (const item of queueItems) {
         try {
-          await this.generateTicketsForBooking(item.booking_id, item.admin_id);
+          const bookingId = item.booking_id || item.bookingId;
+          if (!bookingId) {
+            console.error(`Invalid queue item: missing booking_id for item ${item.id}`);
+            // Mark as failed to avoid infinite loop
+            await db('ticket_generation_queue')
+              .where({ id: item.id })
+              .update({
+                status: 'failed',
+                attempts: item.attempts + 1,
+                last_error: 'Missing booking_id',
+                updated_at: db.fn.now()
+              });
+            failed++;
+            continue;
+          }
+          await this.generateTicketsForBooking(bookingId, item.admin_id || item.adminId);
           success++;
         } catch (error) {
           console.error(`Failed to generate tickets for booking ${item.booking_id}:`, error);
