@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 export const createBookingSchema = z.object({
   body: z.object({
-    event_id: z.string().uuid('Invalid event ID format'),
-    seat_ids: z.array(z.string().uuid('Invalid seat ID format')).optional(),
+    event_id: z.string().min(1, 'Event ID is required'),
+    seat_ids: z.array(z.string()).optional(),
     tickets: z.array(z.object({
       categoryId: z.string(), // This maps to Section Name/ID
       quantity: z.number().positive(),
