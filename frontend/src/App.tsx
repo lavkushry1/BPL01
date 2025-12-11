@@ -227,6 +227,8 @@ const AnimatedRoutes = () => {
           </Route>
         </Route>
 
+        <Route path="/seat-map-test" element={<SeatMapPreview />} />
+
         {/* Catch All */}
         <Route path="*" element={
           <SafeTransition>

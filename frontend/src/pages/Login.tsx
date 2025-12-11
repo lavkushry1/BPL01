@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import useAuth from '@/hooks/useAuth';
 import { login } from '@/services/api/authApi';
 import { useMutation } from '@tanstack/react-query';
-import { Lock } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
@@ -25,7 +25,7 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated) {
       // If user is already authenticated, redirect them
-      const redirectPath = user?.role === 'admin' ? '/admin/settings' : '/';
+      const redirectPath = user?.role === 'admin' ? '/admin/dashboard' : '/';
       navigate(redirectPath, { replace: true });
     }
   }, [isAuthenticated, navigate, user]);
@@ -49,7 +49,7 @@ const Login = () => {
 
       // Redirect based on role
       if (userData.role === 'admin') {
-        navigate('/admin/settings', { replace: true });
+        navigate('/admin/dashboard', { replace: true });
       } else {
         navigate(from, { replace: true });
       }
@@ -79,90 +79,99 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-slate-950 relative overflow-hidden">
+      {/* Ambient Bacgkround */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/10 blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px] pointer-events-none" />
+
       <Navbar />
 
-      <main className="flex-grow pt-16 bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-primary/10 dark:bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="h-8 w-8 text-primary dark:text-primary" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sign In</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account to continue</p>
+      <main className="flex-grow pt-24 pb-12 flex items-center justify-center px-4 relative z-10">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8 animate-fade-in-up">
+            <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-slate-400">Sign in to manage your tickets and bookings</p>
           </div>
 
-          <form onSubmit={handleLogin}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address
-                </label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                />
-              </div>
+          <div className="bg-slate-900/60 border border-white/10 backdrop-blur-xl rounded-2xl p-8 shadow-2xl animate-fade-in-up animation-delay-100">
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-300">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="pl-10 h-10 bg-slate-950/50 border-white/10 text-white placeholder:text-slate-600 focus:border-blue-500/50"
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Password
-                </label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                />
-              </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-slate-300">
+                      Password
+                    </label>
+                    <Link to="/forgot-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="pl-10 h-10 bg-slate-950/50 border-white/10 text-white placeholder:text-slate-600 focus:border-blue-500/50"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 pt-2">
                   <Checkbox
                     id="remember"
                     checked={rememberDevice}
                     onCheckedChange={(checked) => setRememberDevice(checked as boolean)}
+                    className="border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                   />
                   <label
                     htmlFor="remember"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300">
-                    Remember me
+                    className="text-sm font-medium text-slate-400 cursor-pointer hover:text-slate-300 transition-colors">
+                    Remember me on this device
                   </label>
                 </div>
 
-                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
-                </Link>
+                <Button
+                  type="submit"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20 rounded-xl transition-all duration-300 hover:scale-[1.02]"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
               </div>
+            </form>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loginMutation.isPending}
-              >
-                {loginMutation.isPending ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
+            <div className="mt-8 pt-6 border-t border-white/5 text-center text-sm">
+              <p className="text-slate-500">
+                Don't have an account?{" "}
+                <Link to="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                  Create Account
+                </Link>
+              </p>
             </div>
-          </form>
-
-          <div className="mt-6 text-center text-sm">
-            <p className="text-gray-600 dark:text-gray-400">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </p>
           </div>
         </div>
       </main>

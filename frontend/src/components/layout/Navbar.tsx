@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useTheme } from '@/hooks/use-theme';
-import { cn } from '@/lib/utils';
-import { Ticket, Calendar, Home, User, Moon, Sun, Menu, X, Settings, Search } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
-import LogoutButton from '@/components/auth/LogoutButton';
-import UserMenu from '@/components/auth/UserMenu';
+import { useTheme } from '@/hooks/use-theme';
 import useAuth from '@/hooks/useAuth';
-import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Calendar, Home, LogOut, Menu, Search, Settings, Ticket, User, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,7 +17,14 @@ const Navbar = () => {
   const { t } = useTranslation();
   const location = useLocation();
   const { theme, setTheme } = useTheme();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
+
+  // Force dark mode for District theme consistency
+  useEffect(() => {
+    if (theme !== 'dark') {
+      setTheme('dark');
+    }
+  }, [theme, setTheme]);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -44,75 +51,63 @@ const Navbar = () => {
   const navLinks = [
     { name: t('navbar.home'), path: '/', icon: <Home className="h-4 w-4 mr-2" /> },
     { name: t('navbar.events'), path: '/events', icon: <Calendar className="h-4 w-4 mr-2" /> },
-    { 
-      name: t('navbar.ipl'), 
-      path: '/ipl-tickets', 
+    {
+      name: t('navbar.ipl'),
+      path: '/ipl-tickets',
       icon: <Ticket className="h-4 w-4 mr-2" />,
       highlight: true,
-      badge: 'NEW'
+      badge: 'LIVE'
     },
-    { 
-      name: t('navbar.search'), 
-      path: '/search', 
+    {
+      name: t('navbar.search'),
+      path: '/search',
       icon: <Search className="h-4 w-4 mr-2" />,
-      highlight: true,
-      badge: 'NEW'
     },
-  ];
-
-  // Navigation links
-  const navigationLinks = [
-    { 
-      name: 'Home', 
-      href: '/' 
-    },
-    { 
-      name: 'Events', 
-      href: '/events' 
-    },
-    { 
-      name: 'IPL Tickets', 
-      href: '/ipl-tickets',
-      isPrimary: true,
-      newTag: true
-    },
-    { 
-      name: 'Support', 
-      href: '/support' 
-    }
   ];
 
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 w-full",
-        isScrolled ? "bg-background/95 backdrop-blur-md shadow-sm border-b" : "bg-background/80 backdrop-blur-sm"
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 w-full border-b border-white/0",
+        isScrolled || isOpen
+          ? "bg-slate-950/80 backdrop-blur-md shadow-lg border-white/5"
+          : "bg-transparent backdrop-blur-sm"
       )}
     >
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <Ticket className="h-6 w-6 text-primary" />
-            <span className="ml-2 text-xl font-bold text-primary hidden sm:inline-block">{t('app.name')}</span>
+          <Link to="/" className="flex items-center group">
+            <div className="bg-blue-600/20 p-2 rounded-xl border border-blue-500/20 mr-3 group-hover:bg-blue-600/30 transition-colors duration-300">
+              <Ticket className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-white tracking-tight leading-none group-hover:text-blue-400 transition-colors">IPL 2026</span>
+              <span className="text-[10px] font-medium text-slate-400 tracking-widest uppercase">Official Tickets</span>
+            </div>
           </Link>
 
           {/* Desktop Menu */}
-          <nav className="hidden md:flex items-center space-x-4">
+          <nav className="hidden md:flex items-center space-x-1 bg-slate-900/50 p-1 rounded-full border border-white/5 backdrop-blur-md">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={cn(
-                  "text-foreground/80 hover:text-primary transition-colors px-3 py-2 rounded-md flex items-center",
-                  location.pathname === link.path && "text-primary font-medium",
-                  link.highlight && "bg-primary/10 text-primary font-medium"
+                  "px-4 py-2 rounded-full flex items-center text-sm font-medium transition-all duration-300",
+                  location.pathname === link.path
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                    : "text-slate-400 hover:text-white hover:bg-white/5",
+                  link.highlight && location.pathname !== link.path && "text-blue-400"
                 )}
               >
                 {link.icon}
                 {link.name}
                 {link.badge && (
-                  <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-red-500 text-white font-bold">
+                  <span className={cn(
+                    "ml-2 px-1.5 py-0.5 text-[10px] rounded-full font-bold animate-pulse",
+                    location.pathname === link.path ? "bg-white text-blue-600" : "bg-blue-500 text-white"
+                  )}>
                     {link.badge}
                   </span>
                 )}
@@ -121,31 +116,75 @@ const Navbar = () => {
           </nav>
 
           {/* Right-side actions */}
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="text-foreground/80"
-              aria-label={theme === 'dark' ? t('common.lightMode') : t('common.darkMode')}
-            >
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-            
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
+
             {/* Show UserMenu or login button based on auth state */}
             {isAuthenticated ? (
-              <div className="hidden md:block">
-                <UserMenu />
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full border border-white/10 bg-slate-800/50 hover:bg-slate-800 hover:text-white px-0">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} alt={user?.name || 'User'} />
+                      <AvatarFallback className="bg-blue-600 text-white">
+                        {user?.name?.substring(0, 2).toUpperCase() || 'US'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200 backdrop-blur-xl" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none text-white">{user?.name}</p>
+                      <p className="text-xs leading-none text-slate-400">{user?.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  {user?.role === 'admin' && (
+                    <DropdownMenuItem asChild className="focus:bg-blue-600/20 focus:text-blue-400 cursor-pointer">
+                      <Link to="/admin/dashboard" className="flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Admin Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem asChild className="focus:bg-blue-600/20 focus:text-blue-400 cursor-pointer">
+                    <Link to="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="focus:bg-blue-600/20 focus:text-blue-400 cursor-pointer">
+                    <Link to="/my-bookings" className="flex items-center">
+                      <Ticket className="mr-2 h-4 w-4" />
+                      <span>My Bookings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem
+                    className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer"
+                    onClick={() => logout()}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <Link to="/login" className="hidden md:block">
-                <Button variant="outline" size="sm" className="flex items-center">
-                  <User className="h-4 w-4 mr-2" />
-                  {t('common.login')}
-                </Button>
-              </Link>
+                <div className="flex items-center gap-2">
+                  <Link to="/login" className="hidden sm:inline-block">
+                    <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-white/5 font-medium">
+                      {t('common.login')}
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20 rounded-full px-6">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </div>
             )}
 
             {/* Mobile Menu Button */}
@@ -153,10 +192,10 @@ const Navbar = () => {
               variant="ghost"
               size="icon"
               onClick={toggleMenu}
-              className="md:hidden text-foreground/80"
+              className="md:hidden text-slate-300 hover:text-white hover:bg-white/5"
               aria-label={isOpen ? t('common.close') : t('common.menu')}
             >
-              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </Button>
           </div>
         </div>
@@ -169,76 +208,50 @@ const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="md:hidden bg-background border-t overflow-hidden"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="md:hidden bg-slate-950/95 backdrop-blur-xl border-b border-white/5 overflow-hidden"
           >
-            <div className="container mx-auto px-4 py-4">
+            <div className="container mx-auto px-4 py-6 space-y-6">
               <nav className="flex flex-col space-y-2">
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
+                    onClick={() => setIsOpen(false)}
                     className={cn(
-                      "flex items-center py-3 px-4 rounded-md text-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors",
-                      location.pathname === link.path && "bg-accent/50 text-primary font-medium",
-                      link.highlight && "bg-primary/10 text-primary font-medium"
+                      "flex items-center py-3 px-4 rounded-xl text-lg font-medium transition-colors",
+                      location.pathname === link.path
+                        ? "bg-blue-600/10 text-blue-400 border border-blue-600/20"
+                        : "text-slate-400 hover:bg-white/5 hover:text-white"
                     )}
                   >
-                    {link.icon}
+                    <span className={cn("p-2 rounded-lg mr-3 bg-white/5", location.pathname === link.path && "bg-blue-600/20 text-blue-400")}>
+                      {link.icon}
+                    </span>
                     {link.name}
                     {link.badge && (
-                      <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-red-500 text-white font-bold">
+                      <span className="ml-auto px-2 py-1 text-xs rounded-full bg-blue-500 text-white font-bold">
                         {link.badge}
                       </span>
                     )}
                   </Link>
                 ))}
+              </nav>
 
-                {/* Show either login or logout button */}
-                {isAuthenticated ? (
-                  <>
-                    {/* User info in mobile view */}
-                    <div className="flex items-center py-3 px-4 text-sm text-foreground/80 border-t border-border/30 mt-2">
-                      <User className="h-4 w-4 mr-2 text-primary" />
-                      <span className="font-medium">{user?.name || user?.email}</span>
-                      {user?.role === 'admin' && (
-                        <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary">
-                          Admin
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Admin dashboard link for admins */}
-                    {user?.role === 'admin' && (
-                      <Link to="/admin/settings" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Admin Dashboard
-                      </Link>
-                    )}
-                    
-                    <Link to="/my-profile" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
-                      <User className="h-4 w-4 mr-2" />
-                      My Profile
-                    </Link>
-                    
-                    <Link to="/my-bookings" className="flex items-center py-3 px-4 rounded-md text-foreground/80">
-                      <Ticket className="h-4 w-4 mr-2" />
-                      My Bookings
-                    </Link>
-                    
-                    <div className="px-4 py-1 mt-2">
-                      <LogoutButton variant="destructive" className="w-full justify-start" />
-                    </div>
-                  </>
-                ) : (
-                  <Link to="/login" className="mt-2">
-                    <Button variant="outline" className="w-full justify-start">
-                      <User className="h-4 w-4 mr-2" />
-                      {t('common.login')}
+              {!isAuthenticated && (
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                  <Link to="/login" onClick={() => setIsOpen(false)}>
+                    <Button variant="outline" className="w-full border-white/10 text-slate-300 hover:bg-white/5 hover:text-white h-12 rounded-xl">
+                      Log In
                     </Button>
                   </Link>
-                )}
-              </nav>
+                  <Link to="/register" onClick={() => setIsOpen(false)}>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white h-12 rounded-xl font-bold custom-shadow">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
