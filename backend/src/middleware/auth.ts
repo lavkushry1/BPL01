@@ -113,6 +113,44 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction) =
 };
 
 /**
+ * Middleware that attempts to authenticate the user but doesn't error if no token is present.
+ * Useful for endpoints that can be accessed by both guests and authenticated users.
+ */
+export const optionalAuthenticate = (req: Request, _res: Response, next: NextFunction) => {
+  try {
+    // Get token from cookie first, then fall back to Authorization header
+    const tokenFromCookie = req.cookies?.access_token;
+    const authHeader = req.headers.authorization;
+    const tokenFromHeader = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+    const token = tokenFromCookie || tokenFromHeader;
+
+    if (!token) {
+      // no token, just continue as guest
+      return next();
+    }
+
+    try {
+      if (!config.jwt.secret) {
+        logger.error('JWT secret is not configured');
+        return next();
+      }
+
+      const decoded = jwt.verify(token, config.jwt.secret);
+      req.user = decoded as UserPayload;
+      return next();
+    } catch (error) {
+      // Token invalid or expired - treat as guest
+      logger.debug('Optional auth: Invalid token, treating as guest', error);
+      return next();
+    }
+  } catch (error) {
+    logger.error('Error in optionalAuthenticate middleware:', error);
+    return next();
+  }
+};
+
+/**
  * Middleware to authorize based on user roles
  */
 export const authorize = (roleArray: string[]) => {

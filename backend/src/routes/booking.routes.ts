@@ -7,7 +7,7 @@ import {
   saveDeliveryDetails,
   updateBookingStatus
 } from '../controllers/booking.controller';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import * as bookingValidation from '../validations/booking.validation';
 
@@ -45,7 +45,7 @@ const router = Router();
  */
 router.post(
   '/',
-  authenticate,
+  optionalAuthenticate,
   validate(bookingValidation.createBookingSchema),
   createBooking
 );

@@ -10,7 +10,12 @@ export const createBookingSchema = z.object({
       price: z.number().optional()
     })).optional(),
     amount: z.number().positive('Amount must be positive'),
-    payment_method: z.enum(['STRIPE', 'UPI', 'CASH', 'CARD']).optional().default('STRIPE'),
+    // Support both uppercase and lowercase for compatibility
+    payment_method: z.enum(['STRIPE', 'UPI', 'CASH', 'CARD', 'stripe', 'upi', 'cash', 'card']).optional().default('STRIPE'),
+    // Guest details
+    guest_name: z.string().optional(),
+    guest_email: z.string().email('Invalid email format').optional(),
+    guest_phone: z.string().optional(),
   }),
 });
 

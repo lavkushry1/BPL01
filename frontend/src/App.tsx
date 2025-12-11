@@ -56,6 +56,7 @@ import "./i18n/config";
 import AdminLayout from '@/components/layout/AdminLayout';
 import AdminDashboard from '@/pages/AdminDashboard';
 import AdminUtrVerification from '@/pages/AdminUtrVerification';
+import SeatMapPreview from '@/pages/SeatMapPreview';
 import { fetchCsrfToken } from "./services/api/apiUtils";
 
 // Create a component for route handling that includes AnimatePresence

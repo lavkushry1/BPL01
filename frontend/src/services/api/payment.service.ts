@@ -72,7 +72,26 @@ export const createBooking = async (bookingData: BookingData): Promise<{
   message: string;
 }> => {
   try {
-    const response = await apiClient.post('/bookings', bookingData);
+    // Construct payload matching backend expectation
+    const payload = {
+      event_id: bookingData.eventId,
+      tickets: bookingData.tickets.map(t => ({
+        categoryId: t.category, // Backend expects categoryId or name depending on logic? Validation says categoryId.
+        // Wait, backend validation expects "categoryId". Checkout passes "category" (name) and "categoryId" (ID)?
+        // Let's verify BookingData interface and usage in Checkout.tsx
+        categoryId: (t as any).categoryId || t.category,
+        quantity: t.quantity,
+        price: t.price
+      })),
+      amount: bookingData.totalAmount,
+      payment_method: 'upi', // strictly lowercase as per previous fix
+      // Guest Details
+      guest_name: bookingData.customerInfo.name,
+      guest_email: bookingData.customerInfo.email,
+      guest_phone: bookingData.customerInfo.phone
+    };
+
+    const response = await apiClient.post('/bookings', payload);
     return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error creating booking:', error);

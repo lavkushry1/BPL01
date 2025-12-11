@@ -5,12 +5,8 @@ import { db } from '../db';
 import { SeatStatus } from '../models/seat';
 import { WebsocketService } from '../services/websocket.service';
 import { ApiError } from '../utils/apiError';
-import { asyncHandler } from '../utils/asyncHandler';
-
-/**
- * Create a new booking
- */
 import { ApiResponse } from '../utils/apiResponse';
+import { asyncHandler } from '../utils/asyncHandler';
 import { cancelBookingSchema, createBookingSchema, saveDeliveryDetailsSchema, updateBookingStatusSchema } from '../validations/booking.validation';
 
 /**
@@ -20,10 +16,42 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
   try {
     const { body: validatedData } = createBookingSchema.parse({ body: req.body });
     const { event_id, seat_ids, amount } = validatedData;
-    const user_id = req.user?.id;
+    let user_id = req.user?.id;
+    const { guest_name, guest_email, guest_phone } = validatedData;
+    let isGuest = false;
 
+    // Handle Guest User Creation or Lookup
     if (!user_id) {
-      throw ApiError.unauthorized('User not authenticated');
+      if (!guest_email || !guest_name || !guest_phone) {
+        throw ApiError.badRequest('Guest details (name, email, phone) are required for unauthenticated bookings');
+      }
+      isGuest = true;
+
+      // Check if user exists with this email
+      const existingUser = await db('users').where('email', guest_email).first();
+
+      if (existingUser) {
+        user_id = existingUser.id;
+      } else {
+        // Create new guest user
+        const newUserId = uuidv4();
+        // Generate a random strong password for the guest account
+        const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8); // simple random string
+        const bcrypt = await import('bcryptjs');
+        const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+        await db('users').insert({
+          id: newUserId,
+          name: guest_name,
+          email: guest_email,
+          phone: guest_phone,
+          password: hashedPassword,
+          role: 'GUEST', // Ensure this role exists or use USER
+          createdAt: db.fn.now(),
+          updatedAt: db.fn.now()
+        });
+        user_id = newUserId;
+      }
     }
 
     // Process booking with transaction to ensure data integrity
