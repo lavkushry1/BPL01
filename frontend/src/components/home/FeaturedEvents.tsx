@@ -1,11 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import EventCard from '@/components/events/EventCard';
-import AnimatedButton from '@/components/ui/AnimatedButton';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { defaultApiClient } from '@/services/api/apiUtils';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 interface Event {
   id: string;
@@ -26,25 +25,20 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setLoading] = useState<boolean>(false);
   const [scrollIndex, setScrollIndex] = useState(0);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/events/featured')
+    defaultApiClient.get('/events/featured')
       .then((response) => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch featured events');
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setEvents(data);
+        // Handle the standardized API response format
+        const data = response.data?.data?.events || response.data?.events || response.data || [];
+        setEvents(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((error) => {
-        console.error(error);
+        console.error('Error fetching featured events:', error);
         setLoading(false);
       });
   }, []);
@@ -55,7 +49,7 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
         left: -300,
         behavior: 'smooth'
       });
-      
+
       if (scrollIndex > 0) {
         setScrollIndex(scrollIndex - 1);
       }
@@ -68,7 +62,7 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
         left: 300,
         behavior: 'smooth'
       });
-      
+
       if (scrollIndex < events.length - 1) {
         setScrollIndex(scrollIndex + 1);
       }
@@ -134,7 +128,7 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
         <h2 className="text-2xl font-bold text-neutral-800">
           Featured Events
         </h2>
-        <Button 
+        <Button
           variant="ghost"
           onClick={navigateToAllEvents}
           className="text-primary flex items-center gap-1 focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -146,7 +140,7 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
 
       <div className="relative">
         {/* Left scroll button (hidden on mobile) */}
-        <button 
+        <button
           onClick={handleScrollLeft}
           className={cn(
             "absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 hidden md:flex items-center justify-center focus:ring-2 focus:ring-primary focus:outline-none",
@@ -157,9 +151,9 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
-        
+
         {/* Scrollable container */}
-        <div 
+        <div
           ref={scrollContainerRef}
           className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -173,8 +167,8 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
             `}
           </style>
 
-          {events.map((event, index) => (
-            <div 
+          {events.map((event) => (
+            <div
               key={event.id}
               className={cn(
                 "min-w-[280px] rounded-lg overflow-hidden shadow-md hover:shadow-lg bg-white flex-shrink-0 transition-transform duration-200 cursor-pointer snap-start",
@@ -183,8 +177,8 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
               onClick={() => handleEventClick(event.id)}
             >
               <div className="h-[180px] overflow-hidden relative">
-                <img 
-                  src={event.imageUrl} 
+                <img
+                  src={event.imageUrl}
                   alt={event.title}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -217,9 +211,9 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
             </div>
           ))}
         </div>
-        
+
         {/* Right scroll button (hidden on mobile) */}
-        <button 
+        <button
           onClick={handleScrollRight}
           className={cn(
             "absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-md p-2 hidden md:flex items-center justify-center focus:ring-2 focus:ring-primary focus:outline-none",
@@ -230,7 +224,7 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
         >
           <ChevronRight className="h-5 w-5" />
         </button>
-        
+
         {/* Scroll indicator dots for mobile */}
         <div className="flex justify-center mt-4 gap-2 md:hidden">
           {events.slice(0, Math.min(events.length, 5)).map((_, index) => (

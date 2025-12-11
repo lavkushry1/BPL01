@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { API_BASE_URL } from '@/config';
 import { toast } from '@/hooks/use-toast';
 import { defaultApiClient } from '@/services/api/apiUtils';
 import { ArrowDownAZ, ArrowUpAZ, CheckCircle, FileText, Filter, Loader2, Search, Truck, XCircle } from 'lucide-react';
@@ -38,7 +37,7 @@ const AdminUtrVerification = () => {
     const fetchUtrVerifications = async () => {
       try {
         setIsLoading(true);
-        const response = await defaultApiClient.get(`${API_BASE_URL}/payments?status=awaiting_verification`);
+        const response = await defaultApiClient.get(`/payments?status=awaiting_verification`);
 
         if (response.data && response.data.data) {
           setUtrData(response.data.data);
@@ -82,7 +81,7 @@ const AdminUtrVerification = () => {
 
     try {
       setIsProcessing(true);
-      const response = await defaultApiClient.put(`${API_BASE_URL}/payments/${selectedUtr.id}/verify`, {});
+      const response = await defaultApiClient.put(`/payments/${selectedUtr.id}/verify`, {});
 
       if (response.data && response.data.success) {
         toast({
@@ -114,7 +113,7 @@ const AdminUtrVerification = () => {
 
     try {
       setIsProcessing(true);
-      const response = await defaultApiClient.put(`${API_BASE_URL}/payments/${selectedUtr.id}/reject`, {});
+      const response = await defaultApiClient.put(`/payments/${selectedUtr.id}/reject`, {});
 
       if (response.data && response.data.success) {
         toast({
@@ -147,7 +146,7 @@ const AdminUtrVerification = () => {
 
     try {
       setIsProcessing(true);
-      const response = await defaultApiClient.post(`${API_BASE_URL}/admin/tickets/dispatch/${selectedUtr.id}`);
+      const response = await defaultApiClient.post(`/admin/tickets/dispatch/${selectedUtr.id}`);
 
       if (response.data && response.data.success) {
         toast({

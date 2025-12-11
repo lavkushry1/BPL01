@@ -2,6 +2,9 @@
   "app": {
     "name": "IPL 2026"
   },
+  "search": {
+    "placeholder": "Search events..."
+  },
   "common": {
     "home": "Home",
     "events": "Events",
@@ -47,6 +50,7 @@
     "changeLanguage": "Change Language",
     "refresh": "Refresh Data",
     "viewAll": "View All",
+    "filters": "Filters",
     "fullName": "Full Name",
     "email": "Email",
     "phone": "Phone",

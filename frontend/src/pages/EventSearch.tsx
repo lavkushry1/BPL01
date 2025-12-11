@@ -1,11 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import FilterBar, { FilterOptions } from '../components/events/FilterBar';
-import { Button } from '@/components/ui/button';
-import { Loader2, Search as SearchIcon, SlidersHorizontal, X } from 'lucide-react';
 import SearchEventCard from '@/components/events/SearchEventCard';
 import SearchHistory from '@/components/events/SearchHistory';
-import { useSearchHistory, SearchHistoryItem } from '@/hooks/useSearchHistory';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Pagination,
   PaginationContent,
@@ -14,14 +10,17 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getEvents, getEventCategories, Event as ApiEvent, Category as ApiCategory, EventListResponse, IPLMatch } from '@/services/api/eventApi';
-import { defaultApiClient } from '@/services/api/apiUtils';
-import { API_BASE_URL } from '@/config';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
+import { SearchHistoryItem, useSearchHistory } from '@/hooks/useSearchHistory';
+import { defaultApiClient } from '@/services/api/apiUtils';
+import { Category as ApiCategory, Event as ApiEvent, EventListResponse, getEventCategories, IPLMatch } from '@/services/api/eventApi';
+import { Loader2, Search as SearchIcon, SlidersHorizontal, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
+import FilterBar, { FilterOptions } from '../components/events/FilterBar';
 
 // Location type
 interface Location {
@@ -67,7 +66,7 @@ const EventSearch: React.FC = () => {
       try {
         const [categoriesResponse, locationsResponse] = await Promise.all([
           getEventCategories(),
-          defaultApiClient.get<{ data: Location[] }>(`${API_BASE_URL}/locations`)
+          defaultApiClient.get<{ data: Location[] }>(`/locations`)
         ]);
         setCategories(categoriesResponse || []);
         if (locationsResponse.data && locationsResponse.data.data) {
@@ -109,7 +108,7 @@ const EventSearch: React.FC = () => {
       Object.keys(apiFilters).forEach(key => apiFilters[key] === undefined && delete apiFilters[key]);
 
       // Update to handle EventListResponse properly
-      const apiResponse = await defaultApiClient.get(`${API_BASE_URL}/events`, { params: apiFilters });
+      const apiResponse = await defaultApiClient.get(`/events`, { params: apiFilters });
 
       if (!apiResponse.data || !apiResponse.data.data) {
         throw new Error('Invalid API response format');
@@ -144,7 +143,8 @@ const EventSearch: React.FC = () => {
     if (filters.category) newParams.set('category', filters.category);
     if (filters.location) newParams.set('location', filters.location);
     setSearchParams(newParams, { replace: true });
-  }, [fetchEvents, filters, setSearchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, currentPage, sortBy]);
 
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters);

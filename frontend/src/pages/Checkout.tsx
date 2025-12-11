@@ -30,7 +30,6 @@ import { Separator } from '@/components/ui/separator';
 import { Step, StepIndicator, Steps } from '@/components/ui/steps';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { API_BASE_URL } from '@/config';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -119,7 +118,7 @@ const Checkout = () => {
     const fetchPaymentConfig = async () => {
       setIsLoadingConfig(true);
       try {
-        const response = await defaultApiClient.get(`${API_BASE_URL}/payments/config`);
+        const response = await defaultApiClient.get(`/payments/config`);
         if (response.data && response.data.data) {
           setPaymentConfig(response.data.data);
         } else {
