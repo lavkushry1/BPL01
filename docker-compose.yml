@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bpl-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-eventia}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
+      POSTGRES_DB: ${DB_NAME:-eventia_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bpl-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-eventia}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis (for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: bpl-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - bpl-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: bpl-backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-eventia}:${DB_PASSWORD:-password123}@postgres:5432/${DB_NAME:-eventia_db}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-eventia}
+      - DB_PASSWORD=${DB_PASSWORD:-password123}
+      - DB_NAME=${DB_NAME:-eventia_db}
+      - REDIS_URL=redis://redis:6379
+      - PORT=4000
+      - NODE_ENV=development
+      - JWT_SECRET=${JWT_SECRET:-supersecretkey123456789}
+      - JWT_ACCESS_EXPIRATION=15m
+      - JWT_REFRESH_EXPIRATION=7d
+      - FRONTEND_URL=http://localhost:8080
+      - CORS_ORIGIN=http://localhost:8080
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bpl-network
+    restart: unless-stopped
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: bpl-frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - VITE_API_URL=http://localhost:4000/api/v1
+      - VITE_WS_URL=ws://localhost:4000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - bpl-network
+    restart: unless-stopped
+
+networks:
+  bpl-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
