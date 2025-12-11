@@ -1,17 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, CheckCircle, XCircle, Truck, AlertCircle, ArrowDownAZ, ArrowUpAZ, FileText, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { API_BASE_URL } from '@/config';
 import { toast } from '@/hooks/use-toast';
 import { defaultApiClient } from '@/services/api/apiUtils';
-import { API_BASE_URL } from '@/config';
+import { ArrowDownAZ, ArrowUpAZ, CheckCircle, FileText, Filter, Loader2, Search, Truck, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface UtrVerification {
   id: string;
@@ -41,7 +38,7 @@ const AdminUtrVerification = () => {
     const fetchUtrVerifications = async () => {
       try {
         setIsLoading(true);
-        const response = await defaultApiClient.get(`${API_BASE_URL}/admin/payments/utr-verifications`);
+        const response = await defaultApiClient.get(`${API_BASE_URL}/payments?status=awaiting_verification`);
 
         if (response.data && response.data.data) {
           setUtrData(response.data.data);
@@ -85,9 +82,7 @@ const AdminUtrVerification = () => {
 
     try {
       setIsProcessing(true);
-
-      // Call API to update UTR status
-      const response = await defaultApiClient.post(`${API_BASE_URL}/admin/payments/verify-utr/${selectedUtr.id}`);
+      const response = await defaultApiClient.put(`${API_BASE_URL}/payments/${selectedUtr.id}/verify`, {});
 
       if (response.data && response.data.success) {
         toast({
@@ -95,18 +90,12 @@ const AdminUtrVerification = () => {
           description: `UTR ${selectedUtr.id} has been verified successfully.`,
         });
 
-        // Update the UTR in the local state
         setUtrData(prevData =>
           prevData.map(utr =>
             utr.id === selectedUtr.id ? { ...utr, status: 'verified' } : utr
           )
         );
-
-        // Update the selected UTR
-        setSelectedUtr({
-          ...selectedUtr,
-          status: 'verified'
-        });
+        setSelectedUtr({ ...selectedUtr, status: 'verified' });
       }
     } catch (error) {
       console.error('Error verifying UTR:', error);
@@ -125,9 +114,7 @@ const AdminUtrVerification = () => {
 
     try {
       setIsProcessing(true);
-
-      // Call API to reject UTR
-      const response = await defaultApiClient.post(`${API_BASE_URL}/admin/payments/reject-utr/${selectedUtr.id}`);
+      const response = await defaultApiClient.put(`${API_BASE_URL}/payments/${selectedUtr.id}/reject`, {});
 
       if (response.data && response.data.success) {
         toast({
@@ -136,18 +123,12 @@ const AdminUtrVerification = () => {
           variant: "destructive"
         });
 
-        // Update the UTR in the local state
         setUtrData(prevData =>
           prevData.map(utr =>
             utr.id === selectedUtr.id ? { ...utr, status: 'rejected' } : utr
           )
         );
-
-        // Update the selected UTR
-        setSelectedUtr({
-          ...selectedUtr,
-          status: 'rejected'
-        });
+        setSelectedUtr({ ...selectedUtr, status: 'rejected' });
       }
     } catch (error) {
       console.error('Error rejecting UTR:', error);
@@ -166,8 +147,6 @@ const AdminUtrVerification = () => {
 
     try {
       setIsProcessing(true);
-
-      // Call API to dispatch ticket
       const response = await defaultApiClient.post(`${API_BASE_URL}/admin/tickets/dispatch/${selectedUtr.id}`);
 
       if (response.data && response.data.success) {
@@ -176,18 +155,12 @@ const AdminUtrVerification = () => {
           description: `Tickets for UTR ${selectedUtr.id} have been dispatched.`,
         });
 
-        // Update the UTR in the local state
         setUtrData(prevData =>
           prevData.map(utr =>
             utr.id === selectedUtr.id ? { ...utr, status: 'dispatched' } : utr
           )
         );
-
-        // Update the selected UTR
-        setSelectedUtr({
-          ...selectedUtr,
-          status: 'dispatched'
-        });
+        setSelectedUtr({ ...selectedUtr, status: 'dispatched' });
       }
     } catch (error) {
       console.error('Error dispatching ticket:', error);
@@ -204,269 +177,247 @@ const AdminUtrVerification = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 backdrop-blur-sm">Pending</Badge>;
       case 'verified':
-        return <Badge variant="outline" className="bg-blue-100 text-blue-800">Verified</Badge>;
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 backdrop-blur-sm">Verified</Badge>;
       case 'dispatched':
-        return <Badge variant="outline" className="bg-green-100 text-green-800">Dispatched</Badge>;
+        return <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 backdrop-blur-sm">Dispatched</Badge>;
       case 'rejected':
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Rejected</Badge>;
+        return <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 backdrop-blur-sm">Rejected</Badge>;
       default:
-        return <Badge variant="outline">Unknown</Badge>;
+        return <Badge variant="outline" className="bg-slate-500/10 text-slate-500 border-white/5">Unknown</Badge>;
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white">UTR Verification</h1>
+          <p className="text-slate-400 mt-1">Verify payments and dispatch tickets</p>
+        </div>
+      </div>
 
-      <main className="flex-grow bg-gray-50 pt-16 pb-12">
-        <div className="container mx-auto px-4">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">UTR Verification & Ticket Dispatch</h1>
-            <p className="text-gray-600 mt-1">Verify payments and dispatch tickets to customers</p>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="bg-slate-900/60 border-white/5 backdrop-blur-sm">
+            <CardHeader className="pb-4 border-b border-white/5">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-white">Submissions</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
+                    className="text-slate-400 hover:text-white hover:bg-white/10"
+                  >
+                    {sortDirection === 'desc' ? <ArrowDownAZ className="h-4 w-4" /> : <ArrowUpAZ className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="flex items-center space-x-2 mb-6">
+                <div className="relative flex-grow">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                  <Input
+                    placeholder="Search UTR, name, or event details..."
+                    className="pl-9 bg-slate-950/50 border-white/10 text-white placeholder:text-slate-600 focus:border-blue-500/50"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle>UTR Submissions</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
-                        className="text-gray-500"
-                      >
-                        {sortDirection === 'desc' ? (
-                          <ArrowDownAZ className="h-4 w-4" />
-                        ) : (
-                          <ArrowUpAZ className="h-4 w-4" />
-                        )}
-                      </Button>
+              <Tabs defaultValue="all" className="mb-6" onValueChange={setFilter}>
+                <TabsList className="bg-slate-950/50 border border-white/5 w-full justify-start p-1 h-auto flex-wrap">
+                  {['all', 'pending', 'verified', 'dispatched'].map(tab => (
+                    <TabsTrigger
+                      key={tab}
+                      value={tab}
+                      className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-400 capitalize flex-1 min-w-[80px]"
+                    >
+                      {tab}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+
+              {isLoading ? (
+                <div className="py-20 flex flex-col justify-center items-center text-slate-500">
+                  <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
+                  <p>Loading transactions...</p>
+                </div>
+              ) : filteredUTRs.length === 0 ? (
+                  <div className="py-20 text-center border border-dashed border-white/10 rounded-xl bg-slate-950/30">
+                    <div className="bg-slate-900/50 p-4 rounded-full w-fit mx-auto mb-4">
+                      <Filter className="h-8 w-8 text-slate-500" />
                     </div>
+                    <p className="text-slate-400 font-medium">No records found</p>
+                    <p className="text-slate-600 text-sm mt-1">Try adjusting your filters</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <div className="relative flex-grow">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                      <Input
-                        placeholder="Search by UTR, customer, or event..."
-                        className="pl-9"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <Tabs defaultValue="all" className="mb-4" onValueChange={setFilter}>
-                    <TabsList className="grid grid-cols-4">
-                      <TabsTrigger value="all">All</TabsTrigger>
-                      <TabsTrigger value="pending">Pending</TabsTrigger>
-                      <TabsTrigger value="verified">Verified</TabsTrigger>
-                      <TabsTrigger value="dispatched">Dispatched</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-
-                  {isLoading ? (
-                    <div className="py-8 flex justify-center items-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="ml-2 text-gray-600">Loading UTR data...</p>
-                    </div>
-                  ) : filteredUTRs.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <AlertCircle className="h-8 w-8 mx-auto text-gray-400" />
-                      <p className="mt-2 text-gray-500">No UTR verifications found</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
+                ) : (
+                    <div className="rounded-xl border border-white/5 overflow-hidden">
                       <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>UTR ID</TableHead>
-                            <TableHead>Customer</TableHead>
-                            <TableHead>Event</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Date</TableHead>
+                        <TableHeader className="bg-slate-950/50">
+                          <TableRow className="border-white/5 hover:bg-transparent">
+                            <TableHead className="text-slate-400">UTR ID</TableHead>
+                            <TableHead className="text-slate-400">Customer</TableHead>
+                            <TableHead className="text-slate-400">Event</TableHead>
+                            <TableHead className="text-slate-400">Amount</TableHead>
+                            <TableHead className="text-slate-400">Status</TableHead>
+                            <TableHead className="text-right text-slate-400">Date</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {filteredUTRs.map((utr) => (
                             <TableRow
                               key={utr.id}
-                              className={`cursor-pointer ${selectedUtr?.id === utr.id ? 'bg-primary/5' : ''}`}
-                              onClick={() => setSelectedUtr(utr)}
-                            >
-                              <TableCell className="font-medium">{utr.id}</TableCell>
-                              <TableCell>{utr.customerName}</TableCell>
-                              <TableCell>{utr.eventName}</TableCell>
-                              <TableCell>₹{utr.amount.toLocaleString()}</TableCell>
-                              <TableCell>{getStatusBadge(utr.status)}</TableCell>
-                              <TableCell>{new Date(utr.date).toLocaleDateString()}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                          className={`cursor-pointer border-white/5 transition-colors ${selectedUtr?.id === utr.id ? 'bg-blue-600/10 hover:bg-blue-600/20' : 'hover:bg-white/5'}`}
+                          onClick={() => setSelectedUtr(utr)}
+                        >
+                          <TableCell className="font-medium text-white font-mono">{utr.id}</TableCell>
+                          <TableCell className="text-slate-300">
+                            <div>{utr.customerName}</div>
+                            <div className="text-xs text-slate-500">{utr.phone}</div>
+                          </TableCell>
+                          <TableCell className="text-slate-300 max-w-[150px] truncate">{utr.eventName}</TableCell>
+                          <TableCell className="text-white font-bold">₹{utr.amount.toLocaleString()}</TableCell>
+                          <TableCell>{getStatusBadge(utr.status)}</TableCell>
+                          <TableCell className="text-right text-slate-500 text-xs">{new Date(utr.date).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-            <div>
-              <Card className="sticky top-20">
-                <CardHeader>
-                  <CardTitle>UTR Details</CardTitle>
-                  <CardDescription>
-                    {selectedUtr ? 'Verify and process the selected UTR' : 'Select a UTR to view details'}
-                  </CardDescription>
+        <div>
+          {/* Detail Panel */}
+          <div className="sticky top-24">
+            <Card className="bg-slate-900/80 border-white/10 backdrop-blur-md shadow-2xl">
+              <CardHeader className="border-b border-white/5 pb-4">
+                <CardTitle className="text-white">Transaction Details</CardTitle>
+                <CardDescription className="text-slate-400">
+                  {selectedUtr ? `Viewing UTR: ${selectedUtr.id}` : 'Select a transaction to view actions'}
+                </CardDescription>
                 </CardHeader>
-                <CardContent>
+              <CardContent className="pt-6">
                   {!selectedUtr ? (
-                    <div className="py-8 text-center">
-                      <FileText className="h-12 w-12 mx-auto text-gray-300" />
-                      <p className="mt-2 text-gray-500">Select a UTR to view details</p>
+                  <div className="py-12 text-center text-slate-500">
+                    <FileText className="h-16 w-16 mx-auto text-slate-700 mb-4 opacity-50" />
+                    <p>Select a record from the list</p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-8 animate-fade-in">
+                      {/* Customer Info */}
                       <div>
-                        <h3 className="text-sm font-medium text-gray-500 mb-1">Customer Information</h3>
-                        <div className="space-y-1">
-                          <p className="font-medium">{selectedUtr.customerName}</p>
-                          <p className="text-sm text-gray-600">{selectedUtr.email}</p>
-                          <p className="text-sm text-gray-600">{selectedUtr.phone}</p>
-                          <p className="text-sm text-gray-600">{selectedUtr.address}</p>
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Customer Information</h3>
+                        <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 text-sm">Name</span>
+                            <span className="text-white font-medium">{selectedUtr.customerName}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 text-sm">Email</span>
+                            <span className="text-white font-medium text-sm">{selectedUtr.email}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 text-sm">Phone</span>
+                            <span className="text-white font-medium text-sm">{selectedUtr.phone}</span>
+                          </div>
                         </div>
                       </div>
 
+                      {/* Payment Info */}
                       <div>
-                        <h3 className="text-sm font-medium text-gray-500 mb-1">Payment Details</h3>
-                        <div className="space-y-1">
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">UTR ID:</span>
-                            <span className="font-medium">{selectedUtr.id}</span>
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Payment Details</h3>
+                        <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 text-sm">Amount Paid</span>
+                            <span className="text-2xl font-bold text-green-400">₹{selectedUtr.amount.toLocaleString()}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Amount:</span>
-                            <span className="font-medium">₹{selectedUtr.amount.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Status:</span>
+                          <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                            <span className="text-slate-400 text-sm">Status</span>
                             <span>{getStatusBadge(selectedUtr.status)}</span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Date:</span>
-                            <span className="font-medium">{new Date(selectedUtr.date).toLocaleString()}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 text-sm">Time</span>
+                            <span className="text-slate-300 text-sm">{new Date(selectedUtr.date).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
 
+                      {/* Order Info */}
                       <div>
-                        <h3 className="text-sm font-medium text-gray-500 mb-1">Order Details</h3>
-                        <div className="space-y-1">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Order Summary</h3>
+                        <div className="bg-slate-950/50 p-4 rounded-xl border border-white/5 space-y-2">
                           <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Event:</span>
-                            <span className="font-medium">{selectedUtr.eventName}</span>
+                            <span className="text-slate-400 text-sm">Event</span>
+                            <span className="text-white text-right text-sm ml-4">{selectedUtr.eventName}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Ticket Category:</span>
-                            <span className="font-medium">{selectedUtr.ticketCategory}</span>
+                            <span className="text-slate-400 text-sm">Category</span>
+                            <span className="text-white text-sm">{selectedUtr.ticketCategory}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Quantity:</span>
-                            <span className="font-medium">{selectedUtr.quantity}</span>
+                            <span className="text-slate-400 text-sm">Quantity</span>
+                            <span className="text-white text-sm">x{selectedUtr.quantity}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="pt-4 border-t border-gray-100 space-y-2">
+                      {/* Actions */}
+                      <div className="pt-4 border-t border-white/5 flex flex-col gap-3">
                         {selectedUtr.status === 'pending' && (
                           <>
                             <Button
-                              className="w-full"
+                              className="w-full bg-green-600 hover:bg-green-500 text-white font-bold h-12 shadow-lg shadow-green-900/20"
                               onClick={handleVerifyUtr}
                               disabled={isProcessing}
                             >
-                              {isProcessing ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Processing...
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                  Verify Payment
-                                </>
-                              )}
+                              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                              Verify Payment
                             </Button>
                             <Button
                               variant="outline"
-                              className="w-full text-red-700"
+                              className="w-full border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400 h-12"
                               onClick={handleRejectUtr}
                               disabled={isProcessing}
                             >
-                              {isProcessing ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Processing...
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="mr-2 h-4 w-4" />
-                                  Reject Payment
-                                </>
-                              )}
+                              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                              Reject Payment
                             </Button>
                           </>
                         )}
 
                         {selectedUtr.status === 'verified' && (
                           <Button
-                            className="w-full bg-green-600 hover:bg-green-700"
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-12 shadow-lg shadow-blue-900/20"
                             onClick={handleDispatchTicket}
                             disabled={isProcessing}
                           >
-                            {isProcessing ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <Truck className="mr-2 h-4 w-4" />
-                                Dispatch Tickets
-                              </>
-                            )}
+                            {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Truck className="mr-2 h-4 w-4" />}
+                            Dispatch Tickets
                           </Button>
                         )}
 
-                        {selectedUtr.status === 'dispatched' && (
-                          <Button variant="outline" className="w-full" disabled>
-                            <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                            Tickets Dispatched
-                          </Button>
-                        )}
-
-                        {selectedUtr.status === 'rejected' && (
-                          <Button variant="outline" className="w-full" disabled>
-                            <XCircle className="mr-2 h-4 w-4 text-red-600" />
-                            Payment Rejected
-                          </Button>
+                        {(selectedUtr.status === 'dispatched' || selectedUtr.status === 'rejected') && (
+                          <div className="p-3 rounded-lg bg-slate-800 text-center text-slate-400 text-sm flex items-center justify-center gap-2">
+                            <CheckCircle className="h-4 w-4" /> Action Completed
+                          </div>
                         )}
                       </div>
                     </div>
                   )}
                 </CardContent>
-              </Card>
-            </div>
+            </Card>
           </div>
         </div>
-      </main>
-      <Footer />
+      </div>
     </div>
   );
 };

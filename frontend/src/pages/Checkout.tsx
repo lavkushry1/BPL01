@@ -262,7 +262,7 @@ const Checkout = () => {
           price: t.price
         })),
         amount: bookingData?.totalAmount, // Ensure validation matches
-        payment_method: 'UPI'
+        payment_method: 'upi'
       });
 
       if (!response.success && !response.data) {

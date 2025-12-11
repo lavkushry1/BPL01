@@ -1,17 +1,20 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 // Component imports
 import Footer from '@/components/layout/Footer';
-import Navbar from '@/components/layout/PublicNavbar'; // Ensure correct Navbar import
+import Navbar from '@/components/layout/PublicNavbar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 
 // Icons
-import { ArrowLeft, BadgeCheck, Calendar, Clock, MapPin, Shield, Verified } from 'lucide-react';
+import { Calendar, Clock, MapPin, Shield, Ticket, Ticket, TrendingUp, Trophy, Verified, Zap } from 'lucide-react';
 
 import CricketStadiumSeatMap, { defaultStadiumSections } from '@/components/booking/CricketStadiumSeatMap';
 import IPLMatchCard from '@/components/events/IPLMatchCard';
@@ -27,6 +30,14 @@ const IPLMatchDetail = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
   const [stadiumSections, setStadiumSections] = useState(defaultStadiumSections);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Scroll listener for Sticky Header
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 400);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const fetchMatchDetails = async () => {
@@ -37,7 +48,7 @@ const IPLMatchDetail = () => {
           throw new Error('Failed to fetch match details');
         }
         const data = await response.json();
-        setMatch(data.data || data); // Handle potential API wrapper
+        setMatch(data.data || data);
         if (data.data?.ticketCategories && data.data.ticketCategories.length > 0) {
           setSelectedCategory(data.data.ticketCategories[0].id);
         } else if (data.ticketCategories && data.ticketCategories.length > 0) {
@@ -63,18 +74,16 @@ const IPLMatchDetail = () => {
         const response = await fetch(`/api/v1/ipl/matches/${id}/pricing`);
         const data = await response.json();
         if (data.success && data.data) {
-          // Transform API data to stadium sections format
           const apiSections = data.data.sections.map((s: any) => {
-            // Find matching default section to get SVG path/color
             const defaultSection = defaultStadiumSections.find(ds => ds.name === s.name);
             return {
               ...defaultSection,
               id: defaultSection?.id || s.name.toLowerCase().replace(/\s+/g, '-'),
               basePrice: s.basePrice,
               availableSeats: s.available,
-              priceCategory: defaultSection?.priceCategory || 'general' // fallback
+              priceCategory: defaultSection?.priceCategory || 'general'
             };
-          }).filter((s: any) => s.path); // Only keep sections we have SVG paths for
+          }).filter((s: any) => s.path);
 
           if (apiSections.length > 0) {
             setStadiumSections(apiSections);
@@ -88,7 +97,6 @@ const IPLMatchDetail = () => {
     if (id && selectedSection === 'stadium') {
       fetchPricingAndStatus();
 
-      // Connect to WebSocket
       const socket = new WebSocket('ws://localhost:4001/ws');
       socket.onopen = () => {
         socket.send(JSON.stringify({ type: 'join:event', eventId: id }));
@@ -136,7 +144,6 @@ const IPLMatchDetail = () => {
     const category = getSelectedCategoryDetails();
     if (!category) return;
 
-    // Prepare booking data with rich visuals for Trusted UI in Checkout
     const bookingDetails = {
       eventId: match.eventId || match.id,
       eventTitle: match.title,
@@ -161,8 +168,6 @@ const IPLMatchDetail = () => {
 
   const handleJoinWaitlist = async () => {
     if (!selectedCategory) return;
-
-    // In a real app, get user email from auth context or show a dialog
     const email = prompt("Enter your email to join the waitlist:");
     if (!email) return;
 
@@ -174,7 +179,7 @@ const IPLMatchDetail = () => {
           email,
           matchId: id,
           sectionId: selectedCategory,
-          userId: 'guest' // or auth.user.id
+          userId: 'guest'
         })
       });
 
@@ -183,7 +188,6 @@ const IPLMatchDetail = () => {
         toast({
           title: "Joined Waitlist",
           description: "We'll notify you when tickets become available!",
-          variant: "default",
         });
       }
     } catch (error) {
@@ -210,410 +214,397 @@ const IPLMatchDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col">
         <Navbar />
-        <main className="flex-grow pt-16 pb-12">
+        <main className="flex-grow pt-24 pb-12">
           <div className="container mx-auto px-4">
-            <Button
-              variant="ghost"
-              className="mb-6 pl-0 hover:bg-transparent"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to all matches
-            </Button>
-            <div className="mb-8">
-              <Skeleton className="h-64 w-full rounded-xl" />
-            </div>
+            <Skeleton className="h-96 w-full rounded-3xl mb-8 bg-slate-900" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="md:col-span-2">
-                <Skeleton className="h-10 w-3/4 mb-4" />
-                <Skeleton className="h-6 w-1/2 mb-2" />
-                <Skeleton className="h-6 w-1/3 mb-6" />
-                <div className="grid grid-cols-3 gap-4 mb-8">
-                  <Skeleton className="h-24 rounded-lg" />
-                  <Skeleton className="h-24 rounded-lg" />
-                  <Skeleton className="h-24 rounded-lg" />
-                </div>
-                <Skeleton className="h-8 w-1/3 mb-4" />
-                <Skeleton className="h-32 w-full rounded-lg" />
+              <div className="md:col-span-2 space-y-4">
+                <Skeleton className="h-12 w-3/4 bg-slate-900" />
+                <Skeleton className="h-6 w-1/2 bg-slate-900" />
               </div>
-              <div>
-                <Skeleton className="h-80 w-full rounded-xl" />
-              </div>
+              <Skeleton className="h-80 w-full rounded-xl bg-slate-900" />
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
 
-  if (error) {
+  if (error || !match) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center">
         <Navbar />
-        <main className="flex-grow pt-16 pb-12">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Match Details</h2>
-            <p className="mb-4">{error}</p>
-            <Button onClick={() => navigate('/events')}>
-              View All Events
-            </Button>
-          </div>
-        </main>
-        <Footer />
+        <div className="text-center space-y-4">
+          <h2 className="text-3xl font-bold text-red-500">Match Not Found</h2>
+          <p className="text-slate-400">The match you're looking for doesn't exist.</p>
+          <Button onClick={() => navigate('/events')} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            View All Matches
+          </Button>
+        </div>
       </div>
     );
   }
 
-  if (!match) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow pt-16 pb-12">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-2xl font-bold mb-4">Match Not Found</h2>
-            <p className="mb-4">The match you're looking for doesn't exist or has been removed.</p>
-            <Button onClick={() => navigate('/events')}>
-              View All Events
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+  // Helper for team colors
+  const team1Color = match.teams?.team1?.primaryColor || '#F9CD05'; // Default CSK Yellow
+  const team2Color = match.teams?.team2?.primaryColor || '#004BA0'; // Default MI Blue
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-blue-500/30">
       <Navbar />
 
-      <main className="flex-grow pt-16 pb-12">
-        <div className="container mx-auto px-4">
-          <Button
-            variant="ghost"
-            className="mb-6 pl-0 hover:bg-transparent"
-            onClick={() => navigate(-1)}
+      {/* Sticky Header */}
+      <AnimatePresence>
+        {scrolled && (
+          <motion.div
+            initial={{ y: -100 }}
+            animate={{ y: 0 }}
+            exit={{ y: -100 }}
+            className="fixed top-0 left-0 right-0 h-20 bg-slate-950/80 backdrop-blur-md z-50 border-b border-white/10 flex items-center shadow-lg"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to all matches
-          </Button>
+            <div className="container mx-auto px-4 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <img src={match.teams?.team1?.logo} className="w-8 h-8 object-contain" />
+                  <span className="font-bold text-lg">{match.teams?.team1?.shortName}</span>
+                </div>
+                <span className="text-slate-500 text-sm">VS</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-lg">{match.teams?.team2?.shortName}</span>
+                  <img src={match.teams?.team2?.logo} className="w-8 h-8 object-contain" />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="hidden md:block text-right">
+                  <p className="text-xs text-slate-400">Tickets from</p>
+                  <p className="font-bold text-xl text-green-400">₹{new Intl.NumberFormat('en-IN').format(Math.min(...match.ticketCategories.map((tc: any) => tc.price)))}</p>
+                </div>
+                <Button onClick={() => window.scrollTo({ top: 800, behavior: 'smooth' })} className="bg-blue-600 hover:bg-blue-700 rounded-full">Book Now</Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Match Banner */}
-          <div className="relative mb-8 rounded-xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90 z-10"></div>
-            <img
+      {/* Immersive Hero Section */}
+      <div className="relative h-[80vh] w-full overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img
               src={match.bannerImage || `/assets/stadiums/${match.venue.replace(/\s+/g, '-').toLowerCase()}.jpg`}
               alt={match.title}
-              className="w-full h-64 object-cover"
+            className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 z-20 flex items-center">
-              <div className="container mx-auto px-4 md:px-8 flex justify-between items-center">
-                <div className="flex items-center space-x-6">
-                  <div className="w-20 h-20 rounded-full bg-white p-1 shadow-lg">
-                    <img
-                      src={match.teams?.team1?.logo || '/placeholder.svg'}
-                      alt={match.teams?.team1?.name || 'Team 1'}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder.svg';
-                      }}
-                    />
-                  </div>
-                  <div className="text-white text-3xl font-bold">VS</div>
-                  <div className="w-20 h-20 rounded-full bg-white p-1 shadow-lg">
-                    <img
-                      src={match.teams?.team2?.logo || '/placeholder.svg'}
-                      alt={match.teams?.team2?.name || 'Team 2'}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder.svg';
-                      }}
-                    />
+          {/* Gradients for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/30" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-transparent to-transparent" />
+        </div>
+
+        {/* Hero Content */}
+        <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 pb-32 animate-fade-in-up">
+          <div className="container mx-auto">
+            <div className="flex flex-wrap items-end justify-between gap-8">
+              <div className="max-w-3xl">
+                <div className="flex items-center gap-2 mb-4">
+                  <Badge variant="outline" className="border-yellow-500 text-yellow-500 bg-yellow-500/10 backdrop-blur-sm px-3 py-1">IPL 2026</Badge>
+                  <div className="flex items-center text-slate-300 text-sm">
+                    <Calendar className="w-4 h-4 mr-1" /> {match.date ? new Date(match.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
                   </div>
                 </div>
 
-                <div className="hidden md:block text-white">
-                  <div className="text-sm opacity-80">Starting from</div>
-                  <div className="text-3xl font-bold">
-                    ₹{match.ticketCategories && match.ticketCategories.length > 0
-                      ? new Intl.NumberFormat('en-IN').format(Math.min(...match.ticketCategories.map((tc: any) => tc.price)))
-                      : '0'}
+                <h1 className="text-4xl md:text-7xl font-bold tracking-tighter mb-6 leading-tight">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+                    {match.teams?.team1?.name}
+                  </span>
+                  <span className="block text-2xl md:text-4xl text-slate-400 font-light my-2">VS</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
+                    {match.teams?.team2?.name}
+                  </span>
+                </h1>
+
+                <div className="flex items-center gap-6 text-lg text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="text-white" /> {match.venue}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="text-white" /> {match.time} IST
                   </div>
                 </div>
+              </div>
+
+              {/* Team Logos Hero Display */}
+              <div className="hidden lg:flex items-center gap-8 opacity-80">
+                <img src={match.teams?.team1?.logo} className="w-40 h-40 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]" />
+                <span className="text-6xl font-black text-slate-700 italic">VS</span>
+                <img src={match.teams?.team2?.logo} className="w-40 h-40 object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.3)]" />
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Match Information */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{match.title}</h1>
-              <p className="text-lg text-gray-700 mb-6">{match.subtitle}</p>
-
-              {/* Key Match Info Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-                  <div className="flex items-center text-blue-600 mb-2">
-                    <Calendar className="h-5 w-5 mr-2" />
-                    <span className="font-medium">Date</span>
-                  </div>
-                  <p className="text-gray-700">{match.date}</p>
-                </div>
-
-                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-                  <div className="flex items-center text-blue-600 mb-2">
-                    <Clock className="h-5 w-5 mr-2" />
-                    <span className="font-medium">Time</span>
-                  </div>
-                  <p className="text-gray-700">{match.time}</p>
-                </div>
-
-                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
-                  <div className="flex items-center text-blue-600 mb-2">
-                    <MapPin className="h-5 w-5 mr-2" />
-                    <span className="font-medium">Venue</span>
-                  </div>
-                  <p className="text-gray-700">{match.venue}</p>
-                </div>
-              </div>
-
-              {/* Tabs */}
-              <div className="mb-6">
-                <div className="flex border-b border-gray-200">
-                  <button
-                    className={`px-4 py-2 font-medium text-sm ${
-                      selectedSection === 'overview'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
+      {/* Main Content Area */}
+      <div className="container mx-auto px-4 -mt-24 relative z-20 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Tabs & Info */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Tabs Config */}
+            <div className="bg-slate-900/50 backdrop-blur-md rounded-2xl p-2 border border-white/5 inline-flex gap-2">
+              {['overview', 'stadium', 'teams'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedSection(tab)}
+                  className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-300 ${selectedSection === tab
+                    ? 'bg-white text-slate-950 shadow-lg scale-105'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
-                    onClick={() => setSelectedSection('overview')}
-                  >
-                    Overview
-                  </button>
-                  <button
-                    className={`px-4 py-2 font-medium text-sm ${
-                      selectedSection === 'stadium'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                    onClick={() => setSelectedSection('stadium')}
-                  >
-                    Stadium Info
-                  </button>
-                  <button
-                    className={`px-4 py-2 font-medium text-sm ${
-                      selectedSection === 'teams'
-                        ? 'text-blue-600 border-b-2 border-blue-600'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                    onClick={() => setSelectedSection('teams')}
-                  >
-                    Teams
-                  </button>
-                </div>
-              </div>
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
 
-              {/* Tab Content */}
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-                {selectedSection === 'overview' && (
+            {/* Tab Content Panels */}
+            <div className="bg-slate-900/60 backdrop-blur-sm border border-white/10 rounded-3xl p-8 min-h-[500px]">
+              {selectedSection === 'overview' && (
+                <div className="space-y-8 animate-fade-in">
+                  <div className="grid grid-cols-2 gap-4 mb-8">
+                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-white/5">
+                      <div className="text-slate-400 text-sm mb-1">Win Probability</div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="font-bold">{match.teams?.team1?.shortName}</div>
+                        <Progress value={55} className="h-2 bg-slate-700" indicatorClassName="bg-yellow-500" />
+                        <div className="text-xs text-slate-400">55%</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-bold">{match.teams?.team2?.shortName}</div>
+                        <Progress value={45} className="h-2 bg-slate-700" indicatorClassName="bg-blue-600" />
+                        <div className="text-xs text-slate-400">45%</div>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-white/5 flex items-center justify-between">
+                      <div>
+                        <div className="text-slate-400 text-sm">Weather</div>
+                        <div className="font-bold text-xl">28°C Clear</div>
+                      </div>
+                      <Zap className="w-8 h-8 text-yellow-400" />
+                    </div>
+                  </div>
+
                   <div>
-                    <h3 className="text-xl font-semibold mb-3">Match Overview</h3>
-                    <p className="text-gray-700 mb-4">{match.description}</p>
+                    <h3 className="text-2xl font-bold mb-4 flex items-center gap-2"><Trophy className="text-yellow-500" /> Match Preview</h3>
+                    <p className="text-slate-300 leading-relaxed text-lg">{match.description || "Get ready for an electrifying encounter as these two titans clash in the ultimate showdown. Expect high scores, breathtaking catches, and nail-biting finishes."}</p>
+                  </div>
 
-                    <div className="flex items-center space-x-2 text-green-600 mb-2">
-                      <Verified className="h-5 w-5" />
-                      <span className="text-sm font-medium">Verified Official Tickets</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/10 pt-8">
+                    <div className="flex items-center gap-3">
+                      <Verified className="text-green-500" />
+                      <div className="text-sm">
+                        <div className="font-bold">Official Partner</div>
+                        <div className="text-slate-500">100% Authentic Tickets</div>
+                      </div>
                     </div>
-
-                    <div className="flex items-center space-x-2 text-green-600 mb-2">
-                      <Shield className="h-5 w-5" />
-                      <span className="text-sm font-medium">Secure Payments</span>
+                    <div className="flex items-center gap-3">
+                      <TrendingUp className="text-blue-500" />
+                      <div className="text-sm">
+                        <div className="font-bold">Fast Selling</div>
+                        <div className="text-slate-500">Hurry, seats filling fast!</div>
+                      </div>
                     </div>
-
-                    <div className="flex items-center space-x-2 text-green-600 mb-2">
-                      <BadgeCheck className="h-5 w-5" />
-                      <span className="text-sm font-medium">Instant Ticket Delivery</span>
+                    <div className="flex items-center gap-3">
+                      <Shield className="text-purple-500" />
+                      <div className="text-sm">
+                        <div className="font-bold">Secure Booking</div>
+                        <div className="text-slate-500">Encrypted Transactions</div>
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {selectedSection === 'stadium' && (
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">Stadium Seat Selection</h3>
+              {selectedSection === 'stadium' && (
+                <div className="animate-fade-in">
+                  <h3 className="text-2xl font-bold mb-6">Live Seat Selection</h3>
+                  <div className="bg-slate-800/50 p-4 rounded-xl border border-white/5">
                     <CricketStadiumSeatMap
                       venueName={match.venue}
                       sections={stadiumSections}
                       selectedSection={selectedCategory}
-                      onSectionSelect={(sectionId) => {
-                        if (sectionId) {
-                          setSelectedCategory(sectionId);
-                        }
-                      }}
+                      onSectionSelect={(sectionId) => sectionId && setSelectedCategory(sectionId)}
                       priceMultiplier={match.priceMultiplier || 1}
                       teamColors={{
-                        primary: match.teams?.team1?.primaryColor || '#3b82f6',
-                        secondary: match.teams?.team2?.primaryColor || '#6366f1'
+                        primary: team1Color,
+                        secondary: team2Color
                       }}
                     />
                   </div>
-                )}
+                </div>
+              )}
 
-                {selectedSection === 'teams' && (
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">Team Information</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="w-12 h-12 rounded-full bg-white p-1 shadow-sm">
-                            <img
-                              src={match.teams?.team1?.logo || '/placeholder.svg'}
-                              alt={match.teams?.team1?.name || 'Team 1'}
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder.svg';
-                              }}
-                            />
-                          </div>
-                          <h4 className="font-bold">{match.teams?.team1?.name}</h4>
-                        </div>
-                        <p className="text-sm text-gray-700">{match.teams?.team1?.description || 'Team details will be updated soon.'}</p>
+              {selectedSection === 'teams' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
+                  <div className="bg-gradient-to-br from-yellow-500/10 to-transparent p-6 rounded-3xl border border-yellow-500/20">
+                    <div className="flex items-center gap-4 mb-6">
+                      <img src={match.teams?.team1?.logo} className="w-16 h-16 object-contain" />
+                      <div>
+                        <h3 className="text-2xl font-bold">{match.teams?.team1?.name}</h3>
+                        <p className="text-yellow-500 font-bold">Home Team</p>
                       </div>
-
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="w-12 h-12 rounded-full bg-white p-1 shadow-sm">
-                            <img
-                              src={match.teams?.team2?.logo || '/placeholder.svg'}
-                              alt={match.teams?.team2?.name || 'Team 2'}
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder.svg';
-                              }}
-                            />
-                          </div>
-                          <h4 className="font-bold">{match.teams?.team2?.name}</h4>
+                    </div>
+                    {/* Fake Stats */}
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-slate-400">Batting Strength</span>
+                          <span className="font-bold">92/100</span>
                         </div>
-                        <p className="text-sm text-gray-700">{match.teams?.team2?.description || 'Team details will be updated soon.'}</p>
+                        <Progress value={92} className="h-1.5" indicatorClassName="bg-yellow-500" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-slate-400">Bowling Depth</span>
+                          <span className="font-bold">85/100</span>
+                        </div>
+                        <Progress value={85} className="h-1.5" indicatorClassName="bg-yellow-500" />
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
 
-            {/* Ticket Booking Card */}
-            <div>
-              <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 sticky top-24">
-                <h3 className="text-xl font-bold mb-4">Book Tickets</h3>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Ticket Category
-                  </label>
-                  <div className="space-y-2">
-                    {match.ticketCategories && match.ticketCategories.map((category: any) => (
-                      <div
-                        key={category.id}
-                        className={`border rounded-lg p-3 cursor-pointer ${
-                          selectedCategory === category.id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setSelectedCategory(category.id)}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <div className="font-medium">{category.name}</div>
-                            <div className="text-sm text-gray-500">{category.description}</div>
-                          </div>
-                          <div className="font-bold">₹{new Intl.NumberFormat('en-IN').format(category.price)}</div>
-                        </div>
-                        {selectedCategory === category.id && (
-                          <div className="mt-2 pt-2 border-t border-gray-200">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm text-gray-600">Quantity</div>
-                              <div className="flex items-center space-x-3">
-                                <button
-                                  className="h-7 w-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (ticketQuantity > 1) setTicketQuantity(ticketQuantity - 1);
-                                  }}
-                                  disabled={ticketQuantity <= 1}
-                                >
-                                  -
-                                </button>
-                                <span className="w-5 text-center">{ticketQuantity}</span>
-                                <button
-                                  className="h-7 w-7 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (ticketQuantity < (category.maxPerOrder || 10)) {
-                                      setTicketQuantity(ticketQuantity + 1);
-                                    }
-                                  }}
-                                  disabled={ticketQuantity >= (category.maxPerOrder || 10)}
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                  <div className="bg-gradient-to-br from-blue-600/10 to-transparent p-6 rounded-3xl border border-blue-600/20">
+                    <div className="flex items-center gap-4 mb-6">
+                      <img src={match.teams?.team2?.logo} className="w-16 h-16 object-contain" />
+                      <div>
+                        <h3 className="text-2xl font-bold">{match.teams?.team2?.name}</h3>
+                        <p className="text-blue-500 font-bold">Challenger</p>
                       </div>
-                    ))}
+                    </div>
+                    {/* Fake Stats */}
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-slate-400">Batting Strength</span>
+                          <span className="font-bold">88/100</span>
+                        </div>
+                        <Progress value={88} className="h-1.5" indicatorClassName="bg-blue-600" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-slate-400">Bowling Depth</span>
+                          <span className="font-bold">90/100</span>
+                        </div>
+                        <Progress value={90} className="h-1.5" indicatorClassName="bg-blue-600" />
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
+            </div>
+            </div>
 
-                <Separator className="my-4" />
+          {/* Right Column: Sticky Booking Card */}
+          <div className="relative">
+            <div className="sticky top-24 pt-4">
+              <div className="glass-card rounded-3xl p-6 border border-white/10 shadow-2xl relative overflow-hidden group">
+                {/* Card Glow Effect */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
 
-                <div className="flex justify-between mb-6">
-                  <span className="font-medium">Total Amount</span>
-                  <span className="font-bold text-lg">₹{new Intl.NumberFormat('en-IN').format(calculateTotalPrice())}</span>
-                </div>
+                <div className="relative bg-slate-900/90 rounded-2xl p-6 backdrop-blur-xl">
+                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <Ticket className="text-blue-500" /> Get Tickets
+                  </h3>
 
-                <Button
-                  className={isSoldOut ? "w-full bg-amber-600 hover:bg-amber-700" : "w-full"}
-                  size="lg"
-                  onClick={isSoldOut ? handleJoinWaitlist : handleBookNow}
-                  disabled={!selectedCategory}
-                >
-                  {isSoldOut ? 'Join Waitlist' : 'Book Now'}
-                </Button>
+                  <div className="space-y-4 mb-8">
+                    <div className="text-sm font-medium text-slate-400">Select Category</div>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {match.ticketCategories?.map((category: any) => (
+                        <div
+                          key={category.id}
+                          onClick={() => setSelectedCategory(category.id)}
+                          className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedCategory === category.id
+                            ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                            : 'bg-slate-800/30 border-white/5 hover:border-white/20'
+                            }`}
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-bold text-white">{category.name}</span>
+                            <span className="text-lg font-bold text-green-400">₹{new Intl.NumberFormat('en-IN').format(category.price)}</span>
+                          </div>
+                          <div className="text-xs text-slate-400 flex justify-between">
+                            <span>{category.description}</span>
+                            <span className={category.available < 10 ? "text-red-400 font-bold" : "text-slate-500"}>
+                              {category.available} left
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                <div className="mt-4 text-center text-xs text-gray-500">
-                  By proceeding, you agree to our Terms of Service
+                  {/* Quantity Selector */}
+                  {selectedCategory && (
+                    <div className="mb-8 bg-slate-800/50 p-4 rounded-xl border border-white/5">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-slate-400">Quantity</span>
+                        <div className="flex items-center gap-3 bg-slate-900 rounded-lg p-1">
+                          <button
+                            onClick={() => setTicketQuantity(Math.max(1, ticketQuantity - 1))}
+                            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10"
+                          > - </button>
+                          <span className="w-8 text-center font-bold">{ticketQuantity}</span>
+                          <button
+                            onClick={() => setTicketQuantity(Math.min(10, ticketQuantity + 1))}
+                            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10"
+                          > + </button>
+                        </div>
+                      </div>
+                      <Separator className="bg-white/10 mb-4" />
+                      <div className="flex justify-between items-end">
+                        <span className="text-slate-400">Total Amount</span>
+                        <span className="text-3xl font-bold text-white">₹{new Intl.NumberFormat('en-IN').format(calculateTotalPrice())}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={isSoldOut ? handleJoinWaitlist : handleBookNow}
+                    disabled={!selectedCategory || loading}
+                    size="lg"
+                    className={`w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-blue-600/20 ${isSoldOut
+                      ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white'
+                      }`}
+                  >
+                    {isSoldOut ? 'Join Waitlist' : 'Proceed to Checkout'}
+                  </Button>
+
+                  <div className="mt-4 text-center">
+                    <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
+                      <Shield className="w-3 h-3" /> Secure Payment via Razorpay
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* More IPL Matches */}
-          {match.relatedMatches && match.relatedMatches.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-6">More IPL Matches</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {match.relatedMatches.map((relatedMatch: any) => (
-                  <IPLMatchCard
-                    key={relatedMatch.id}
-                    id={relatedMatch.id}
-                    title={relatedMatch.title}
-                    posterUrl={relatedMatch.posterUrl}
-                    date={relatedMatch.date}
-                    time={relatedMatch.time}
-                    venue={relatedMatch.venue}
-                    startingPrice={relatedMatch.startingPrice}
-                    teams={relatedMatch.teams}
-                  />
-                ))}
-              </div>
             </div>
-          )}
         </div>
-      </main>
+
+        {/* Suggestion / Related Rows similar to Netflix/District */}
+        {match.relatedMatches?.length > 0 && (
+          <div className="mt-20">
+            <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
+              <span className="w-1 h-8 bg-purple-500 rounded-full"></span>
+              More from IPL 2026
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {match.relatedMatches.map((m: any) => (
+                <IPLMatchCard key={m.id} {...m} />
+              ))}
+            </div>
+            </div>
+        )}
+      </div>
 
       <Footer />
     </div>
