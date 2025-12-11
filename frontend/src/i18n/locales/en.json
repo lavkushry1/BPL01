@@ -134,6 +134,21 @@
     "tryDifferentTeam": "Try selecting a different team",
     "showAllMatches": "Show All Matches"
   },
+  "iplTickets": {
+    "title": "IPL 2026 Tickets",
+    "subtitle": "Book official tickets for Indian Premier League 2026 matches",
+    "heroSubtitle": "Book official tickets for all IPL matches. Experience the thrill live!",
+    "vipPackages": "VIP Packages",
+    "allMatches": "All Matches",
+    "match": "Match",
+    "ticketsAvailable": "Tickets Available",
+    "bookTickets": "Book Tickets",
+    "noMatchesFound": "No matches found",
+    "tryDifferentTeam": "Try selecting a different team",
+    "showAllMatches": "Show All Matches",
+    "error": "Error",
+    "errorMessage": "Failed to load matches. Please try again."
+  },
   "eventDetails": {
     "tickets": "Tickets",
     "quantity": "Quantity",

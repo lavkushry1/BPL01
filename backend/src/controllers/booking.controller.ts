@@ -18,14 +18,12 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
     const { event_id, seat_ids, amount } = validatedData;
     let user_id = req.user?.id;
     const { guest_name, guest_email, guest_phone } = validatedData;
-    let isGuest = false;
 
     // Handle Guest User Creation or Lookup
     if (!user_id) {
       if (!guest_email || !guest_name || !guest_phone) {
         throw ApiError.badRequest('Guest details (name, email, phone) are required for unauthenticated bookings');
       }
-      isGuest = true;
 
       // Check if user exists with this email
       const existingUser = await db('users').where('email', guest_email).first();
@@ -358,9 +356,9 @@ export const cancelBooking = asyncHandler(async (req: Request, res: Response) =>
       })
       .returning('*');
 
-    // Get booked seats
-    const bookedSeats = await trx('booked_seats')
-      .select('seat_id')
+    // Get booked seats from seats table directly
+    const bookedSeats = await trx('seats')
+      .select('id as seat_id')
       .where('booking_id', id);
 
     const seatIds = bookedSeats.map((bs: any) => bs.seat_id);

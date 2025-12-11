@@ -19,7 +19,7 @@ type IPLMatch = ApiIPLMatch;
 const IPLTickets = () => {
   const { t } = useTranslation();
   const [filter, setFilter] = useState('all');
-  const [, setCityFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
 
   // Check for localStorage stored admin events
   const [localEvents, setLocalEvents] = useState<Event[]>([]);
