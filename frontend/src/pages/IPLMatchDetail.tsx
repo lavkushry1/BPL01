@@ -138,7 +138,7 @@ const IPLMatchDetail = () => {
 
     // Prepare booking data with rich visuals for Trusted UI in Checkout
     const bookingDetails = {
-      eventId: match.id,
+      eventId: match.eventId || match.id,
       eventTitle: match.title,
       eventDate: match.date,
       eventTime: match.time,

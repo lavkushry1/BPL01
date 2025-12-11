@@ -5,11 +5,11 @@ import { db } from '../db';
  * Enum for seat status
  */
 export enum SeatStatus {
-  AVAILABLE = 'available',
-  LOCKED = 'locked',
-  BOOKED = 'booked',
-  RESERVED = 'reserved',
-  UNAVAILABLE = 'unavailable'
+  AVAILABLE = 'AVAILABLE',
+  LOCKED = 'LOCKED',
+  BOOKED = 'BOOKED',
+  RESERVED = 'RESERVED',
+  UNAVAILABLE = 'UNAVAILABLE'
 }
 
 /**
@@ -106,7 +106,7 @@ export class SeatModel {
     expirationSeconds: number
   ): Promise<{ success: boolean; lockedSeats: string[]; unavailableSeats?: string[]; message?: string; reservationId?: string }> {
     const expiresAt = new Date(Date.now() + expirationSeconds * 1000);
-    
+
     try {
       // Use transaction with row locking for atomicity
       const result = await db.transaction(async trx => {
@@ -115,31 +115,31 @@ export class SeatModel {
           .forUpdate() // This locks the rows
           .select('id', 'status', 'locked_by', 'lock_expires_at')
           .whereIn('id', seatIds);
-        
+
         // Check if all requested seats exist
         if (seats.length !== seatIds.length) {
-          return { 
-            success: false, 
+          return {
+            success: false,
             lockedSeats: [],
-            message: 'One or more seats not found' 
+            message: 'One or more seats not found'
           };
         }
-        
+
         // Check seat availability within the transaction
         const unavailableSeats = seats.filter(seat => {
           const isExpired = seat.lock_expires_at && new Date(seat.lock_expires_at) < new Date();
           return seat.status !== SeatStatus.AVAILABLE && !isExpired;
         });
-        
+
         if (unavailableSeats.length > 0) {
-          return { 
-            success: false, 
+          return {
+            success: false,
             lockedSeats: [],
             unavailableSeats: unavailableSeats.map(s => s.id),
             message: 'One or more seats are not available'
           };
         }
-        
+
         // Update the seats within the same transaction
         await trx('seats')
           .update({
@@ -149,7 +149,7 @@ export class SeatModel {
             updated_at: trx.fn.now()
           })
           .whereIn('id', seatIds);
-        
+
         // Create a record in seat_reservations table
         const [reservation] = await trx('seat_reservations')
           .insert({
@@ -161,14 +161,14 @@ export class SeatModel {
             expires_at: expiresAt
           })
           .returning('id');
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           lockedSeats: seatIds,
           reservationId: reservation.id
         };
       });
-      
+
       return result;
     } catch (error) {
       console.error('Error reserving seats:', error);
@@ -202,7 +202,7 @@ export class SeatModel {
     update: SeatStatusUpdate
   ): Promise<Seat | null> {
     const { status, locked_by, lock_expires_at } = update;
-    
+
     const result = await db('seats')
       .update({
         status,
@@ -212,7 +212,7 @@ export class SeatModel {
       })
       .where({ id: seatId })
       .returning('*');
-    
+
     return result[0] || null;
   }
 
@@ -231,7 +231,7 @@ export class SeatModel {
       .where({ status: SeatStatus.LOCKED })
       .where('lock_expires_at', '<', db.fn.now())
       .returning('id');
-    
+
     return result.length;
   }
 }

@@ -931,7 +931,7 @@ export class SeatService {
         .select('id')
         .where({
           event_id: eventId,
-          status: SeatStatus.AVAILABLE,
+          status: 'AVAILABLE' as any,
           is_deleted: false
           // Note: In a real app we might match section name loosely or strictly
         })
