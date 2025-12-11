@@ -18,6 +18,8 @@
     "date": "Date",
     "time": "Time",
     "price": "Price",
+    "retry": "Retry",
+    "tryAgain": "Try Again",
     "filter": "Filter",
     "all": "All",
     "showing": "Showing",
