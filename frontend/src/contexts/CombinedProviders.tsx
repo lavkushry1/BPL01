@@ -1,13 +1,13 @@
-import React, { ReactNode } from 'react';
-import { BrowserRouter } from 'react-router-dom';
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+import RTLProvider from '@/components/ui/RTLProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ThemeProvider } from '@/styles/ThemeProvider';
-import { AuthProvider } from '@/contexts/AuthContext';
 import { AppStateProvider } from '@/contexts/AppStateContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { CartProvider } from '@/hooks/useCart';
-import RTLProvider from '@/components/ui/RTLProvider';
+import { ThemeProvider } from '@/styles/ThemeProvider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React, { ReactNode } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 
 /**
  * A component that combines all providers to reduce nesting in the main App component
@@ -29,7 +29,7 @@ const LanguageWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const CombinedProviders: React.FC<CombinedProvidersProps> = ({ 
+export const CombinedProviders: React.FC<CombinedProvidersProps> = ({
   children,
   queryClient
 }) => {
@@ -43,7 +43,7 @@ export const CombinedProviders: React.FC<CombinedProvidersProps> = ({
               <LanguageProvider>
                 <LanguageWrapper>
                   <TooltipProvider>
-                    <BrowserRouter>
+                    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                       {children}
                     </BrowserRouter>
                   </TooltipProvider>
@@ -57,4 +57,4 @@ export const CombinedProviders: React.FC<CombinedProvidersProps> = ({
   );
 };
 
-export default CombinedProviders; 
+export default CombinedProviders;

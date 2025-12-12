@@ -6,6 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
+# Downgrade uuid to v8 (supports CommonJS, v9+ is ESM-only)
+RUN npm install uuid@^8.3.2
+
 # Copy source
 COPY . .
 
