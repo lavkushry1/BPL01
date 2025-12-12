@@ -1,5 +1,4 @@
-import react from "@vitejs/plugin-react-swc";
-import { componentTagger } from "lovable-tagger";
+import react from "@vitejs/plugin-react";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 import { fileURLToPath } from "url";
@@ -27,7 +26,6 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' && componentTagger(),
     mode === 'analyze' && visualizer({
       open: true,
       filename: 'dist/stats.html',

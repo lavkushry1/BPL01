@@ -60,6 +60,7 @@ services:
       - JWT_REFRESH_EXPIRATION=7d
       - FRONTEND_URL=http://localhost:8080
       - CORS_ORIGIN=http://localhost:8080
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_mock_key_12345}
     volumes:
       - ./backend:/app
       - /app/node_modules

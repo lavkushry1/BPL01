@@ -76,9 +76,6 @@ export const createBooking = async (bookingData: BookingData): Promise<{
     const payload = {
       event_id: bookingData.eventId,
       tickets: bookingData.tickets.map(t => ({
-        categoryId: t.category, // Backend expects categoryId or name depending on logic? Validation says categoryId.
-        // Wait, backend validation expects "categoryId". Checkout passes "category" (name) and "categoryId" (ID)?
-        // Let's verify BookingData interface and usage in Checkout.tsx
         categoryId: (t as any).categoryId || t.category,
         quantity: t.quantity,
         price: t.price
