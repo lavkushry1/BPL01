@@ -2,56 +2,52 @@
  * @component EventDetail
  * @description Detailed view of a specific event with options to select tickets or seats
  * and proceed to booking. Provides event information, ticket selection, and seating map.
- * 
+ *
  * @apiDependencies
  * - GET event by ID from eventApi.getEventById(id)
  * - POST to create booking using bookingApi.createBooking()
  * - Fetch seat map with seatMapApi if event has seating
  * - Real-time seat updates via websocket service
- * 
+ *
  * @stateManagement
  * - event - Event details
  * - selectedTickets - Selected ticket types and quantities
  * - selectedSeats - Selected seats (when using seating map)
  * - seatMap - Seat map configuration for the event
  * - hasSeating - Whether the event uses seat selection
- * 
+ *
  * @requiredParams
  * - id - Event ID from URL parameters
- * 
+ *
  * @navigationFlow
  * - After successful booking creation → Checkout page with booking ID
  * - User can also navigate back to Events listing
  */
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
 import SeatMap from '@/components/booking/SeatMap';
-import { Calendar, Clock, MapPin, Tag, ArrowLeft, ShoppingCart, Eye, Users, Loader2Icon, MinusIcon, PlusIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { toast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
-import { EventHeader } from '@/components/events/EventHeader';
 import { EventDescription } from '@/components/events/EventDescription';
-import { TicketSelector } from '../components/events/TicketSelector';
-import { EventInfo } from '../components/events/EventInfo';
-import { TicketSelection } from '../components/events/TicketSelection';
-import { useCart } from '../hooks/useCart';
+import { EventHeader } from '@/components/events/EventHeader';
 import { EventImageGallery } from '@/components/events/EventImageGallery';
 import { SimilarEvents } from '@/components/events/SimilarEvents';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import Footer from '@/components/layout/Footer';
+import Navbar from '@/components/layout/Navbar';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ArrowLeft, Calendar, Loader2Icon, MapPin, MinusIcon, PlusIcon, ShoppingCart, Tag, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams } from 'react-router-dom';
+import { EventInfo } from '../components/events/EventInfo';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { useCart } from '../hooks/useCart';
 
 // Import API services
 import eventApi from '@/services/api/eventApi';
-import bookingApi from '@/services/api/bookingApi';
 import seatMapApi from '@/services/api/seatMapApi';
 import { websocketService } from '@/services/websocket.service';
 
@@ -168,12 +164,27 @@ const EventDetail = () => {
         }
 
         // Format data for display
+        // Helper function to safely parse dates
+        const safeFormatDate = (dateString: string | undefined, formatStr: string, fallback: string = 'TBD') => {
+          if (!dateString) return fallback;
+          try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return fallback;
+            return format(date, formatStr);
+          } catch {
+            return fallback;
+          }
+        };
+
+        // Get the date from either startDate or start_date
+        const eventDateStr = eventData.startDate || eventData.start_date || eventData.date;
+
         const formattedEvent: DisplayEvent = {
           id: eventData.id,
           title: eventData.title,
           description: eventData.description || '',
-          date: eventData.date || format(new Date(eventData.start_date), 'EEE, MMM d, yyyy'),
-          time: eventData.time || format(new Date(eventData.start_date), 'h:mm a'),
+          date: eventData.date || safeFormatDate(eventDateStr, 'EEE, MMM d, yyyy'),
+          time: eventData.time || safeFormatDate(eventDateStr, 'h:mm a', 'TBA'),
           venue: eventData.venue || eventData.location,
           image: eventData.images && eventData.images.length > 0
             ? eventData.images[0].url

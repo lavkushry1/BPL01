@@ -67,10 +67,27 @@ defaultApiClient.interceptors.response.use(
     // Handle authentication errors
     if (error.response?.status === 401) {
       const originalRequest = error.config;
+      const requestUrl = originalRequest?.url || '';
+
+      // Don't redirect for auth-related endpoints (expected to fail when not logged in)
+      const isAuthCheckEndpoint = requestUrl.includes('/auth/me') ||
+        requestUrl.includes('/auth/refresh-token') ||
+        requestUrl.includes('/auth/csrf');
+
+      // List of public routes that don't require auth
+      const publicRoutes = ['/', '/events', '/ipl', '/support', '/login', '/admin-login', '/register'];
+      const isPublicRoute = publicRoutes.some(route =>
+        window.location.pathname === route || window.location.pathname.startsWith('/events/')
+      );
+
+      // Skip redirect logic for auth check endpoints or if on public route
+      if (isAuthCheckEndpoint || isPublicRoute) {
+        return Promise.reject(error);
+      }
 
       // Only try to refresh once to prevent infinite loops
       if (!originalRequest || (originalRequest as any)._retry) {
-        // Redirect to login if already tried refreshing
+        // Redirect to login if already tried refreshing and on protected route
         if (window.location.pathname !== '/login' &&
             window.location.pathname !== '/admin-login') {
           window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
@@ -89,8 +106,9 @@ defaultApiClient.interceptors.response.use(
         return defaultApiClient(originalRequest);
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
-        // Proceed with normal rejection if refresh fails
-        if (window.location.pathname !== '/login' &&
+        // Don't redirect on public routes
+        if (!isPublicRoute &&
+          window.location.pathname !== '/login' &&
             window.location.pathname !== '/admin-login') {
           window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
         }
