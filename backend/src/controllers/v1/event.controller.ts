@@ -336,4 +336,19 @@ export class EventControllerV1 {
       mockStats
     );
   });
+
+  /**
+   * Get featured events (top 5 published events)
+   */
+  static getFeaturedEvents = async () => {
+    const filters: EventFilters = {
+      status: 'PUBLISHED',
+      limit: 5,
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    };
+
+    const result = await eventService.getAllEvents(filters);
+    return result.events;
+  };
 }

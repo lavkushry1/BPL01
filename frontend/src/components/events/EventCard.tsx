@@ -1,15 +1,14 @@
-import React, { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Calendar, MapPin, Clock, Users, Tag, ArrowRight, XCircle, Heart, Database } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import fallbackEventImg from '@/assets/fallback-event.jpg';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardFooter, CardHeader } from '../ui/card';
 import { format } from 'date-fns';
+import { Calendar, Database, MapPin } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardFooter, CardHeader } from '../ui/card';
 
 // Define the Event interface
 interface Event {
@@ -67,13 +66,15 @@ const EventCard: React.FC<EventCardProps> = ({
 
   // Calculate if the event is selling fast (less than 20% tickets available)
   const isSellingFast = () => {
+    if (!event.ticketTypes || event.ticketTypes.length === 0) return false;
     const totalAvailable = event.ticketTypes.reduce((sum: number, ticket: any) => sum + ticket.available, 0);
     const totalCapacity = event.ticketTypes.reduce((sum: number, ticket: any) => sum + ticket.capacity, 0);
-    return (totalAvailable / totalCapacity) < 0.2 && totalAvailable > 0;
+    return totalCapacity > 0 && (totalAvailable / totalCapacity) < 0.2 && totalAvailable > 0;
   };
 
   // Check if the event is sold out (no available tickets)
   const isSoldOut = () => {
+    if (!event.ticketTypes || event.ticketTypes.length === 0) return false;
     const totalAvailable = event.ticketTypes.reduce((sum: number, ticket: any) => sum + ticket.available, 0);
     return totalAvailable === 0;
   };

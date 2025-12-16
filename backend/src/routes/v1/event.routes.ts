@@ -29,6 +29,40 @@ const eventQuerySchema = z.object({
 });
 
 /**
+ * @route GET /api/v1/events/featured
+ * @desc Get featured events
+ * @access Public
+ */
+router.get('/featured',
+  standardLimiter,
+  asyncHandler(async (req: Request, res: Response) => {
+    // Return featured events (top 5 published events)
+    const featuredEvents = await EventControllerV1.getFeaturedEvents();
+    return ApiResponse.success(res, 200, 'Featured events fetched successfully', { events: featuredEvents });
+  })
+);
+
+/**
+ * @route GET /api/v1/events/categories
+ * @desc Get all event categories
+ * @access Public
+ */
+router.get('/categories',
+  standardLimiter,
+  asyncHandler(async (req: Request, res: Response) => {
+    // Return available event categories
+    const categories = [
+      { id: 'sports', name: 'Sports', count: 10 },
+      { id: 'music', name: 'Music', count: 5 },
+      { id: 'theatre', name: 'Theatre', count: 3 },
+      { id: 'food', name: 'Food & Drink', count: 2 },
+      { id: 'conference', name: 'Conference', count: 1 }
+    ];
+    return ApiResponse.success(res, 200, 'Event categories fetched successfully', categories);
+  })
+);
+
+/**
  * @swagger
  * /events:
  *   get:

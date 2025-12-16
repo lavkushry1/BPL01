@@ -153,7 +153,11 @@
     "tryDifferentTeam": "Try selecting a different team",
     "showAllMatches": "Show All Matches",
     "error": "Error",
-    "errorMessage": "Failed to load matches. Please try again."
+    "errorMessage": "Failed to load matches. Please try again.",
+    "noMatches": "No Matches Found",
+    "noMatchesGeneral": "There are no matches scheduled at this time. Please check back later.",
+    "noMatchesFiltered": "No matches found for {{team}}. Try selecting a different team.",
+    "retry": "Retry"
   },
   "eventDetails": {
     "tickets": "Tickets",

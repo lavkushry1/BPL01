@@ -2,10 +2,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { defaultApiClient } from '@/services/api/apiUtils';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-
 interface Event {
   id: string;
   title: string;
@@ -25,6 +24,7 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setLoading] = useState<boolean>(false);
   const [scrollIndex, setScrollIndex] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -32,7 +32,6 @@ export const FeaturedEvents: React.FC<FeaturedEventsProps> = () => {
     setLoading(true);
     defaultApiClient.get('/events/featured')
       .then((response) => {
-        // Handle the standardized API response format
         const data = response.data?.data?.events || response.data?.events || response.data || [];
         setEvents(Array.isArray(data) ? data : []);
         setLoading(false);
