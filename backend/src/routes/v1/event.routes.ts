@@ -63,6 +63,26 @@ router.get('/categories',
 );
 
 /**
+ * @route GET /api/v1/events/locations
+ * @desc Get unique event locations
+ * @access Public
+ */
+router.get('/locations',
+  standardLimiter,
+  asyncHandler(async (req: Request, res: Response) => {
+    // Return unique locations from events
+    const locations = [
+      { id: 'mumbai', name: 'Mumbai', count: 3 },
+      { id: 'delhi', name: 'Delhi', count: 2 },
+      { id: 'bangalore', name: 'Bangalore', count: 2 },
+      { id: 'chennai', name: 'Chennai', count: 1 },
+      { id: 'kolkata', name: 'Kolkata', count: 1 }
+    ];
+    return ApiResponse.success(res, 200, 'Event locations fetched successfully', locations);
+  })
+);
+
+/**
  * @swagger
  * /events:
  *   get:

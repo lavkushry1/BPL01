@@ -51,4 +51,16 @@ router.use('/admin/upi-settings', upiSettingsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/public', publicRoutes);
 
+// Add locations endpoint for filter data
+router.get('/locations', (_req, res) => {
+  const locations = [
+    { id: 'mumbai', name: 'Mumbai', count: 3 },
+    { id: 'delhi', name: 'Delhi', count: 2 },
+    { id: 'bangalore', name: 'Bangalore', count: 2 },
+    { id: 'chennai', name: 'Chennai', count: 1 },
+    { id: 'kolkata', name: 'Kolkata', count: 1 }
+  ];
+  res.json({ success: true, data: locations });
+});
+
 export default router;

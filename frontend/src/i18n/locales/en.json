@@ -3,7 +3,8 @@
     "name": "IPL 2026"
   },
   "search": {
-    "placeholder": "Search events..."
+    "placeholder": "Search events...",
+    "errorFetchingFilters": "Unable to load filter options. Some filters may not be available."
   },
   "common": {
     "home": "Home",
@@ -306,7 +307,9 @@
     "theatre": "Theatre",
     "workshop": "Workshop",
     "cricket": "Cricket",
-    "other": "Other"
+    "other": "Other",
+    "event": "Event",
+    "food": "Food & Drink"
   },
   "venues": {
     "title": "by venue"

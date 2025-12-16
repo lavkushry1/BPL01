@@ -161,7 +161,8 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   // Truncate description for cards
-  const truncateDescription = (text: string, maxLength: number = 100) => {
+  const truncateDescription = (text: string | undefined, maxLength: number = 100) => {
+    if (!text) return '';
     return text.length > maxLength
       ? `${text.substring(0, maxLength)}...`
       : text;
