@@ -25,7 +25,7 @@ const eventQuerySchema = z.object({
     sort_order: z.enum(['asc', 'desc']).optional()
   }),
   params: z.object({}),
-  body: z.object({})
+  body: z.object({}).optional()
 });
 
 /**

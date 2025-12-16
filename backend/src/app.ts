@@ -10,7 +10,6 @@ import { setupSwagger } from './docs/swagger';
 import { generateCsrfToken, validateCsrfToken } from './middleware/csrf';
 import { dataloaderMiddleware } from './middleware/dataloader.middleware';
 import { errorHandler } from './middleware/errorHandler';
-import { standardLimiter } from './middleware/rateLimit';
 import { JobService } from './services/job.service';
 import { WebsocketService } from './services/websocket.service';
 import { ApiError } from './utils/apiError';
@@ -81,7 +80,7 @@ export const createApp = async (): Promise<{ app: Application; server: any }> =>
   app.use(cookieParser());
 
   // Apply standard rate limiting to all routes
-  app.use(standardLimiter);
+  // app.use(standardLimiter);
 
   // Generate CSRF token for GET requests and validate for state-changing methods
   app.use((req, res, next) => {

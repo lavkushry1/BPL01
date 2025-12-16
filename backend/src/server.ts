@@ -1,3 +1,4 @@
+console.log("DEBUG: Loading server.ts imports...");
 import { createApp } from './app';
 import { config } from './config';
 import { checkDatabaseHealth, closeDatabase, initializeDatabase } from './db';
@@ -8,9 +9,11 @@ import { WebsocketService } from './services/websocket.service';
 import { logger } from './utils/logger';
 
 async function startServer() {
+  console.log("DEBUG: startServer called");
   try {
     // Initialize database connections
     let dbConnected = false;
+    console.log("DEBUG: Initializing database...");
 
     try {
       // Skip DB check if we're in a special test mode
@@ -51,7 +54,7 @@ async function startServer() {
     JobService.initialize();
 
     // Start server
-    server.listen(config.port, () => {
+    server.listen(config.port, '0.0.0.0', () => {
       logger.info(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
       logger.info(`API documentation available at http://localhost:${config.port}/api-docs`);
       logger.info('WebSocket server initialized');

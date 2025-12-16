@@ -15,11 +15,11 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api/v1/events': {
-        target: 'http://localhost:4000',
+        target: process.env.BACKEND_URL || 'http://localhost:4000',
         changeOrigin: true,
       },
       '/api/v1': {
-        target: 'http://localhost:4000',
+        target: process.env.BACKEND_URL || 'http://localhost:4000',
         changeOrigin: true,
       },
     },
