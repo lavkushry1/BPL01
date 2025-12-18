@@ -319,7 +319,8 @@ const IPLTickets = () => {
 
               {/* Use API teams if available, fallback to parsed team names */}
               {teamOptions.map((team) => {
-                const teamName = typeof team === 'string' ? team : team.shortName;
+                const teamName = typeof team === 'string' ? team : team.name;
+                const teamLabel = typeof team === 'string' ? team : team.shortName;
                 const teamColor = typeof team === 'string' ? undefined : team.primaryColor;
                 return (
                   <Button
@@ -330,7 +331,7 @@ const IPLTickets = () => {
                     style={teamColor && filter === teamName ? { backgroundColor: teamColor, borderColor: teamColor } : {}}
                     onClick={() => setFilter(teamName)}
                   >
-                    {typeof team === 'string' ? team : team.shortName}
+                    {teamLabel}
                   </Button>
                 );
               })}

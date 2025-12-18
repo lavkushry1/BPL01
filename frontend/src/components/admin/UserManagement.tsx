@@ -183,8 +183,8 @@ const UserManagement = () => {
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? "secondary" : "outline"}>
-                        {user.role === 'admin' ? 'Admin' : 'User'}
+                      <Badge variant={user.role?.toLowerCase() === 'admin' ? "secondary" : "outline"}>
+                        {user.role?.toLowerCase() === 'admin' ? 'Admin' : 'User'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -205,15 +205,15 @@ const UserManagement = () => {
                       <Button
                         variant="ghost"
                         onClick={() => handleToggleRole(user.id, user.role)}
-                        className={user.role === 'admin' ? "text-blue-500 hover:text-blue-700" : "text-violet-500 hover:text-violet-700"}
+                        className={user.role?.toLowerCase() === 'admin' ? "text-blue-500 hover:text-blue-700" : "text-violet-500 hover:text-violet-700"}
                         size="sm"
                       >
-                        {user.role === 'admin' ? (
+                        {user.role?.toLowerCase() === 'admin' ? (
                           <UserX className="h-4 w-4 mr-1" />
                         ) : (
                           <UserCheck className="h-4 w-4 mr-1" />
                         )}
-                        {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                        {user.role?.toLowerCase() === 'admin' ? 'Remove Admin' : 'Make Admin'}
                       </Button>
                     </TableCell>
                   </TableRow>

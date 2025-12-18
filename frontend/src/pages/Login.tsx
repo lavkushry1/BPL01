@@ -25,7 +25,7 @@ const Login = () => {
   useEffect(() => {
     if (isAuthenticated) {
       // If user is already authenticated, redirect them
-      const redirectPath = user?.role === 'admin' ? '/admin/dashboard' : '/';
+      const redirectPath = user?.role?.toLowerCase() === 'admin' ? '/admin/dashboard' : '/';
       navigate(redirectPath, { replace: true });
     }
   }, [isAuthenticated, navigate, user]);
@@ -48,7 +48,7 @@ const Login = () => {
       });
 
       // Redirect based on role
-      if (userData.role === 'admin') {
+      if (userData.role?.toLowerCase() === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
         navigate(from, { replace: true });

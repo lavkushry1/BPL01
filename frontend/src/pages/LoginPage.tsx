@@ -27,11 +27,11 @@ const LoginPage = () => {
   const location = useLocation();
   
   // Get the intended destination from the state or default to admin dashboard
-  const from = location.state?.from?.pathname || '/admin/settings';
+  const from = location.state?.from?.pathname || '/admin/dashboard';
   
   // If user is already authenticated and is admin, redirect to admin dashboard
-  if (isAuthenticated && user?.role === 'admin') {
-    return <Navigate to="/admin/settings" replace />;
+  if (isAuthenticated && user?.role?.toLowerCase() === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   // Initialize form with react-hook-form
@@ -49,7 +49,7 @@ const LoginPage = () => {
     try {
       const response = await login(data.email, data.password);
       
-      if (response.user.role !== 'admin') {
+      if (response.user.role?.toLowerCase() !== 'admin') {
         toast({
           title: "Access Denied",
           description: "Only administrators can access this system",
@@ -64,7 +64,7 @@ const LoginPage = () => {
       });
       
       // Navigate to the admin dashboard
-      navigate('/admin/settings', { replace: true });
+      navigate(from, { replace: true });
     } catch (error) {
       console.error('Admin login failed:', error);
       toast({

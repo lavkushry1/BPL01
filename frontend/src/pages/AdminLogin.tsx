@@ -19,13 +19,13 @@ const AdminLogin = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/admin/settings';
+  const from = location.state?.from?.pathname || '/admin/dashboard';
 
   // Redirect if already logged in as admin
   useEffect(() => {
-    if (isAuthenticated && user?.role === 'admin') {
+    if (isAuthenticated && user?.role?.toLowerCase() === 'admin') {
       // If user is already authenticated as admin, redirect to dashboard
-      navigate('/admin/settings', { replace: true });
+      navigate('/admin/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate, user]);
 
@@ -47,21 +47,14 @@ const AdminLogin = () => {
       const response = await login(email, password);
 
       const userData = response.user;
-      const accessToken = response.token;
 
       // Check if user is admin
-      if (userData?.role !== 'admin') {
+      if (userData?.role?.toLowerCase() !== 'admin') {
         throw new Error('Unauthorized: Admin access required');
       }
 
-      // Fix the type casting issue by creating a properly typed user object
-      const adminUser = {
-        ...userData,
-        role: 'admin' as 'admin'
-      };
-
-      setUser(adminUser);
-      setAccessToken(accessToken);
+      setUser(userData as any);
+      setAccessToken(response.token || '');
       setPersist(rememberDevice);
 
       toast({

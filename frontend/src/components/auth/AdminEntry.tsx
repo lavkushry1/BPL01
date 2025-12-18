@@ -1,7 +1,6 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
-import LoginPage from '@/pages/LoginPage';
 
 /**
  * AdminEntry serves as the gateway to the admin portal
@@ -10,14 +9,15 @@ import LoginPage from '@/pages/LoginPage';
  */
 const AdminEntry: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
 
   // If authenticated and admin, render the child routes (admin pages)
-  if (isAuthenticated && user?.role === 'admin') {
+  if (isAuthenticated && user?.role?.toLowerCase() === 'admin') {
     return <Outlet />;
   }
   
-  // If not authenticated or not admin, render the login form
-  return <LoginPage />;
+  // If not authenticated (or not admin), redirect to the dedicated admin login page
+  return <Navigate to="/admin-login" replace state={{ from: location }} />;
 };
 
-export default AdminEntry; 
+export default AdminEntry;

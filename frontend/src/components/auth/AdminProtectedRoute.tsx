@@ -28,11 +28,11 @@ const AdminProtectedRoute: React.FC = () => {
   // If not authenticated at all, redirect to admin login
   if (!isAuthenticated) {
     // Pass the current location so we can redirect back after login
-    return <Navigate to="/admin" replace state={{ from: location }} />;
+    return <Navigate to="/admin-login" replace state={{ from: location }} />;
   }
   
   // If authenticated but not an admin, show unauthorized message and redirect
-  if (!user || user.role.toLowerCase() !== 'admin') {
+  if (!user || user.role?.toLowerCase() !== 'admin') {
     // Show a toast message about insufficient permissions
     toast({
       title: "Access Denied",

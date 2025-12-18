@@ -1,30 +1,32 @@
 import { login as apiLogin, logout as apiLogout, AuthResponse, getCurrentUser } from '@/services/api/authApi';
 import React, { createContext, useEffect, useState } from 'react';
 
-type AdminUser = {
+type AppUser = {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  role: string;
 } | null;
 
 interface AuthContextType {
-  user: AdminUser;
+  user: AppUser;
   isLoading: boolean;
   persist: boolean;
-  setUser: React.Dispatch<React.SetStateAction<AdminUser>>;
+  accessToken: string;
+  setUser: React.Dispatch<React.SetStateAction<AppUser>>;
   setPersist: React.Dispatch<React.SetStateAction<boolean>>;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
-  setAccessToken: (token: string) => void; // Deprecated but kept for compatibility
+  setAccessToken: (token: string) => void; // For refresh/persist compatibility
 }
 
 const defaultValue: AuthContextType = {
   user: null,
   isLoading: true,
   persist: false,
+  accessToken: '',
   setUser: () => {},
   setPersist: () => {},
   isAuthenticated: false,
@@ -37,7 +39,8 @@ const defaultValue: AuthContextType = {
 const AuthContext = createContext<AuthContextType>(defaultValue);
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [user, setUser] = useState<AdminUser>(null);
+  const [user, setUser] = useState<AppUser>(null);
+  const [accessToken, setAccessToken] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   // Add persist state to remember user preference on page reload
@@ -59,7 +62,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             id: userData.id,
             email: userData.email,
             name: userData.name,
-            role: userData.role as 'admin' | 'user'
+            role: userData.role
           });
         } else {
           setUser(null);
@@ -90,7 +93,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         id: response.user.id,
         email: response.user.email,
         name: response.user.name,
-        role: response.user.role as 'admin' | 'user'
+        role: response.user.role
       });
     }
 
@@ -107,6 +110,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     } finally {
       // Always clear local state regardless of API success/failure
       setUser(null);
+      setAccessToken('');
     }
   };
 
@@ -121,7 +125,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           id: userData.id,
           email: userData.email,
           name: userData.name,
-          role: userData.role as 'admin' | 'user'
+          role: userData.role
         });
         return true;
       } else {
@@ -136,16 +140,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   const isAuthenticated = !!user;
 
-  // Deprecated: No-op for cookie auth
-  const setAccessToken = (token: string) => {
-    // No-op
-  };
-
   return (
     <AuthContext.Provider value={{
       user,
       isLoading,
       persist,
+      accessToken,
       setUser,
       setPersist,
       isAuthenticated,

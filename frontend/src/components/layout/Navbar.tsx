@@ -142,7 +142,7 @@ const Navbar = () => {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-white/10" />
-                  {user?.role === 'admin' && (
+                  {user?.role?.toLowerCase() === 'admin' && (
                     <DropdownMenuItem asChild className="focus:bg-blue-600/20 focus:text-blue-400 cursor-pointer">
                       <Link to="/admin/dashboard" className="flex items-center">
                         <Settings className="mr-2 h-4 w-4" />

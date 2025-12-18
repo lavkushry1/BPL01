@@ -61,7 +61,7 @@ const UserMenu = () => {
     return user.email.substring(0, 2).toUpperCase();
   };
 
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role?.toLowerCase() === 'admin';
 
   return (
     <DropdownMenu>
@@ -91,7 +91,7 @@ const UserMenu = () => {
         {isAdmin && (
           <>
             <DropdownMenuItem asChild>
-              <Link to="/admin/settings" className="cursor-pointer">
+              <Link to="/admin/dashboard" className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Admin Dashboard</span>
               </Link>

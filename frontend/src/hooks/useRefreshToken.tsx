@@ -21,17 +21,20 @@ const useRefreshToken = () => {
         withCredentials: true // Important: needed to include cookies in the request
       });
 
-      if (!response.data?.accessToken) {
+      const data = response.data?.data;
+      const newAccessToken = data?.accessToken || data?.token;
+
+      if (!newAccessToken) {
         throw new Error('No access token returned from refresh endpoint');
       }
 
       // Set the new access token and user
-      setAccessToken(response.data.accessToken);
-      if (response.data.user) {
-        setUser(response.data.user);
+      setAccessToken(newAccessToken);
+      if (data?.user) {
+        setUser(data.user);
       }
 
-      return response.data.accessToken;
+      return newAccessToken;
     } catch (error) {
       console.error('Error refreshing token:', error);
       // Clear user state on refresh failure
