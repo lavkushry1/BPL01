@@ -355,7 +355,7 @@ const Checkout = () => {
   const hasDiscount = discountAmount > 0;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen">
       <Navbar />
 
       <main className="flex-grow pt-16">
@@ -388,7 +388,7 @@ const Checkout = () => {
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold mb-2">{t('checkout.title')}</h1>
-            <p className="text-gray-600">Secure Checkout • 256-bit SSL Encrypted</p>
+            <p className="text-[var(--district-muted)]">Secure Checkout • 256-bit SSL Encrypted</p>
           </div>
 
           <Steps currentStep={currentStep} className="mb-8 max-w-3xl mx-auto">
@@ -523,7 +523,7 @@ const Checkout = () => {
                           </Label>
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-between bg-gray-50/50 p-6">
+                      <CardFooter className="flex justify-between bg-white/5 p-6 border-t border-[var(--district-border)]">
                         <Button
                           variant="outline"
                           onClick={() => navigate('/events')}
@@ -566,7 +566,7 @@ const Checkout = () => {
                         <div className="flex flex-col md:flex-row gap-6">
                           <div className="flex-1 flex justify-center items-start">
                             {paymentConfig?.upiQrCodeUrl ? (
-                              <div className="bg-white p-4 rounded-xl border-2 border-dashed border-gray-200 shadow-sm max-w-[240px] mx-auto">
+                              <div className="bg-white/5 p-4 rounded-xl border-2 border-dashed border-[var(--district-border)] shadow-sm max-w-[240px] mx-auto">
                                 <img
                                   src={paymentConfig.upiQrCodeUrl}
                                   alt="UPI QR Code"
@@ -574,23 +574,23 @@ const Checkout = () => {
                                 />
                                 <div className="mt-3 text-center">
                                   <Badge className="bg-orange-500 hover:bg-orange-600 mb-1">UPI</Badge>
-                                  <div className="text-xs text-gray-500">{t('payment.scanToPayUpi')}</div>
+                                  <div className="text-xs text-[var(--district-muted)]">{t('payment.scanToPayUpi')}</div>
                                 </div>
                               </div>
                             ) : (
-                              <div className="bg-gray-100 p-4 rounded-md border max-w-[220px] mx-auto flex items-center justify-center h-[220px]">
-                                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                              <div className="bg-white/5 p-4 rounded-md border border-[var(--district-border)] max-w-[220px] mx-auto flex items-center justify-center h-[220px]">
+                                <Loader2 className="h-6 w-6 animate-spin text-[var(--district-muted)]" />
                               </div>
                             )}
                           </div>
 
                           <div className="flex-1 space-y-4">
-                            <div className="rounded-lg border p-4 bg-gray-50">
-                              <div className="text-sm font-medium mb-3 text-gray-700">{t('payment.payeeDetails')}</div>
+                            <div className="rounded-lg border border-[var(--district-border)] p-4 bg-white/5">
+                              <div className="text-sm font-medium mb-3 text-[var(--district-text)]">{t('payment.payeeDetails')}</div>
                               {paymentConfig ? (
                                 <div className="space-y-3">
-                                  <div className="flex justify-between items-center text-sm p-2 bg-white rounded border">
-                                    <span className="text-gray-500">{t('payment.merchantVPA')}</span>
+                                  <div className="flex justify-between items-center text-sm p-2 bg-white/5 rounded border border-[var(--district-border)]">
+                                    <span className="text-[var(--district-muted)]">{t('payment.merchantVPA')}</span>
                                     <div className="flex items-center gap-1">
                                       <code className="font-mono text-xs">{paymentConfig.upiVpa}</code>
                                       <Button
@@ -606,7 +606,7 @@ const Checkout = () => {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="text-sm text-gray-500">Loading payment details...</div>
+                                <div className="text-sm text-[var(--district-muted)]">Loading payment details...</div>
                               )}
                             </div>
 
@@ -615,7 +615,7 @@ const Checkout = () => {
                                 <Label htmlFor="utr" className="text-base font-medium">
                                   {t('payment.submitUTR')}
                                 </Label>
-                                <p className="text-sm text-gray-500 mb-2">
+                                <p className="text-sm text-[var(--district-muted)] mb-2">
                                   {t('payment.utrDescription')}
                                 </p>
                                 <Input
@@ -626,7 +626,7 @@ const Checkout = () => {
                                   disabled={!paymentConfig}
                                   className="border-blue-200 focus:border-blue-500"
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-[var(--district-muted)] mt-1">
                                   {t('payment.utrHelp')}
                                 </p>
                               </div>
@@ -642,7 +642,7 @@ const Checkout = () => {
                           />
                         </div>
                       </CardContent>
-                      <CardFooter className="flex justify-between bg-gray-50/50 p-6">
+                      <CardFooter className="flex justify-between bg-white/5 p-6 border-t border-[var(--district-border)]">
                         <Button
                           variant="outline"
                           onClick={handlePrevStep}
@@ -690,7 +690,7 @@ const Checkout = () => {
                     </div>
                   ) : (
                     <div className={cn("flex gap-3", isRTL ? "flex-row-reverse" : "")}>
-                      <div className="rounded-md overflow-hidden w-20 h-20 bg-gray-100 flex-shrink-0">
+                      <div className="rounded-md overflow-hidden w-20 h-20 bg-white/10 flex-shrink-0">
                         <img
                           src="https://placehold.co/100x100"
                           alt={bookingData.eventTitle}
@@ -703,15 +703,15 @@ const Checkout = () => {
                   <div>
                     <h3 className="font-bold text-lg mb-1">{bookingData.eventTitle}</h3>
                     <div className="space-y-2 mt-3">
-                      <div className="text-sm text-gray-700 flex items-center p-2 bg-gray-50 rounded">
+                      <div className="text-sm text-[var(--district-text)] flex items-center p-2 bg-white/5 rounded border border-[var(--district-border)]">
                         <Calendar className="w-4 h-4 mr-2 text-blue-500" />
                         {bookingData.eventDate}
                       </div>
-                      <div className="text-sm text-gray-700 flex items-center p-2 bg-gray-50 rounded">
+                      <div className="text-sm text-[var(--district-text)] flex items-center p-2 bg-white/5 rounded border border-[var(--district-border)]">
                         <Clock className="w-4 h-4 mr-2 text-blue-500" />
                         {bookingData.eventTime}
                       </div>
-                      <div className="text-sm text-gray-700 flex items-center p-2 bg-gray-50 rounded">
+                      <div className="text-sm text-[var(--district-text)] flex items-center p-2 bg-white/5 rounded border border-[var(--district-border)]">
                         <MapPin className="w-4 h-4 mr-2 text-blue-500" />
                         <span className="truncate">{bookingData.venue}</span>
                       </div>
@@ -723,7 +723,7 @@ const Checkout = () => {
                   <div className="space-y-3">
                     {bookingData.tickets.map((ticket, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-[var(--district-text)]">
                           {ticket.quantity} × {ticket.category}
                         </span>
                         <span>{formatCurrency(ticket.subtotal)}</span>
@@ -748,10 +748,10 @@ const Checkout = () => {
                   )}
 
                   <div className="flex justify-between items-end border-t pt-4">
-                    <span className="font-bold text-gray-600">{t('checkout.total')}</span>
+                    <span className="font-bold text-[var(--district-text)]">{t('checkout.total')}</span>
                     <div className="text-right">
                       {hasDiscount && (
-                        <div className="line-through text-gray-400 text-sm font-normal">
+                        <div className="line-through text-[var(--district-muted)] text-sm font-normal">
                           {formatCurrency(originalTotal)}
                         </div>
                       )}
@@ -759,7 +759,7 @@ const Checkout = () => {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="bg-gray-50 rounded-b-xl text-xs text-gray-500 text-center p-4">
+                <CardFooter className="bg-white/5 rounded-b-xl text-xs text-[var(--district-muted)] text-center p-4 border-t border-[var(--district-border)]">
                   Prices include all applicable taxes and fees.
                 </CardFooter>
               </Card>

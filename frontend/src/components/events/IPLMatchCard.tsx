@@ -85,7 +85,7 @@ const IPLMatchCard = ({
 
   return (
     <motion.div
-      className="group relative h-full flex flex-col overflow-hidden rounded-3xl bg-slate-900/60 border border-white/10 shadow-lg backdrop-blur-sm hover:border-white/20 transition-all duration-300"
+      className="group relative h-full flex flex-col overflow-hidden rounded-3xl district-panel border-[var(--district-border)] shadow-2xl backdrop-blur-sm hover:shadow-[0_20px_60px_rgba(0,0,0,0.35)] transition-all duration-300"
       whileHover={{ y: -5 }}
     >
       {/* Featured Ribbon - Modern Glass Style */}
@@ -99,7 +99,7 @@ const IPLMatchCard = ({
 
       {/* Poster Image Area */}
       <div className="relative w-full aspect-[4/3] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10 opacity-90" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent z-10" />
         <img
           src={imgError ? fallbackImg : posterUrl}
           alt={getAltText()}
@@ -110,7 +110,7 @@ const IPLMatchCard = ({
 
         {/* Teams VS Badge Floating */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-max max-w-[90%]">
-          <div className="flex items-center gap-4 bg-slate-950/80 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-xl">
+          <div className="flex items-center gap-4 bg-slate-950/80 backdrop-blur-md px-6 py-2 rounded-full border border-[var(--district-border)] shadow-xl">
             <img src={teams.team1.logo} alt={teams.team1.name} className="w-8 h-8 object-contain" />
             <span className="text-slate-400 font-bold text-xs">VS</span>
             <img src={teams.team2.logo} alt={teams.team2.name} className="w-8 h-8 object-contain" />
@@ -119,36 +119,36 @@ const IPLMatchCard = ({
       </div>
 
       {/* Content */}
-      <div className="flex flex-col flex-grow p-6 pt-2">
+      <div className="flex flex-col flex-grow p-6 pt-2 text-[var(--district-text)]">
         {/* Date & Location */}
-        <div className="flex items-center justify-between text-xs font-medium text-slate-400 mb-3">
+        <div className="flex items-center justify-between text-xs font-medium text-[var(--district-muted)] mb-3">
           <div className="flex items-center">
-            <Calendar className="h-3.5 w-3.5 mr-1.5 text-blue-400" />
+            <Calendar className="h-3.5 w-3.5 mr-1.5 text-[var(--district-accent)]" />
             <span>{formattedDate}</span>
             </div>
           <div className="flex items-center">
-            <MapPin className="h-3.5 w-3.5 mr-1.5 text-purple-400" />
+            <MapPin className="h-3.5 w-3.5 mr-1.5 text-[var(--district-accent-strong)]" />
             <span className="truncate max-w-[100px]">{venue.split(',')[0]}</span>
           </div>
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-bold text-white mb-1 line-clamp-1 group-hover:text-blue-400 transition-colors">
+        <h3 className="text-lg font-black mb-1 line-clamp-1 group-hover:text-[var(--district-accent)] transition-colors">
           {teams.team1.shortName} vs {teams.team2.shortName}
         </h3>
-        <p className="text-sm text-slate-400 line-clamp-1 mb-6">{title}</p>
+        <p className="text-sm text-[var(--district-muted)] line-clamp-1 mb-6">{title}</p>
 
         {/* Price and Action */}
-        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+        <div className="mt-auto pt-4 border-t border-[var(--district-border)] flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-500 mb-0.5">Tickets from</p>
-            <p className="text-xl font-bold text-white">₹{startingPrice.toLocaleString('en-IN')}</p>
+            <p className="text-xs text-[var(--district-muted)] mb-0.5">Tickets from</p>
+            <p className="text-xl font-extrabold">₹{startingPrice.toLocaleString('en-IN')}</p>
           </div>
 
           <Link to={`/matches/${id}`} onClick={handleErrorIfNoId}>
             <Button
               size="sm"
-              className="rounded-full bg-white text-slate-950 hover:bg-blue-500 hover:text-white font-bold transition-all px-6"
+              className="district-button-primary !rounded-full px-6 py-2"
             >
               Book
             </Button>

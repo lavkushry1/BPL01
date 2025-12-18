@@ -219,6 +219,11 @@ button {
   border-width: 0;
 }
 
+.district-theme body {
+  background: var(--district-bg);
+  color: var(--district-text);
+}
+
 /* District-inspired dual theme (light/dark) for stadium + seat selection */
 .district-theme {
   --district-bg: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.08), transparent 28%), linear-gradient(135deg, #0f172a, #111827);
@@ -236,6 +241,25 @@ button {
   --district-seat-locked: linear-gradient(135deg, #ef4444, #f97316);
   --district-glow: 0 0 0 1px rgba(34, 211, 238, 0.25), 0 12px 40px rgba(34, 211, 238, 0.12);
   color: var(--district-text);
+
+  /* Override shadcn/tailwind CSS variables */
+  --background: rgba(12, 18, 32, 0.92);
+  --foreground: var(--district-text);
+  --card: var(--district-panel);
+  --card-foreground: var(--district-text);
+  --popover: var(--district-panel-strong);
+  --popover-foreground: var(--district-text);
+  --primary: var(--district-accent);
+  --primary-foreground: #0b1224;
+  --secondary: var(--district-panel-strong);
+  --secondary-foreground: var(--district-text);
+  --muted: var(--district-panel);
+  --muted-foreground: var(--district-muted);
+  --accent: var(--district-accent-strong);
+  --accent-foreground: #0b1224;
+  --border: var(--district-border);
+  --input: var(--district-border);
+  --ring: var(--district-accent);
 }
 
 .district-theme.district-light {
@@ -251,6 +275,24 @@ button {
   --district-seat-booked: #e2e8f0;
   --district-seat-locked: linear-gradient(135deg, #f97316, #f59e0b);
   --district-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+
+  --background: #eef2ff;
+  --foreground: #0f172a;
+  --card: var(--district-panel);
+  --card-foreground: #0f172a;
+  --popover: var(--district-panel-strong);
+  --popover-foreground: #0f172a;
+  --primary: var(--district-accent);
+  --primary-foreground: #0b1224;
+  --secondary: var(--district-panel-strong);
+  --secondary-foreground: #0f172a;
+  --muted: #e2e8f0;
+  --muted-foreground: var(--district-muted);
+  --accent: var(--district-accent-strong);
+  --accent-foreground: #0b1224;
+  --border: var(--district-border);
+  --input: var(--district-border);
+  --ring: var(--district-accent);
 }
 
 .district-shell {

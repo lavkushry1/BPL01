@@ -169,7 +169,7 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
+    <Card className={cn("overflow-hidden flex flex-col h-full district-panel border-[var(--district-border)] text-[var(--district-text)] shadow-xl transition-all duration-300 hover:shadow-2xl", className)}>
       <div className="relative">
         {/* Event image */}
         <img
@@ -183,13 +183,13 @@ const EventCard: React.FC<EventCardProps> = ({
         />
 
         {/* Category badge */}
-        <Badge className="absolute top-3 right-3 bg-primary/80 hover:bg-primary">
+        <Badge className="absolute top-3 right-3 bg-white/10 border border-[var(--district-border)] text-[var(--district-text)] backdrop-blur-sm">
           {t(`categories.${event.category.toLowerCase().replace(/ & /g, 'And')}`, event.category)}
         </Badge>
 
         {/* Source badge (if admin or mock) */}
         {sourceInfo && ['admin', 'mock'].includes(event.source || '') && (
-          <Badge className={cn("absolute top-3 left-3", sourceInfo.className)}>
+          <Badge className={cn("absolute top-3 left-3 border border-[var(--district-border)] bg-white/10 text-[var(--district-text)]", sourceInfo.className)}>
             {sourceInfo.label === 'Admin' ? 'Admin Event' : sourceInfo.label}
           </Badge>
         )}
@@ -197,19 +197,19 @@ const EventCard: React.FC<EventCardProps> = ({
         {/* Status badges */}
         <div className="absolute bottom-3 left-3 flex gap-2">
           {isUpcoming() && (
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
+            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-100 border-emerald-300/40">
               Upcoming
             </Badge>
           )}
 
           {isSellingFast() && !soldOut && (
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-300">
+            <Badge variant="secondary" className="bg-orange-500/20 text-orange-100 border-orange-300/40">
               Selling Fast
             </Badge>
           )}
 
           {soldOut && (
-            <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-300">
+            <Badge variant="secondary" className="bg-red-500/20 text-red-100 border-red-300/40">
               Sold Out
             </Badge>
           )}
@@ -218,9 +218,9 @@ const EventCard: React.FC<EventCardProps> = ({
 
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <h3 className="text-lg font-bold line-clamp-2">{event.title}</h3>
+          <h3 className="text-lg font-black line-clamp-2">{event.title}</h3>
           {event.source === 'admin' && (
-            <div className="flex items-center text-xs text-amber-600 ml-2">
+            <div className="flex items-center text-xs text-amber-300 ml-2">
               <Database className="h-3 w-3 mr-1" />
               Admin
             </div>
@@ -229,34 +229,34 @@ const EventCard: React.FC<EventCardProps> = ({
       </CardHeader>
 
       <CardContent className="flex-grow">
-        <p className="text-muted-foreground text-sm mb-4">
+        <p className="text-sm mb-4 text-[var(--district-muted)]">
           {truncateDescription(event.description)}
         </p>
 
         <div className="space-y-2 mt-auto">
           {/* Date */}
           <div className="flex items-start text-sm">
-            <Calendar className="h-4 w-4 mr-2 mt-0.5 text-primary" />
+            <Calendar className="h-4 w-4 mr-2 mt-0.5 text-[var(--district-accent)]" />
             <span>{formattedDate}</span>
           </div>
 
           {/* Location */}
           <div className="flex items-start text-sm">
-            <MapPin className="h-4 w-4 mr-2 mt-0.5 text-primary" />
+            <MapPin className="h-4 w-4 mr-2 mt-0.5 text-[var(--district-accent)]" />
             <span>{event.venue}</span>
           </div>
         </div>
       </CardContent>
 
       <CardFooter className="flex justify-between items-center pt-2 pb-4">
-        <div className="font-bold">₹{minPrice?.toLocaleString()}</div>
+        <div className="font-extrabold text-lg">₹{minPrice?.toLocaleString()}</div>
         <div className="flex gap-2">
           <Link to={`/events/${event.id}`} onClick={showErrorIfNoId}>
-            <Button variant="outline" className="focus:ring-2 focus:ring-primary focus:ring-offset-2">View Details</Button>
+            <Button variant="outline" className="district-chip !rounded-full !border-[var(--district-border)]">View Details</Button>
           </Link>
           {!soldOut && (
             <Link to={`/events/${event.id}`} onClick={showErrorIfNoId}>
-              <Button className="focus:ring-2 focus:ring-primary focus:ring-offset-2">Book Now</Button>
+              <Button className="district-button-primary !rounded-full">Book Now</Button>
             </Link>
           )}
         </div>

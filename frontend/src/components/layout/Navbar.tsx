@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { useTheme } from '@/hooks/use-theme';
 import useAuth from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -17,7 +16,6 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const { t } = useTranslation();
   const location = useLocation();
-  const { theme, setTheme } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
 
   const toggleMenu = () => {
@@ -113,6 +111,9 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             <div className="hidden sm:block">
               <LanguageSwitcher />
+            </div>
+            <div className="hidden sm:block">
+              <ThemeToggle />
             </div>
 
             {/* Show UserMenu or login button based on auth state */}

@@ -265,12 +265,21 @@ const App = () => {
     });
   }, []);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const stored = localStorage.getItem('district_theme');
+    const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+    const chosen = stored === 'light' || stored === 'dark' ? stored : prefersLight ? 'light' : 'dark';
+    root.classList.add('district-theme', chosen === 'light' ? 'district-light' : 'district-dark');
+    root.classList.remove(chosen === 'light' ? 'district-dark' : 'district-light');
+  }, []);
+
   return (
-    <>
+    <div className="district-shell min-h-screen">
       <AnimatedRoutes />
       <Toaster />
       <Sonner />
-    </>
+    </div>
   );
 };
 
