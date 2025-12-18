@@ -36,6 +36,7 @@ import Index from "./pages/Index";
 import StadiumBooking from "./pages/ipl/StadiumBooking";
 import IPLTickets from "./pages/IPLTickets";
 import Login from "./pages/Login";
+import MatchSeatSelection from "./pages/MatchSeatSelection";
 import NotFound from "./pages/NotFound";
 import Payment from "./pages/Payment";
 import Profile from "./pages/Profile";
@@ -149,6 +150,12 @@ const AnimatedRoutes = () => {
         <Route path="/ipl-tickets" element={
           <SafeTransition>
             <IPLTickets />
+          </SafeTransition>
+        } />
+
+        <Route path="/matches/:id" element={
+          <SafeTransition>
+            <MatchSeatSelection />
           </SafeTransition>
         } />
 

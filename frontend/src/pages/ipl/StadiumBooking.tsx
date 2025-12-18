@@ -14,6 +14,7 @@ const StadiumBooking = () => {
   const { toast } = useToast();
   const [view, setView] = useState<'stadium' | 'seat'>('stadium');
   const [selectedStand, setSelectedStand] = useState<any>(null);
+  const [selectedSeats, setSelectedSeats] = useState<any[]>([]);
 
   const { data: match, isLoading, isError } = useQuery({
     queryKey: ['iplMatch', matchId],
@@ -22,16 +23,35 @@ const StadiumBooking = () => {
     staleTime: 60 * 1000,
   });
 
-  const handleStandSelect = (stand: any) => {
-    console.log('Stand selected:', stand);
-    setSelectedStand(stand);
+  // 2. Fetch Seats when a stand is selected
+  const { data: seatsData, isLoading: isLoadingSeats } = useQuery({
+    queryKey: ['iplSeats', matchId, selectedStand?.id],
+    queryFn: () => getSeatsByMatchAndStand(matchId!, selectedStand?.id),
+    enabled: !!matchId && !!selectedStand?.id && view === 'seat',
+    staleTime: 10 * 1000,
+  });
 
-    // Simulate navigation to seat view
-    toast({
-      title: `Selected ${stand.name}`,
-      description: "Zooming into seat selection...",
-    });
-    // setView('seat'); // TODO: Implement Seat Layout
+  const handleStandSelect = (stand: any) => {
+    setSelectedStand(stand);
+    setView('seat');
+  };
+
+  const handleSeatSelect = (seat: any) => {
+    // Toggle selection
+    const isSelected = selectedSeats.some(s => s.id === seat.id);
+    if (isSelected) {
+      setSelectedSeats(prev => prev.filter(s => s.id !== seat.id));
+    } else {
+      if (selectedSeats.length >= 6) {
+        toast({
+          title: "Limit Reached",
+          description: "You can select up to 6 seats.",
+          variant: "destructive"
+        });
+        return;
+      }
+      setSelectedSeats(prev => [...prev, seat]);
+    }
   };
 
   if (isLoading) {
@@ -97,12 +117,24 @@ const StadiumBooking = () => {
                 />
              </div>
            ) : (
-             <div>
-                {/* Seat Layout Placeholder */}
-                <Button onClick={() => setView('stadium')}>Back to Map</Button>
-                <div className="mt-8 p-12 border border-dashed border-slate-700 rounded-xl text-center">
-                  Micro Seat View for {selectedStand?.name} Coming Soon
+              <div className="animate-in zoom-in-95 duration-300">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold">{selectedStand?.name}</h2>
+                    <p className="text-sm text-slate-400">{selectedStand?.type}</p>
+                  </div>
+                  <Button variant="outline" onClick={() => setView('stadium')}>
+                    Change Stand
+                  </Button>
                 </div>
+
+                <SeatLayout
+                  standName={selectedStand?.name}
+                  seats={seatsData || []}
+                  isLoading={isLoadingSeats}
+                  onSeatSelect={handleSeatSelect}
+                  selectedSeats={selectedSeats}
+                />
              </div>
            )}
         </div>

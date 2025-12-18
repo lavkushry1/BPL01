@@ -29,12 +29,21 @@ export interface SeatDetail {
   };
 }
 
+export interface MatchLayoutResponse {
+  stadium: {
+    id: string;
+    name: string;
+    viewBox: string | null;
+  };
+  stands: StandSummary[];
+}
+
 export class LayoutService {
   /**
    * Step 1: Get the Macro View (Stadium Layout)
    * Aggregates Pricing and Availability per Stand.
    */
-  static async getMatchLayout(matchId: string): Promise<StandSummary[]> {
+  static async getMatchLayout(matchId: string): Promise<MatchLayoutResponse> {
     // 1. Fetch Match and linked Event + Stadium
     const match = await prisma.iplMatch.findUnique({
       where: { id: matchId },
@@ -58,7 +67,7 @@ export class LayoutService {
       throw new Error('Match layout not found (Missing Event or Stadium configuration)');
     }
 
-    const { stands } = match.event.stadium;
+    const { stands, ...stadium } = match.event.stadium;
     const { ticketCategories } = match.event;
 
     // 2. Build Summary per Stand
@@ -113,7 +122,14 @@ export class LayoutService {
       });
     }
 
-    return standSummaries;
+    return {
+      stadium: {
+        id: stadium.id,
+        name: stadium.name,
+        viewBox: stadium.svgViewBox
+      },
+      stands: standSummaries
+    };
   }
 
   /**
