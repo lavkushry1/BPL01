@@ -337,7 +337,7 @@ export class IplService {
       },
       orderBy: [
         { row: 'asc' },
-        { number: 'asc' }
+        { seatNumber: 'asc' }
       ]
     });
   }

@@ -551,4 +551,65 @@ router.post('/matches/:id/book', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/ipl/matches/{id}/layout:
+ *   get:
+ *     summary: Get stadium layout (stands/zones) for a match with pricing
+ *     tags: [IPL]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Match ID
+ *     responses:
+ *       200:
+ *         description: List of stands with SVG paths and pricing
+ */
+router.get('/matches/:id/layout', async (req: Request, res: Response) => {
+  try {
+    // Lazy import
+    const { LayoutService } = await import('../services/layout.service');
+    const layout = await LayoutService.getMatchLayout(req.params.id);
+    res.json({ success: true, data: layout });
+  } catch (error: any) {
+    console.error('Error fetching match layout:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to fetch layout' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/ipl/matches/{id}/zones/{zoneId}/seats:
+ *   get:
+ *     summary: Get seats for a specific zone (stand) in a match
+ *     tags: [IPL]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: zoneId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of seats with status and grid coordinates
+ */
+router.get('/matches/:id/zones/:zoneId/seats', async (req: Request, res: Response) => {
+  try {
+    const { LayoutService } = await import('../services/layout.service');
+    const seats = await LayoutService.getZoneSeats(req.params.id, req.params.zoneId);
+    res.json({ success: true, data: seats });
+  } catch (error: any) {
+    console.error('Error fetching zone seats:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to fetch seats' });
+  }
+});
+
 export default router;

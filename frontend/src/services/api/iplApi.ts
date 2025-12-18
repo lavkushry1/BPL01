@@ -191,6 +191,22 @@ export const getCitiesWithMatches = async (): Promise<CityWithMatches[]> => {
   }
 };
 
+/**
+ * Get seats for a match, optionally filtered by stand
+ */
+export const getSeatsByMatchAndStand = async (matchId: string, standId?: string): Promise<any[]> => {
+  try {
+    const params: any = {};
+    if (standId) params.standId = standId;
+
+    const response = await defaultApiClient.get(`/ipl/matches/${matchId}/seats`, { params });
+    return unwrapApiResponse<any[]>(response) || [];
+  } catch (error) {
+    console.error('Error fetching seats:', error);
+    return [];
+  }
+};
+
 export default {
   getIplTeams,
   getIplTeamById,

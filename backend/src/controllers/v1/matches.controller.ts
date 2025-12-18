@@ -51,7 +51,8 @@ export class MatchesControllerV1 {
     matchIdParamSchema.parse({ params: req.params });
 
     const { matchId } = req.params;
-    const requesterId = req.user?.id || null;
+    const requesterId =
+      req.user?.id || (typeof req.query.lockerId === 'string' ? req.query.lockerId : null);
 
     const event = await prisma.event.findUnique({
       where: { id: matchId },
@@ -322,4 +323,3 @@ export class MatchesControllerV1 {
     });
   });
 }
-

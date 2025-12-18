@@ -12,7 +12,9 @@ const matchIdParamSchema = z.object({
   params: z.object({
     matchId: z.string().uuid()
   }),
-  query: z.object({}).optional(),
+  query: z.object({
+    lockerId: z.string().min(3).optional()
+  }).optional(),
   body: z.object({}).optional()
 });
 
@@ -67,4 +69,3 @@ router.post(
 );
 
 export default router;
-
