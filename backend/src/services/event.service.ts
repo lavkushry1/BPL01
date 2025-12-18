@@ -1,5 +1,6 @@
 import { EventStatus, Prisma } from '@prisma/client';
 import { eventRepository } from '../repositories/event.repository';
+import prisma from '../db/prisma';
 import { transactionService } from './transaction.service';
 import { ApiError } from '../utils/apiError';
 import { logger } from '../utils/logger';
@@ -71,8 +72,8 @@ export class EventService {
         throw ApiError.notFound('Event not found', 'EVENT_NOT_FOUND');
       }
 
-      // Generate mock seat map for the event (this would normally come from a seat service)
-      const seatMap = this.generateMockSeatMap(event);
+      // Prefer a real seat map derived from DB seats; fall back to a mock map if none exist.
+      const seatMap = (await this.generateSeatMapFromDb(event.id)) || this.generateMockSeatMap(event);
       
       // Transform to DTO with additional frontend-specific fields
       const enhancedEvent: EventDTO = {
@@ -442,6 +443,112 @@ export class EventService {
         }
       ]
     };
+  }
+
+  /**
+   * Generate a seat map from seats stored in the database.
+   * Falls back to null if no seats exist for the event.
+   */
+  private async generateSeatMapFromDb(eventId: string): Promise<SeatMapDTO | null> {
+    try {
+      const seats = await prisma.seat.findMany({
+        where: {
+          eventId,
+          isDeleted: false
+        },
+        select: {
+          id: true,
+          label: true,
+          section: true,
+          row: true,
+          seatNumber: true,
+          status: true,
+          price: true
+        }
+      });
+
+      if (!seats || seats.length === 0) {
+        return null;
+      }
+
+      const slug = (value: string) =>
+        value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '') || 'unknown';
+
+      const statusToDto = (status: string): 'available' | 'reserved' | 'booked' | 'unavailable' => {
+        switch (status) {
+          case 'AVAILABLE':
+            return 'available';
+          case 'BOOKED':
+          case 'SOLD':
+            return 'booked';
+          case 'LOCKED':
+          case 'PENDING':
+          case 'RESERVED':
+            return 'reserved';
+          case 'BLOCKED':
+          case 'MAINTENANCE':
+          default:
+            return 'unavailable';
+        }
+      };
+
+      // section -> row -> seats
+      const grouped: Record<string, Record<string, typeof seats>> = {};
+
+      for (const seat of seats) {
+        const sectionName = seat.section || 'General';
+        const rowName = seat.row || '';
+
+        if (!grouped[sectionName]) grouped[sectionName] = {};
+        if (!grouped[sectionName][rowName]) grouped[sectionName][rowName] = [];
+        grouped[sectionName][rowName].push(seat);
+      }
+
+      const sections = Object.entries(grouped)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([sectionName, rows]) => {
+          const rowEntries = Object.entries(rows).sort(([a], [b]) => a.localeCompare(b));
+
+          return {
+            id: `section-${slug(sectionName)}`,
+            name: sectionName,
+            rows: rowEntries.map(([rowName, rowSeats]) => {
+              const sortedSeats = [...rowSeats].sort((a, b) => {
+                const aNum = Number.parseInt(a.seatNumber || '', 10);
+                const bNum = Number.parseInt(b.seatNumber || '', 10);
+                const aHasNum = Number.isFinite(aNum);
+                const bHasNum = Number.isFinite(bNum);
+                if (aHasNum && bHasNum) return aNum - bNum;
+                return (a.seatNumber || a.label || a.id).localeCompare(b.seatNumber || b.label || b.id);
+              });
+
+              return {
+                id: `row-${slug(sectionName)}-${slug(rowName || 'row')}`,
+                name: rowName || '',
+                seats: sortedSeats.map(seat => ({
+                  id: seat.id,
+                  name: seat.seatNumber || seat.label || seat.id,
+                  status: statusToDto(String(seat.status)),
+                  price: seat.price ? Number.parseFloat(seat.price.toString()) : 0,
+                  category: sectionName
+                }))
+              };
+            })
+          };
+        });
+
+      return {
+        id: `seatmap-${eventId}`,
+        sections
+      };
+    } catch (error) {
+      logger.error(`Failed to generate seat map from DB for event ${eventId}:`, error);
+      return null;
+    }
   }
 
   /**

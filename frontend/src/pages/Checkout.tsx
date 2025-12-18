@@ -58,6 +58,7 @@ interface BookingData {
   eventTime: string;
   venue: string;
   bannerImage?: string;
+  seatIds?: string[];
   teams?: {
     team1: { name: string; logo: string; primaryColor?: string };
     team2: { name: string; logo: string; primaryColor?: string };
@@ -251,36 +252,39 @@ const Checkout = () => {
     setCurrentBookingId(null);
 
     try {
-      // Make a real API call to create the booking
-      // Note: We need to pass tickets array which our updated backend supports
-      const response = await createBooking({
-        eventId: bookingData?.eventId,
-        tickets: bookingData?.tickets.map(t => ({
-          categoryId: t.categoryId || 'default', // Map to categoryId
+      const booking = await createBooking({
+        eventId: bookingData.eventId,
+        seatIds: bookingData.seatIds,
+        tickets: bookingData.tickets.map(t => ({
+          category: t.category,
+          categoryId: t.categoryId,
           quantity: t.quantity,
-          price: t.price
+          price: t.price,
+          subtotal: t.subtotal
         })),
-        amount: bookingData?.totalAmount, // Ensure validation matches
-        payment_method: 'upi'
+        totalAmount: bookingData.totalAmount,
+        customerInfo: {
+          name: customerName,
+          email,
+          phone,
+          address: [address, city, pincode].filter(Boolean).join(', ')
+        }
       });
 
-      if (!response.success && !response.data) {
-        throw new Error(response.message || 'Failed to create booking.');
-      }
-
-      const bookingId = response.bookingId || response.data?.id;
+      const bookingId = booking.id;
 
       setCurrentBookingId(bookingId);
 
       // Store order data for confirmation page
       const orderData = {
         bookingId: bookingId,
-        eventTitle: bookingData?.eventTitle,
-        eventDate: bookingData?.eventDate,
-        eventTime: bookingData?.eventTime,
-        venue: bookingData?.venue,
-        tickets: bookingData?.tickets,
-        totalAmount: bookingData?.totalAmount,
+        eventTitle: bookingData.eventTitle,
+        eventDate: bookingData.eventDate,
+        eventTime: bookingData.eventTime,
+        venue: bookingData.venue,
+        seatIds: bookingData.seatIds,
+        tickets: bookingData.tickets,
+        totalAmount: bookingData.totalAmount,
         customerName,
         email,
         phone,

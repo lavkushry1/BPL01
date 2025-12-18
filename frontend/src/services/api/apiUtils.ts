@@ -75,7 +75,7 @@ defaultApiClient.interceptors.response.use(
         requestUrl.includes('/auth/csrf');
 
       // List of public routes that don't require auth
-      const publicRoutes = ['/', '/events', '/ipl', '/support', '/login', '/admin-login', '/register'];
+      const publicRoutes = ['/', '/events', '/ipl-tickets', '/support', '/login', '/admin-login', '/register'];
       const isPublicRoute = publicRoutes.some(route =>
         window.location.pathname === route || window.location.pathname.startsWith('/events/')
       );

@@ -176,12 +176,26 @@ const IPLTickets = () => {
   ];
 
   // Filter matches by team if filter is set
-  const filteredMatches = filter === 'all'
+  const parseCityFromVenue = (venue?: string) => {
+    if (!venue) return '';
+    const parts = venue.split(',');
+    return (parts[parts.length - 1] || '').trim();
+  };
+
+  const teamFilteredMatches = filter === 'all'
     ? iplMatches
     : iplMatches.filter(match =>
       match.teams?.team1?.name?.includes(filter) ||
       match.teams?.team2?.name?.includes(filter)
     );
+
+  const filteredMatches = cityFilter === 'all'
+    ? teamFilteredMatches
+    : teamFilteredMatches.filter(match => {
+      const city = parseCityFromVenue(match.venue);
+      return city.toLowerCase() === cityFilter.toLowerCase() ||
+        match.venue?.toLowerCase()?.includes(cityFilter.toLowerCase());
+    });
 
   // Get unique team names for filtering
   const teams = Array.from(new Set(
@@ -190,6 +204,20 @@ const IPLTickets = () => {
       match.teams?.team2?.name
     ].filter(Boolean))
   ));
+
+  const teamOptions = (teamsData && teamsData.length > 0) ? teamsData : teams;
+
+  // Derive cities from matches if IPL city API has no data
+  const derivedCities = Array.from(
+    filteredMatches.reduce((acc, match) => {
+      const city = parseCityFromVenue(match.venue);
+      if (!city) return acc;
+      acc.set(city, (acc.get(city) || 0) + 1);
+      return acc;
+    }, new Map<string, number>())
+  ).map(([city, matchCount]) => ({ city, state: '', matchCount }));
+
+  const cityOptions = (citiesData && citiesData.length > 0) ? citiesData : derivedCities;
 
   // Function to get image URL regardless of data source
   const getImageUrl = (match: IPLMatch) => {
@@ -259,7 +287,7 @@ const IPLTickets = () => {
               >
                 All Cities
               </Button>
-              {citiesData?.map((city) => (
+              {cityOptions.map((city) => (
                 <Button
                   key={city.city}
                   variant={cityFilter === city.city ? 'default' : 'outline'}
@@ -290,7 +318,7 @@ const IPLTickets = () => {
               </Button>
 
               {/* Use API teams if available, fallback to parsed team names */}
-              {(teamsData || teams).map((team) => {
+              {teamOptions.map((team) => {
                 const teamName = typeof team === 'string' ? team : team.shortName;
                 const teamColor = typeof team === 'string' ? undefined : team.primaryColor;
                 return (

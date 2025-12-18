@@ -181,7 +181,12 @@
     "ticketsDescription": "Select your ticket category and quantity",
     "seatsDescription": "Select your preferred seats from the map",
     "available": "Available",
-    "addToCart": "Add to Cart"
+    "addToCart": "Add to Cart",
+    "selectedSeats": "Selected Seats",
+    "modifySelection": "Modify Selection",
+    "similarEvents": "Similar Events",
+    "eventNotFound": "Event Not Found",
+    "browseEvents": "Browse Events"
   },
   "eventDetails": {
     "tickets": "Tickets",

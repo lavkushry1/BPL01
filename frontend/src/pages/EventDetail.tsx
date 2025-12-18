@@ -23,7 +23,6 @@
  * - After successful booking creation → Checkout page with booking ID
  * - User can also navigate back to Events listing
  */
-import SeatMap from '@/components/booking/SeatMap';
 import { EventDescription } from '@/components/events/EventDescription';
 import { EventHeader } from '@/components/events/EventHeader';
 import { EventImageGallery } from '@/components/events/EventImageGallery';
@@ -228,7 +227,9 @@ const EventDetail = () => {
             return {
               id: tt.id || `ticket-${Math.random().toString(36).slice(2, 11)}`,
               name: tt.name || tt.category || 'General',
-              price: typeof tt.price === 'string' ? Number.parseFloat(tt.price) : tt.price,
+              price: typeof tt.price === 'number'
+                ? tt.price
+                : Number.parseFloat(tt.price?.toString?.() ?? '0'),
               description: tt.description || '',
               availableQuantity,
               maxPerOrder: 10
@@ -832,11 +833,52 @@ const EventDetail = () => {
                               </div>
 
                               <div className="max-w-full overflow-x-auto pb-4">
-                                <SeatMap
-                                  seatMap={seatMap}
-                                  selectedSeats={selectedSeats}
-                                  onSeatSelect={toggleSeatSelection}
-                                />
+                                <div className="space-y-6">
+                                  {(seatMap.sections || []).map((section: any) => (
+                                    <div key={section.id || section.name} className="space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="font-semibold">{section.name}</h4>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        {(section.rows || []).map((row: any) => (
+                                          <div key={row.id || row.name} className="flex items-start gap-3">
+                                            <div className="w-8 pt-1 text-sm font-medium text-muted-foreground">
+                                              {row.name}
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                              {(row.seats || []).map((seat: any) => {
+                                                const isSelected = selectedSeats.some(s => s.id === seat.id);
+                                                const isAvailable = seat.status === 'available';
+                                                const isDisabled = !isAvailable && !isSelected;
+
+                                                return (
+                                                  <button
+                                                    key={seat.id || seat.name}
+                                                    type="button"
+                                                    disabled={isDisabled}
+                                                    onClick={() => toggleSeatSelection(seat.id, section.id, row.id, seat)}
+                                                    className={[
+                                                      "h-8 w-8 rounded-md text-xs font-medium border flex items-center justify-center transition-colors",
+                                                      isSelected
+                                                        ? "bg-primary text-primary-foreground border-primary"
+                                                        : isAvailable
+                                                          ? "bg-green-50 text-green-700 border-green-300 hover:bg-green-100"
+                                                          : "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
+                                                    ].join(" ")}
+                                                    title={`${section.name} ${row.name}${seat.name}${seat.price ? ` • ₹${seat.price}` : ''}`}
+                                                  >
+                                                    {seat.name}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
 
                               {selectedSeats.length > 0 && (

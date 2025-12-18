@@ -22,13 +22,14 @@ export interface PaymentData {
  */
 export interface BookingData {
   eventId: string;
-  eventTitle: string;
   tickets: {
     category: string;
+    categoryId?: string;
     quantity: number;
     price: number;
-    subtotal: number;
+    subtotal?: number;
   }[];
+  seatIds?: string[];
   totalAmount: number;
   customerInfo: {
     name: string;
@@ -36,10 +37,16 @@ export interface BookingData {
     phone: string;
     address: string;
   };
-  paymentInfo?: {
-    utrNumber: string;
-    verificationStatus: 'pending' | 'verified' | 'rejected';
-  };
+}
+
+export interface BookingRecord {
+  id: string;
+  event_id: string;
+  user_id: string;
+  status: string;
+  final_amount: number | string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -66,15 +73,12 @@ export const verifyUtrPayment = async (paymentData: PaymentData): Promise<{
  * @param bookingData - The booking data
  * @returns The created booking
  */
-export const createBooking = async (bookingData: BookingData): Promise<{
-  success: boolean;
-  bookingId?: string;
-  message: string;
-}> => {
+export const createBooking = async (bookingData: BookingData): Promise<BookingRecord> => {
   try {
     // Construct payload matching backend expectation
     const payload = {
       event_id: bookingData.eventId,
+      seat_ids: bookingData.seatIds && bookingData.seatIds.length > 0 ? bookingData.seatIds : undefined,
       tickets: bookingData.tickets.map(t => ({
         categoryId: (t as any).categoryId || t.category,
         quantity: t.quantity,
@@ -89,7 +93,7 @@ export const createBooking = async (bookingData: BookingData): Promise<{
     };
 
     const response = await apiClient.post('/bookings', payload);
-    return unwrapApiResponse(response);
+    return unwrapApiResponse<BookingRecord>(response);
   } catch (error) {
     console.error('Error creating booking:', error);
     throw new Error('Failed to create booking');
