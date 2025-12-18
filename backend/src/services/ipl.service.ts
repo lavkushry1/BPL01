@@ -314,6 +314,33 @@ export class IplService {
       take: limit
     });
   }
+  static async getSeatsByMatchId(matchId: string, standId?: string) {
+    const match = await prisma.iplMatch.findUnique({
+      where: { id: matchId },
+      include: { event: true }
+    });
+
+    if (!match || !match.event) return [];
+
+    let tierFilter = {};
+    if (standId) {
+      const stand = await prisma.iplStand.findUnique({ where: { id: standId } });
+      if (stand) {
+        tierFilter = { tier: stand.code };
+      }
+    }
+
+    return prisma.seat.findMany({
+      where: {
+        eventId: match.event.id,
+        ...tierFilter
+      },
+      orderBy: [
+        { row: 'asc' },
+        { number: 'asc' }
+      ]
+    });
+  }
 }
 
 export default IplService;

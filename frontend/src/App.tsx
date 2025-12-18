@@ -33,6 +33,7 @@ import Events from "./pages/Events";
 import EventSearch from "./pages/EventSearch";
 import ForgotPassword from "./pages/ForgotPassword";
 import Index from "./pages/Index";
+import StadiumBooking from "./pages/ipl/StadiumBooking";
 import IPLTickets from "./pages/IPLTickets";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,7 @@ import AdminLayout from '@/components/layout/AdminLayout';
 import AdminDashboard from '@/pages/AdminDashboard';
 import AdminUtrVerification from '@/pages/AdminUtrVerification';
 import SeatMapPreview from '@/pages/SeatMapPreview';
+
 import { fetchCsrfToken } from "./services/api/apiUtils";
 
 // Create a component for route handling that includes AnimatePresence
@@ -147,6 +149,12 @@ const AnimatedRoutes = () => {
         <Route path="/ipl-tickets" element={
           <SafeTransition>
             <IPLTickets />
+          </SafeTransition>
+        } />
+
+        <Route path="/ipl/book/:matchId" element={
+          <SafeTransition>
+            <StadiumBooking />
           </SafeTransition>
         } />
 

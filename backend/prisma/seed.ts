@@ -1,4 +1,4 @@
-import { BookingStatus, EventStatus, PaymentStatus, UserRole } from '@prisma/client';
+import { BookingStatus, EventStatus, PaymentStatus, SeatStatus, UserRole } from '@prisma/client';
 import { prisma } from '../src/db/prisma';
 
 async function main() {
@@ -17,6 +17,10 @@ async function main() {
   await prisma.upiSettings.deleteMany({});
   await prisma.category.deleteMany({});
   await prisma.event.deleteMany({});
+  await prisma.stadiumSeat.deleteMany({});
+  await prisma.stadiumRow.deleteMany({});
+  await prisma.stadiumStand.deleteMany({});
+  await prisma.stadium.deleteMany({});
   await prisma.user.deleteMany({});
 
   // Create categories
@@ -54,6 +58,126 @@ async function main() {
   ]);
 
   console.log(`Created ${categories.length} categories`);
+
+  // Seed one complete stadium layout (Wankhede) for BookMyShow-like seat selection.
+  const wankhede = await prisma.stadium.create({
+    data: {
+      name: 'Wankhede Stadium',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      capacity: 33000,
+      svgViewBox: '0 0 500 400'
+    }
+  });
+
+  const wankhedeStandTemplates = [
+    {
+      code: 'PAVILION',
+      name: 'Pavilion Stand',
+      shortName: 'Pavilion',
+      basePrice: 15000,
+      svgPath: 'M 200 50 Q 250 30 300 50 L 300 80 Q 250 60 200 80 Z',
+      sortOrder: 1
+    },
+    {
+      code: 'NORTH_A',
+      name: 'North Stand A',
+      shortName: 'North A',
+      basePrice: 8000,
+      svgPath: 'M 310 50 Q 360 30 410 60 L 400 90 Q 355 65 310 80 Z',
+      sortOrder: 2
+    },
+    {
+      code: 'NORTH_B',
+      name: 'North Stand B',
+      shortName: 'North B',
+      basePrice: 8000,
+      svgPath: 'M 90 60 Q 140 30 190 50 L 190 80 Q 145 65 100 90 Z',
+      sortOrder: 3
+    },
+    {
+      code: 'EAST',
+      name: 'East Stand',
+      shortName: 'East',
+      basePrice: 4000,
+      svgPath: 'M 410 70 Q 480 120 480 200 Q 480 280 410 330 L 390 310 Q 450 265 450 200 Q 450 135 390 90 Z',
+      sortOrder: 4
+    },
+    {
+      code: 'WEST',
+      name: 'West Stand',
+      shortName: 'West',
+      basePrice: 4000,
+      svgPath: 'M 90 70 Q 20 120 20 200 Q 20 280 90 330 L 110 310 Q 50 265 50 200 Q 50 135 110 90 Z',
+      sortOrder: 5
+    },
+    {
+      code: 'SOUTH_A',
+      name: 'South Stand A',
+      shortName: 'South A',
+      basePrice: 2000,
+      svgPath: 'M 100 340 Q 145 365 190 350 L 190 320 Q 150 335 110 310 Z',
+      sortOrder: 6
+    },
+    {
+      code: 'SOUTH_B',
+      name: 'South Stand B',
+      shortName: 'South B',
+      basePrice: 2000,
+      svgPath: 'M 310 350 Q 355 365 400 340 L 390 310 Q 350 335 310 320 Z',
+      sortOrder: 7
+    },
+    {
+      code: 'GROUND',
+      name: 'Ground Level',
+      shortName: 'Ground',
+      basePrice: 25000,
+      svgPath: 'M 200 350 Q 250 370 300 350 L 300 320 Q 250 340 200 320 Z',
+      sortOrder: 8
+    }
+  ] as const;
+
+  const rowLabels = ['A', 'B', 'C', 'D', 'E'];
+  const seatsPerRow = 20;
+
+  const wankhedeStands = await Promise.all(
+    wankhedeStandTemplates.map(async (stand) => {
+      return prisma.stadiumStand.create({
+        data: {
+          stadiumId: wankhede.id,
+          code: stand.code,
+          name: stand.name,
+          shortName: stand.shortName,
+          svgPath: stand.svgPath,
+          sortOrder: stand.sortOrder,
+          capacity: rowLabels.length * seatsPerRow,
+          rows: {
+            create: rowLabels.map((label, rowIndex) => ({
+              label,
+              sortOrder: rowIndex + 1,
+              seats: {
+                create: Array.from({ length: seatsPerRow }, (_, seatIndex) => ({
+                  seatNumber: seatIndex + 1,
+                  label: `${label}${seatIndex + 1}`,
+                  sortOrder: seatIndex + 1,
+                  x: seatIndex + 1,
+                  y: rowIndex + 1
+                }))
+              }
+            }))
+          }
+        },
+        include: {
+          rows: {
+            include: { seats: true },
+            orderBy: { sortOrder: 'asc' }
+          }
+        }
+      });
+    })
+  );
+
+  console.log(`Created stadium layout: ${wankhede.name} (${wankhedeStands.length} stands)`);
 
   // Create UPI settings
   const upiSetting = await prisma.upiSettings.create({
@@ -128,6 +252,7 @@ async function main() {
       startDate: new Date('2025-05-20T18:30:00'),
       endDate: new Date('2025-05-20T22:30:00'),
       location: 'Wankhede Stadium, Mumbai',
+      stadiumId: wankhede.id,
       organizerId: admin.id,
       status: EventStatus.PUBLISHED,
       imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2305&auto=format&fit=crop',
@@ -223,74 +348,139 @@ async function main() {
     });
     createdEvents.push(event);
 
-    // Create ticket categories for each event
-    const generalCategory = await prisma.ticketCategory.create({
-      data: {
-        name: 'General Admission',
-        description: 'Standard entry ticket',
-        price: 799,
-        totalSeats: 200,
-        eventId: event.id
+    const isWankhedeMatch = event.stadiumId === wankhede.id;
+
+    if (isWankhedeMatch) {
+      // Create tier pricing per stand for this match via TicketCategory.stadiumStandId
+      const standCategoryMap = new Map<string, { id: string; price: number }>();
+
+      for (const stand of wankhedeStands) {
+        const template = wankhedeStandTemplates.find(s => s.code === stand.code);
+        const basePrice = template?.basePrice ?? 1999;
+
+        const category = await prisma.ticketCategory.create({
+          data: {
+            name: stand.name,
+            description: `Seats in ${stand.name}`,
+            price: basePrice,
+            totalSeats: rowLabels.length * seatsPerRow,
+            eventId: event.id,
+            stadiumStandId: stand.id
+          }
+        });
+
+        standCategoryMap.set(stand.id, { id: category.id, price: basePrice });
       }
-    });
 
-    const vipCategory = await prisma.ticketCategory.create({
-      data: {
-        name: 'VIP Access',
-        description: 'Premium experience with special benefits',
-        price: 1999,
-        totalSeats: 50,
-        eventId: event.id
-      }
-    });
+      // Create match seats by copying the stadium seat inventory into the seats table
+      const matchSeatCreates: Parameters<typeof prisma.seat.createMany>[0]['data'] = [];
 
-    // Create seats for the event
-    const sections = ['Main Floor', 'Balcony'];
-    const rows = ['A', 'B', 'C', 'D', 'E'];
-    const seatsPerRow = 10;
+      for (const stand of wankhedeStands) {
+        const category = standCategoryMap.get(stand.id);
+        if (!category) continue;
 
-    const seatPromises = [];
-
-    // Main Floor seats (General)
-    for (let r = 0; r < 2; r++) {
-      for (let i = 1; i <= seatsPerRow; i++) {
-        seatPromises.push(
-          prisma.seat.create({
-            data: {
-              label: `${sections[0]}-${rows[r]}${i}`,
-              section: sections[0],
-              row: rows[r],
-              seatNumber: i.toString(),
-              price: generalCategory.price,
+        for (const row of stand.rows) {
+          for (const stadiumSeat of row.seats) {
+            matchSeatCreates.push({
+              label: `${stand.shortName || stand.name}-${row.label}${stadiumSeat.seatNumber}`,
+              section: stand.code,
+              row: row.label,
+              seatNumber: stadiumSeat.seatNumber.toString(),
+              status: SeatStatus.AVAILABLE,
+              price: category.price,
               eventId: event.id,
-              ticketCategoryId: generalCategory.id
-            }
-          })
-        );
+              ticketCategoryId: category.id,
+              stadiumSeatId: stadiumSeat.id
+            });
+          }
+        }
       }
-    }
 
-    // Balcony seats (VIP)
-    for (let r = 0; r < 1; r++) {
-      for (let i = 1; i <= seatsPerRow; i++) {
-        seatPromises.push(
-          prisma.seat.create({
-            data: {
-              label: `${sections[1]}-${rows[r]}${i}`,
-              section: sections[1],
-              row: rows[r],
-              seatNumber: i.toString(),
-              price: vipCategory.price,
-              eventId: event.id,
-              ticketCategoryId: vipCategory.id
-            }
-          })
-        );
+      await prisma.seat.createMany({ data: matchSeatCreates });
+
+      // Mark a few seats as booked/blocked to make the UI realistic
+      const pavilion = wankhedeStands.find(s => s.code === 'PAVILION');
+      const pavilionRowA = pavilion?.rows.find(r => r.label === 'A');
+      const demoSeatIds = pavilionRowA?.seats.slice(0, 5).map(s => s.id) ?? [];
+
+      if (demoSeatIds.length > 0) {
+        await prisma.seat.updateMany({
+          where: { eventId: event.id, stadiumSeatId: { in: demoSeatIds } },
+          data: { status: SeatStatus.BOOKED }
+        });
       }
-    }
 
-    await Promise.all(seatPromises);
-    console.log(`Created ${seatPromises.length} seats for ${event.title}`);
+      console.log(`Created ${matchSeatCreates.length} stadium seats for ${event.title}`);
+    } else {
+      // Create ticket categories for each event (generic)
+      const generalCategory = await prisma.ticketCategory.create({
+        data: {
+          name: 'General Admission',
+          description: 'Standard entry ticket',
+          price: 799,
+          totalSeats: 200,
+          eventId: event.id
+        }
+      });
+
+      const vipCategory = await prisma.ticketCategory.create({
+        data: {
+          name: 'VIP Access',
+          description: 'Premium experience with special benefits',
+          price: 1999,
+          totalSeats: 50,
+          eventId: event.id
+        }
+      });
+
+      // Create seats for the event
+      const sections = ['Main Floor', 'Balcony'];
+      const rows = ['A', 'B', 'C', 'D', 'E'];
+      const genericSeatsPerRow = 10;
+
+      const seatPromises = [];
+
+      // Main Floor seats (General)
+      for (let r = 0; r < 2; r++) {
+        for (let i = 1; i <= genericSeatsPerRow; i++) {
+          seatPromises.push(
+            prisma.seat.create({
+              data: {
+                label: `${sections[0]}-${rows[r]}${i}`,
+                section: sections[0],
+                row: rows[r],
+                seatNumber: i.toString(),
+                price: generalCategory.price,
+                eventId: event.id,
+                ticketCategoryId: generalCategory.id
+              }
+            })
+          );
+        }
+      }
+
+      // Balcony seats (VIP)
+      for (let r = 0; r < 1; r++) {
+        for (let i = 1; i <= genericSeatsPerRow; i++) {
+          seatPromises.push(
+            prisma.seat.create({
+              data: {
+                label: `${sections[1]}-${rows[r]}${i}`,
+                section: sections[1],
+                row: rows[r],
+                seatNumber: i.toString(),
+                price: vipCategory.price,
+                eventId: event.id,
+                ticketCategoryId: vipCategory.id
+              }
+            })
+          );
+        }
+      }
+
+      await Promise.all(seatPromises);
+      console.log(`Created ${seatPromises.length} seats for ${event.title}`);
+    }
   }
 
   // Create a sample booking

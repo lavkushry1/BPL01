@@ -84,16 +84,40 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
       // 4a. Handle Specific Seat Selection
       if (seat_ids && seat_ids.length > 0) {
         // Pessimistically lock requested seats to prevent double booking
+        const now = new Date();
         const seats = await trx('seats')
           .whereIn('id', seat_ids)
           .forUpdate()
-          .select('id', 'status');
+          .select('id', 'status', 'locked_by', 'lock_expires_at');
 
         if (seats.length !== seat_ids.length) {
           throw ApiError.badRequest('One or more seats were not found');
         }
 
-        const unavailableSeats = seats.filter(seat => seat.status !== SeatStatus.AVAILABLE);
+        const unavailableSeats = seats.filter(seat => {
+          if (seat.status === SeatStatus.AVAILABLE) return false;
+
+          // Treat expired locks as available.
+          if (
+            seat.status === SeatStatus.LOCKED &&
+            seat.lock_expires_at &&
+            new Date(seat.lock_expires_at).getTime() < now.getTime()
+          ) {
+            return false;
+          }
+
+          // Allow booking seats locked by the same user (during checkout flow).
+          if (
+            seat.status === SeatStatus.LOCKED &&
+            seat.locked_by === user_id &&
+            seat.lock_expires_at &&
+            new Date(seat.lock_expires_at).getTime() > now.getTime()
+          ) {
+            return false;
+          }
+
+          return true;
+        });
         if (unavailableSeats.length > 0) {
           throw ApiError.conflict(
             'One or more seats are no longer available',
@@ -107,6 +131,8 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           .update({
             status: SeatStatus.BOOKED,
             booking_id: booking_id,
+            locked_by: null,
+            lock_expires_at: null,
             updatedAt: trx.fn.now()
           })
           .whereIn('id', seat_ids);

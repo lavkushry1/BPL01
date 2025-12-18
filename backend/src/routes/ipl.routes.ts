@@ -230,6 +230,28 @@ router.get('/matches/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/matches/:id/seats', async (req: Request, res: Response) => {
+  try {
+    const { standId } = req.query;
+    const seats = await IplService.getSeatsByMatchId(req.params.id, standId as string);
+    res.json({ success: true, data: seats });
+  } catch (error) {
+    console.error('Error fetching seats:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch seats' });
+  }
+});
+
+router.get('/matches/:id/seats', async (req: Request, res: Response) => {
+  try {
+    const { standId } = req.query;
+    const seats = await IplService.getSeatsByMatchId(req.params.id, standId as string);
+    res.json({ success: true, data: seats });
+  } catch (error) {
+    console.error('Error fetching seats:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch seats' });
+  }
+});
+
 /**
  * @swagger
  * /api/v1/ipl/cities:

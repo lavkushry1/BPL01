@@ -46,6 +46,30 @@ export interface IplMatch {
   eventId?: string | null;
 }
 
+export interface IplStand {
+  id: string;
+  name: string;
+  code: string;
+  type: string;
+  capacity: number;
+  priceDefault: number;
+  svgPath: string;
+  viewBox?: string;
+}
+
+export interface IplMatchDetail extends Omit<IplMatch, 'venue'> {
+  venue: string; // Name string in detail view
+  venueDetails: IplVenue & { stands: IplStand[] };
+  ticketCategories: any[];
+  pricing: { minPrice: number; maxPrice: number };
+  availability: { totalSeats: number; bookedSeats: number; availableSeats: number };
+  bannerImage: string;
+  teams: {
+    team1: IplTeam;
+    team2: IplTeam;
+  };
+}
+
 // City with match count
 export interface CityWithMatches {
   city: string;
@@ -144,7 +168,7 @@ export const getUpcomingIplMatches = async (limit = 5): Promise<IplMatch[]> => {
 /**
  * Get a match by ID
  */
-export const getIplMatchById = async (id: string): Promise<IplMatch | null> => {
+export const getIplMatchById = async (id: string): Promise<IplMatchDetail | null> => {
   try {
     const response = await defaultApiClient.get(`/ipl/matches/${id}`);
     return unwrapApiResponse<IplMatch>(response) || null;

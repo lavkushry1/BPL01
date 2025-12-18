@@ -40,7 +40,9 @@ const IPLMatchCard = ({
   startingPrice,
   featured = false,
   teams,
-  altText
+  altText,
+  venue,
+  dataSource
 }: IPLMatchCardProps) => {
   const { t } = useTranslation();
   const [imgError, setImgError] = useState(false);
@@ -74,33 +76,6 @@ const IPLMatchCard = ({
     return `IPL Match: ${teams.team1.name} vs ${teams.team2.name} poster`;
   };
 
-  // Get badge color and text for data source
-  const getDataSourceBadge = () => {
-    switch(dataSource) {
-      case 'admin':
-        return {
-          label: 'Admin',
-          className: 'bg-yellow-100 text-yellow-800 border-yellow-300'
-        };
-      case 'api':
-        return {
-          label: 'API',
-          className: 'bg-green-100 text-green-800 border-green-300'
-        };
-      case 'mock':
-        return {
-          label: 'Mock',
-          className: 'bg-blue-100 text-blue-800 border-blue-300'
-        };
-      case 'real_mock':
-        return {
-          label: 'Real Data',
-          className: 'bg-purple-100 text-purple-800 border-purple-300'
-        };
-      default:
-        return null;
-    }
-  };
 
   // Return null if ID is missing to prevent broken links
   if (!id) {
@@ -170,7 +145,7 @@ const IPLMatchCard = ({
             <p className="text-xl font-bold text-white">₹{startingPrice.toLocaleString('en-IN')}</p>
           </div>
 
-          <Link to={`/events/${id}`} onClick={handleErrorIfNoId}>
+          <Link to={`/ipl/book/${id}`} onClick={handleErrorIfNoId}>
             <Button
               size="sm"
               className="rounded-full bg-white text-slate-950 hover:bg-blue-500 hover:text-white font-bold transition-all px-6"
