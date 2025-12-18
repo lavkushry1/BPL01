@@ -1,5 +1,5 @@
 import { PrismaClient, SeatStatus } from '@prisma/client';
-import { IplBookingService } from '../../src/services/iplBooking.service';
+import { IplBookingService } from '../../services/iplBooking.service';
 import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();

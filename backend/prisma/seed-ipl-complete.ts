@@ -444,8 +444,6 @@ async function seedIplComplete() {
     const venueId = createdVenues[match.venue];
     const homeTeamId = createdTeams[match.homeTeam];
     const awayTeamId = createdTeams[match.awayTeam];
-    const homeTeam = iplTeams.find(t => t.shortName === match.homeTeam);
-    const awayTeam = iplTeams.find(t => t.shortName === match.awayTeam);
     const venueData = iplVenues.find(v => v.city === match.venue);
 
     const matchDate = new Date(match.date);
@@ -463,14 +461,18 @@ async function seedIplComplete() {
         id: eventId,
         title: `${match.homeTeam} vs ${match.awayTeam}`,
         description: `IPL 2026 Match ${matchNumber} at ${match.venue}`,
-        date: matchDate,
+        startDate: matchDate,
         endDate: endDate,
         location: match.venue,
-        venueId: venueId,
         imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-        category: 'SPORTS',
         status: 'PUBLISHED',
         organizerId: adminUser.id,
+        categories: {
+          connectOrCreate: {
+            where: { name: 'Sports' },
+            create: { name: 'Sports' }
+          }
+        },
         createdAt: new Date(),
         updatedAt: new Date()
       }
