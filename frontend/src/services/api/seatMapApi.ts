@@ -2,18 +2,18 @@
  * @service SeatMapApiService
  * @description Service for interacting with seat map related API endpoints.
  * Provides methods for fetching seat maps, available seats, and managing seat selections.
- * 
+ *
  * @apiEndpoints
  * - GET /api/venues/:venueId/seatmap - Get venue seat map configuration
  * - GET /api/events/:eventId/seats - Get available seats for an event
  * - GET /api/events/:eventId/seats/:seatId - Get details for a specific seat
  * - POST /api/events/:eventId/seats/reserve - Reserve seats temporarily
  * - DELETE /api/events/:eventId/seats/reserve - Release temporarily reserved seats
- * 
+ *
  * @integration
  * - Integrates with eventApi.ts for event availability checking
  * - Works with bookingApi.ts during the booking process
- * 
+ *
  * @dataModel Maps to:
  * - Venue model for overall seat map layout
  * - Seat model for individual seat properties
@@ -120,7 +120,8 @@ const seatMapApi = {
    * @param eventId Event ID
    */
   getSeatMapByEventId: (eventId: string) => {
-    return apiClient.get<SeatMapResponse>(`/api/events/${eventId}/seat-map`).then(unwrapApiResponse);
+    // Use IPL matches endpoint which includes venue and stand details
+    return apiClient.get<SeatMapResponse>(`/ipl/matches/${eventId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -129,7 +130,7 @@ const seatMapApi = {
    * @param data Reservation data
    */
   reserveSeats: (seatMapId: string, data: SeatReservationRequest) => {
-    return apiClient.post<SeatReservationResponse>(`/api/seat-maps/${seatMapId}/reserve`, data).then(unwrapApiResponse);
+    return apiClient.post<SeatReservationResponse>(`/seats/lock`, { eventId: seatMapId, ...data }).then(unwrapApiResponse);
   },
 
   /**
@@ -137,7 +138,7 @@ const seatMapApi = {
    * @param reservationId Reservation ID
    */
   releaseReservation: (reservationId: string) => {
-    return apiClient.delete(`/api/reservations/${reservationId}`).then(unwrapApiResponse);
+    return apiClient.delete(`/reservations/${reservationId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -145,7 +146,8 @@ const seatMapApi = {
    * @param seatMapId Seat map ID
    */
   getSeatAvailability: (seatMapId: string) => {
-    return apiClient.get<SeatAvailabilityResponse>(`/api/seat-maps/${seatMapId}/availability`).then(unwrapApiResponse);
+    // Use IPL match endpoint which includes availability info
+    return apiClient.get<SeatAvailabilityResponse>(`/ipl/matches/${seatMapId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -154,7 +156,7 @@ const seatMapApi = {
    * @param sectionId Section ID
    */
   getSeatsBySection: (seatMapId: string, sectionId: string) => {
-    return apiClient.get<{ status: string; data: Seat[] }>(`/api/seat-maps/${seatMapId}/sections/${sectionId}/seats`).then(unwrapApiResponse);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/ipl/matches/${seatMapId}/seats?standId=${sectionId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -163,7 +165,7 @@ const seatMapApi = {
    * @param status New seat status
    */
   updateSeatStatus: (seatId: string, status: Seat['status']) => {
-    return apiClient.patch(`/api/seats/${seatId}`, { status }).then(unwrapApiResponse);
+    return apiClient.patch(`/seats/${seatId}`, { status }).then(unwrapApiResponse);
   },
 
   /**
@@ -171,7 +173,7 @@ const seatMapApi = {
    * @param userId User ID
    */
   getUserSelectedSeats: (userId: string) => {
-    return apiClient.get<{ status: string; data: Seat[] }>(`/api/users/${userId}/selected-seats`).then(unwrapApiResponse);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/users/${userId}/selected-seats`).then(unwrapApiResponse);
   },
 
   /**
@@ -179,7 +181,7 @@ const seatMapApi = {
    * @param bookingId Booking ID
    */
   getSeatsByBookingId: (bookingId: string) => {
-    return apiClient.get<{ status: string; data: Seat[] }>(`/api/bookings/${bookingId}/seats`).then(unwrapApiResponse);
+    return apiClient.get<{ status: string; data: Seat[] }>(`/bookings/${bookingId}/seats`).then(unwrapApiResponse);
   }
 };
 

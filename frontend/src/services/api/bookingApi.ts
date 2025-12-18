@@ -57,7 +57,7 @@ export interface DeliveryDetailsRequest {
 export const createBooking = async (bookingData: BookingRequest, maxRetries = 2): Promise<Booking> => {
   let attempt = 0;
   let lastError;
-  
+
   while (attempt <= maxRetries) {
     try {
       // Add clientTimestamp for request tracking
@@ -65,7 +65,7 @@ export const createBooking = async (bookingData: BookingRequest, maxRetries = 2)
         ...bookingData,
         clientTimestamp: new Date().toISOString()
       };
-      
+
       const response = await defaultApiClient.post('/bookings', requestData);
       const booking = unwrapApiResponse<{ booking: Booking }>(response)?.booking;
       if (booking?.id) {
@@ -79,12 +79,12 @@ export const createBooking = async (bookingData: BookingRequest, maxRetries = 2)
     } catch (error: any) {
       attempt++;
       lastError = error;
-      
+
       // Check if this is a server error (5xx) that might be temporary
       const isServerError = error.response?.status >= 500;
       // Don't retry if it's a client error (4xx) as these won't succeed with retries
       const isClientError = error.response?.status >= 400 && error.response?.status < 500;
-      
+
       if (isClientError || attempt > maxRetries) {
         // Store error information for recovery
         if (error.response?.data?.message) {
@@ -94,11 +94,11 @@ export const createBooking = async (bookingData: BookingRequest, maxRetries = 2)
             status: error.response.status
           }));
         }
-        
+
         console.error(`Error creating booking (attempt ${attempt}/${maxRetries + 1}):`, error);
         break;
       }
-      
+
       // If it's a server error, wait before retrying
       if (isServerError) {
         // Exponential backoff: 1s, 2s, 4s, etc.
@@ -108,7 +108,7 @@ export const createBooking = async (bookingData: BookingRequest, maxRetries = 2)
       }
     }
   }
-  
+
   // If we've exhausted retries, throw the last error
   throw lastError;
 };
@@ -118,19 +118,19 @@ export const createBooking = async (bookingData: BookingRequest, maxRetries = 2)
  */
 export const checkPendingBooking = async (): Promise<Booking | null> => {
   const lastBookingId = localStorage.getItem('last_booking_id');
-  
+
   if (!lastBookingId) {
     return null;
   }
-  
+
   try {
     const booking = await getBookingById(lastBookingId);
-    
+
     // If booking is in a terminal state, clear the stored ID
     if (['CONFIRMED', 'CANCELLED', 'REFUNDED'].includes(booking.status)) {
       localStorage.removeItem('last_booking_id');
     }
-    
+
     return booking;
   } catch (error) {
     console.error('Error checking pending booking:', error);
@@ -160,7 +160,7 @@ export const getBookingById = async (bookingId: string): Promise<Booking> => {
  */
 export const getUserBookings = async (): Promise<Booking[]> => {
   try {
-    const response = await defaultApiClient.get('/bookings/user');
+    const response = await defaultApiClient.get('/bookings');
     return unwrapApiResponse<{ bookings: Booking[] }>(response)?.bookings || [];
   } catch (error) {
     console.error('Error fetching user bookings:', error);
@@ -186,7 +186,7 @@ export const cancelBooking = async (bookingId: string): Promise<{ success: boole
  */
 export const addDeliveryDetails = async (deliveryData: DeliveryDetailsRequest): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await defaultApiClient.post('/delivery-details', deliveryData);
+    const response = await defaultApiClient.post('/bookings/delivery-details', deliveryData);
     return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error adding delivery details:', error);
@@ -197,7 +197,7 @@ export const addDeliveryDetails = async (deliveryData: DeliveryDetailsRequest): 
 /**
  * Save delivery details for a booking
  */
-export const saveDeliveryDetails = async (bookingId: string, deliveryData: { 
+export const saveDeliveryDetails = async (bookingId: string, deliveryData: {
   name: string;
   phone: string;
   address: string;
@@ -205,7 +205,7 @@ export const saveDeliveryDetails = async (bookingId: string, deliveryData: {
   pincode: string;
 }): Promise<{ success: boolean; message: string }> => {
   try {
-    const response = await defaultApiClient.post(`/bookings/${bookingId}/delivery`, deliveryData);
+    const response = await defaultApiClient.post('/bookings/delivery-details', { booking_id: bookingId, ...deliveryData });
     return unwrapApiResponse(response);
   } catch (error) {
     console.error('Error saving delivery details:', error);

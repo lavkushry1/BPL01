@@ -158,7 +158,7 @@ const userApi = {
    * Get current user profile
    */
   getCurrentUser: () => {
-    return apiClient.get<UserResponse>('/users/me').then(unwrapApiResponse);
+    return apiClient.get<UserResponse>('/users/profile').then(unwrapApiResponse);
   },
 
   /**
@@ -166,7 +166,7 @@ const userApi = {
    * @param data Profile data to update
    */
   updateProfile: (data: UpdateProfileRequest) => {
-    return apiClient.patch<UserResponse>('/users/me', data).then(unwrapApiResponse);
+    return apiClient.patch<UserResponse>('/users/profile', data).then(unwrapApiResponse);
   },
 
   /**
@@ -174,7 +174,7 @@ const userApi = {
    * @param data Password change data
    */
   changePassword: (data: ChangePasswordRequest) => {
-    return apiClient.post('/users/me/change-password', data).then(unwrapApiResponse);
+    return apiClient.post('/users/profile/change-password', data).then(unwrapApiResponse);
   },
 
   /**
@@ -213,7 +213,7 @@ const userApi = {
    * Get user addresses
    */
   getUserAddresses: () => {
-    return apiClient.get<AddressesResponse>('/users/me/addresses').then(unwrapApiResponse);
+    return apiClient.get<AddressesResponse>('/users/profile/addresses').then(unwrapApiResponse);
   },
 
   /**
@@ -221,7 +221,7 @@ const userApi = {
    * @param address Address data
    */
   addUserAddress: (address: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    return apiClient.post<AddressResponse>('/users/me/addresses', address).then(unwrapApiResponse);
+    return apiClient.post<AddressResponse>('/users/profile/addresses', address).then(unwrapApiResponse);
   },
 
   /**
@@ -230,7 +230,7 @@ const userApi = {
    * @param address Address data to update
    */
   updateUserAddress: (addressId: string, address: Partial<Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
-    return apiClient.patch<AddressResponse>(`/users/me/addresses/${addressId}`, address).then(unwrapApiResponse);
+    return apiClient.patch<AddressResponse>(`/users/profile/addresses/${addressId}`, address).then(unwrapApiResponse);
   },
 
   /**
@@ -238,7 +238,7 @@ const userApi = {
    * @param addressId Address ID
    */
   deleteUserAddress: (addressId: string) => {
-    return apiClient.delete(`/users/me/addresses/${addressId}`).then(unwrapApiResponse);
+    return apiClient.delete(`/users/profile/addresses/${addressId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -246,7 +246,7 @@ const userApi = {
    * @param addressId Address ID
    */
   setDefaultAddress: (addressId: string) => {
-    return apiClient.post<AddressResponse>(`/users/me/addresses/${addressId}/set-default`).then(unwrapApiResponse);
+    return apiClient.post<AddressResponse>(`/users/profile/addresses/${addressId}/set-default`).then(unwrapApiResponse);
   },
 
   /**
@@ -254,7 +254,7 @@ const userApi = {
    * @param preferences User preferences
    */
   updatePreferences: (preferences: Partial<UserPreferences>) => {
-    return apiClient.patch<UserResponse>('/users/me/preferences', { preferences }).then(unwrapApiResponse);
+    return apiClient.patch<UserResponse>('/users/profile/preferences', { preferences }).then(unwrapApiResponse);
   },
 
   /**
@@ -263,7 +263,7 @@ const userApi = {
    */
   getUserProfile: async (): Promise<UserProfile> => {
     try {
-      const response = await apiClient.get<{ status: string; data: UserProfile }>('/users/me');
+      const response = await apiClient.get<{ status: string; data: UserProfile }>('/users/profile');
       return unwrapApiResponse<UserProfile>(response);
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
@@ -278,7 +278,7 @@ const userApi = {
    */
   updateUserProfileDetails: async (data: ProfileUpdateRequest): Promise<UserProfile> => {
     try {
-      const response = await apiClient.patch<{ status: string; data: UserProfile }>('/users/me', data);
+      const response = await apiClient.patch<{ status: string; data: UserProfile }>('/users/profile', data);
       return unwrapApiResponse<UserProfile>(response);
     } catch (error) {
       console.error('Failed to update user profile:', error);
@@ -287,4 +287,4 @@ const userApi = {
   }
 };
 
-export default userApi; 
+export default userApi;

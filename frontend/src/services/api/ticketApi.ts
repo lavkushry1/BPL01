@@ -74,7 +74,7 @@ const ticketApi = {
    * @param bookingId Booking ID
    */
   getTicketsByBookingId: (bookingId: string) => {
-    return apiClient.get<TicketsResponse>(`/bookings/${bookingId}/tickets`).then(unwrapApiResponse);
+    return apiClient.get<TicketsResponse>(`/tickets/booking/${bookingId}`).then(unwrapApiResponse);
   },
 
   /**
@@ -99,7 +99,7 @@ const ticketApi = {
    * @param reason Optional cancellation reason
    */
   cancelTicket: (ticketId: string, reason?: string) => {
-    return apiClient.patch<TicketResponse>(`/tickets/${ticketId}/cancel`, { reason }).then(unwrapApiResponse);
+    return apiClient.post<TicketResponse>(`/tickets/${ticketId}/cancel`, { reason }).then(unwrapApiResponse);
   },
 
   /**
@@ -107,7 +107,7 @@ const ticketApi = {
    * @param data Check-in data
    */
   checkInTicket: (data: CheckInRequest) => {
-    return apiClient.post<CheckInResponse>('/tickets/check-in', data).then(unwrapApiResponse);
+    return apiClient.post<CheckInResponse>(`/tickets/${data.ticket_id}/checkin`, data).then(unwrapApiResponse);
   },
 
   /**
@@ -125,8 +125,8 @@ const ticketApi = {
    * @param eventId Event ID
    */
   verifyTicket: (ticketId: string, eventId: string) => {
-    return apiClient.get<{ status: string; data: { valid: boolean; message: string; ticket?: Ticket } }>(
-      `/tickets/${ticketId}/verify?event_id=${eventId}`
+    return apiClient.post<{ status: string; data: { valid: boolean; message: string; ticket?: Ticket } }>(
+      `/tickets/${ticketId}/verify`, { event_id: eventId }
     ).then(unwrapApiResponse);
   },
 
@@ -152,7 +152,7 @@ const ticketApi = {
    * @param ticketId Ticket ID
    */
   downloadTicket: (ticketId: string) => {
-    return apiClient.get<Blob>(`/tickets/${ticketId}/download`, {
+    return apiClient.get<Blob>(`/tickets/${ticketId}/pdf`, {
       responseType: 'blob'
     }).then(unwrapApiResponse);
   },
@@ -184,4 +184,4 @@ const ticketApi = {
   }
 };
 
-export default ticketApi; 
+export default ticketApi;
