@@ -17,6 +17,7 @@ import ticketCategoryRoutes from '../ticketCategory.routes';
 import utrVerificationRoutes from '../utrVerification.routes';
 import authRoutes from './auth.routes';
 import eventRoutes from './event.routes';
+import matchesRoutes from './matches.routes';
 import userRoutes from './user.routes';
 
 import iplRoutes from '../ipl.routes';
@@ -29,6 +30,7 @@ const resourceRoutes = {
   'auth': authRoutes,
   'users': userRoutes,
   'events': eventRoutes,
+  'matches': matchesRoutes,
   'bookings': bookingRoutes,
   'payments': paymentRoutes,
   'discounts': discountRoutes,

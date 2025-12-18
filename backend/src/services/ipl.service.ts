@@ -85,6 +85,7 @@ export class IplService {
       },
       include: {
         teams: true,
+        stands: true,
         matches: {
           take: 10,
           orderBy: { matchDate: 'asc' },
@@ -153,7 +154,11 @@ export class IplService {
       include: {
         homeTeam: true,
         awayTeam: true,
-        venue: true,
+        venue: {
+          include: {
+            stands: true
+          }
+        },
         event: {
           include: {
             ticketCategories: {
@@ -221,7 +226,8 @@ export class IplService {
         city: match.venue.city,
         state: match.venue.state,
         capacity: match.venue.capacity,
-        imageUrl: match.venue.imageUrl
+        imageUrl: match.venue.imageUrl,
+        stands: (match.venue as any).stands || []
       },
       ticketCategories,
       pricing: {

@@ -57,6 +57,7 @@ model Event {
   startDate        DateTime         @map("start_date")
   endDate          DateTime         @map("end_date")
   location         String
+  stadiumId        String?          @map("stadium_id")
   status           EventStatus      @default(DRAFT)
   capacity         Int?
   imageUrl         String?          @map("image_url")
@@ -80,8 +81,10 @@ model Event {
   tickets          Ticket[]
   eventSummary     EventSummary?
   iplMatch         IplMatch?        @relation("EventToIplMatch")
+  stadium          Stadium?         @relation(fields: [stadiumId], references: [id])
 
   @@index([organizerId])
+  @@index([stadiumId])
   @@index([status])
   @@index([startDate, endDate])
   @@index([isDeleted])
@@ -239,16 +242,19 @@ model TicketCategory {
   capacity     Int?         // Optional capacity field
   available    Int?         @default(0)
   eventId      String       @map("event_id")
+  stadiumStandId String?    @map("stadium_stand_id")
   isDeleted    Boolean      @default(false) @map("is_deleted")
   deletedAt    DateTime?    @map("deleted_at")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  stadiumStand StadiumStand? @relation(fields: [stadiumStandId], references: [id])
   pricingRules PricingRule[]
   pricingLogs  PricingLog[]
   tickets      Ticket[]
 
   @@index([eventId])
+  @@index([stadiumStandId])
   @@index([isDeleted])
   @@map("ticket_categories")
 }
@@ -311,6 +317,7 @@ model Seat {
   lockExpiresAt    DateTime?            @map("lock_expires_at")
   eventId          String               @map("event_id")
   ticketCategoryId String?              @map("ticket_category_id")
+  stadiumSeatId    String?              @map("stadium_seat_id")
   paymentIntentId  String?              @map("payment_intent_id")
   isDeleted        Boolean              @default(false) @map("is_deleted")
   deletedAt        DateTime?            @map("deleted_at")
@@ -318,6 +325,7 @@ model Seat {
   updatedAt        DateTime             @updatedAt
   event            Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
   paymentIntent    PaymentIntent?       @relation("PaymentIntentSeats", fields: [paymentIntentId], references: [id])
+  stadiumSeat      StadiumSeat?         @relation(fields: [stadiumSeatId], references: [id])
   bookedSeats      BookedSeat[]
   tickets          Ticket[]
   paymentSessionSeats PaymentSessionSeat[]
@@ -328,8 +336,84 @@ model Seat {
   @@index([paymentIntentId])
   @@index([isDeleted])
   @@index([ticketCategoryId])
+  @@index([stadiumSeatId])
   @@index([section, row])
   @@map("seats")
+}
+
+// ==================== Stadium / Seat Layout Models ====================
+
+model Stadium {
+  id         String        @id @default(uuid())
+  name       String
+  city       String?
+  state      String?
+  capacity   Int?
+  svgViewBox String?       @map("svg_view_box")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+  stands     StadiumStand[]
+  events     Event[]
+
+  @@index([name])
+  @@index([city])
+  @@map("stadiums")
+}
+
+model StadiumStand {
+  id         String       @id @default(uuid())
+  stadiumId  String       @map("stadium_id")
+  code       String
+  name       String
+  shortName  String?      @map("short_name")
+  svgPath    String       @map("svg_path") @db.Text
+  sortOrder  Int          @default(0) @map("sort_order")
+  capacity   Int?
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  stadium    Stadium      @relation(fields: [stadiumId], references: [id], onDelete: Cascade)
+  rows       StadiumRow[]
+  ticketCategories TicketCategory[]
+
+  @@unique([stadiumId, code])
+  @@index([stadiumId])
+  @@index([sortOrder])
+  @@map("stadium_stands")
+}
+
+model StadiumRow {
+  id        String      @id @default(uuid())
+  standId   String      @map("stand_id")
+  label     String
+  sortOrder Int         @default(0) @map("sort_order")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  stand     StadiumStand @relation(fields: [standId], references: [id], onDelete: Cascade)
+  seats     StadiumSeat[]
+
+  @@unique([standId, label])
+  @@index([standId])
+  @@index([sortOrder])
+  @@map("stadium_rows")
+}
+
+model StadiumSeat {
+  id         String     @id @default(uuid())
+  rowId      String     @map("row_id")
+  seatNumber Int        @map("seat_number")
+  label      String?
+  sortOrder  Int        @default(0) @map("sort_order")
+  x          Int?
+  y          Int?
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+  row        StadiumRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  matchSeats Seat[]
+
+  @@unique([rowId, seatNumber])
+  @@index([rowId])
+  @@index([sortOrder])
+  @@map("stadium_seats")
 }
 
 model PaymentSession {
@@ -691,11 +775,35 @@ model IplVenue {
   longitude   Decimal?   @db.Decimal(11, 8)
   teams       IplTeam[]
   matches     IplMatch[]
+  stands      IplStand[]
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
 
   @@index([city])
   @@map("ipl_venues")
+}
+
+model IplStand {
+  id           String   @id @default(uuid())
+  venueId      String   @map("venue_id")
+  name         String   // e.g. "North Stand", "VIP Box A"
+  code         String   // e.g. "N_STAND" (used to match SVG polygon IDs)
+  type         String   // "SEATING" or "HOSPITALITY"
+  capacity     Int
+  priceDefault Int?     @map("price_default") // Base price guideline for this stand
+
+  // SVG Geometries
+  svgPath      String   @db.Text // The polygon points data or path "d"
+  viewBox      String?  @map("view_box") // ViewBox for the isolated stand view
+
+  venue        IplVenue @relation(fields: [venueId], references: [id])
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([venueId, code])
+  @@index([venueId])
+  @@map("ipl_stands")
 }
 
 model IplMatch {

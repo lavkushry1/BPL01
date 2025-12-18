@@ -10,7 +10,7 @@
  * - Admin and User accounts for testing
  */
 
-import { EventStatus, MatchStatus, PrismaClient, SeatStatus, UserRole } from '@prisma/client';
+import { MatchStatus, PrismaClient, SeatStatus, UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -290,6 +290,7 @@ async function seedIplComplete() {
   await prisma.iplMatch.deleteMany({});
   await prisma.event.deleteMany({});
   await prisma.iplTeam.deleteMany({});
+  await prisma.iplStand.deleteMany({});
   await prisma.iplVenue.deleteMany({});
   console.log('  ✓ Cleaned up existing data\n');
 
@@ -303,6 +304,78 @@ async function seedIplComplete() {
     });
     createdVenues[venue.city] = created.id;
     console.log(`  ✓ ${venue.name} (${venue.city})`);
+  }
+  console.log('');
+
+  // ============ CREATE WANKHEDE STANDS (SVG DATA) ============
+  console.log('🏟️  Creating Wankhede Stadium Stands...');
+  const wankhedeId = createdVenues['Mumbai']; // Wankhede is in Mumbai
+
+  if (wankhedeId) {
+    const wankhedeStands = [
+      {
+        name: 'North Stand',
+        code: 'NORTH',
+        type: 'SEATING',
+        capacity: 8000,
+        priceDefault: 1200,
+        // Top section
+        svgPath: 'M 150 50 Q 400 0 650 50 L 600 150 Q 400 120 200 150 Z',
+        viewBox: '0 0 800 600'
+      },
+      {
+        name: 'Sunil Gavaskar Pavilion',
+        code: 'PAVILION_EAST',
+        type: 'HOSPITALITY',
+        capacity: 4000,
+        priceDefault: 2500,
+        // Right section
+        svgPath: 'M 700 100 Q 750 300 700 500 L 600 450 Q 620 300 600 150 Z',
+        viewBox: '0 0 800 600'
+      },
+      {
+        name: 'Vijay Merchant Pavilion',
+        code: 'PAVILION_WEST',
+        type: 'HOSPITALITY',
+        capacity: 4000,
+        priceDefault: 2500,
+        // Left section
+        svgPath: 'M 100 100 Q 50 300 100 500 L 200 450 Q 180 300 200 150 Z',
+        viewBox: '0 0 800 600'
+      },
+      {
+        name: 'Sachin Tendulkar Stand',
+        code: 'SOUTH',
+        type: 'SEATING',
+        capacity: 9000,
+        priceDefault: 1500,
+        // Bottom section
+        svgPath: 'M 150 550 Q 400 600 650 550 L 600 450 Q 400 480 200 450 Z',
+        viewBox: '0 0 800 600'
+      },
+      {
+        name: 'VIP Box',
+        code: 'VIP',
+        type: 'HOSPITALITY',
+        capacity: 500,
+        priceDefault: 5000,
+        // Center-ish exclusive area
+        svgPath: 'M 350 480 L 450 480 L 450 520 L 350 520 Z',
+        viewBox: '0 0 800 600'
+      }
+    ];
+
+    for (const stand of wankhedeStands) {
+      await prisma.iplStand.create({
+        data: {
+          venueId: wankhedeId,
+          ...stand
+        }
+      });
+      console.log(`  ✓ ${stand.name} created`);
+    }
+  } else {
+    console.warn('⚠️ Wankhede Stadium not found, skipping stand seeding.');
   }
   console.log('');
 
@@ -384,24 +457,6 @@ async function seedIplComplete() {
                          ['CSK', 'MI', 'RCB'].includes(match.awayTeam);
     const priceMultiplier = isHighDemand ? 1.5 : 1.0;
 
-    // Create the Event first
-    const event = await prisma.event.create({
-      data: {
-        id: eventId,
-        title: `${homeTeam?.name} vs ${awayTeam?.name}`,
-        description: `IPL 2026 Match ${matchNumber}: ${homeTeam?.name} takes on ${awayTeam?.name} at ${venueData?.name}. Don't miss this thrilling encounter!`,
-        startDate: matchDate,
-        endDate: endDate,
-        location: venueData?.name || match.venue,
-        status: EventStatus.PUBLISHED,
-        capacity: venueData?.capacity || 40000,
-        imageUrl: venueData?.imageUrl || '/assets/venues/default.jpg',
-        organizerId: adminUser.id,
-        createdBy: adminUser.id,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    });
 
     // Create ticket categories for this event
     const basePrice = venuePricing[match.venue] || 700;

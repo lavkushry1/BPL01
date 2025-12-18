@@ -39,3 +39,6 @@ build/
 # Cache directories
 .cache/
 .temp/ node_modules/
+
+.gemini/
+gha-creds-*.json
