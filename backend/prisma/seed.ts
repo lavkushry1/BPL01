@@ -71,7 +71,7 @@ async function main() {
     data: {
       email: 'admin@eventia.com',
       name: 'Admin User',
-      password: '$2b$10$dPLJNTMQ5TH8YrYbGf1qne8EXxjYUNn9DpVrJeZ5xI9ERUEC6RzQm', // hashed 'password123'
+      password: '$2b$10$fcQbrljkPZFtSzjlaEG81u5AGULpUKkjTtIbQb/PoQlx2wne8NZea', // hashed 'password123'
       role: UserRole.ADMIN,
       verified: true
     }
@@ -82,7 +82,7 @@ async function main() {
     data: {
       email: 'user@example.com',
       name: 'Regular User',
-      password: '$2b$10$dPLJNTMQ5TH8YrYbGf1qne8EXxjYUNn9DpVrJeZ5xI9ERUEC6RzQm', // hashed 'password123'
+      password: '$2b$10$fcQbrljkPZFtSzjlaEG81u5AGULpUKkjTtIbQb/PoQlx2wne8NZea', // hashed 'password123'
       role: UserRole.USER,
       verified: true
     }
