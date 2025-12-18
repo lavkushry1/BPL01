@@ -1,6 +1,18 @@
 import { LayoutService } from '../../services/layout.service';
 import { PrismaClient } from '@prisma/client';
 
+// Mock the global db instance to prevent setup.ts from connecting
+jest.mock('../../db', () => ({
+  __esModule: true,
+  default: {
+    migrate: {
+      latest: jest.fn().mockResolvedValue(true),
+      rollback: jest.fn().mockResolvedValue(true),
+    },
+    destroy: jest.fn().mockResolvedValue(true),
+  },
+}));
+
 // Mock Prisma Client
 jest.mock('@prisma/client', () => {
   const mPrismaClient = {

@@ -39,6 +39,17 @@ const unlockSeatsSchema = z.object({
   })
 });
 
+const zoneSeatsSchema = z.object({
+  params: z.object({
+    matchId: z.string().uuid(),
+    zoneId: z.string().uuid()
+  }),
+  query: z.object({
+    lockerId: z.string().min(3).optional()
+  }).optional(),
+  body: z.object({}).optional()
+});
+
 /**
  * Match (Event) stadium layout endpoints (BookMyShow-like).
  *
@@ -50,6 +61,14 @@ router.get(
   optionalAuthenticate,
   validate(matchIdParamSchema),
   asyncHandler(MatchesControllerV1.getMatchLayout)
+);
+
+router.get(
+  '/:matchId/zones/:zoneId/seats',
+  standardLimiter,
+  optionalAuthenticate,
+  validate(zoneSeatsSchema),
+  asyncHandler(MatchesControllerV1.getZoneSeats)
 );
 
 router.post(

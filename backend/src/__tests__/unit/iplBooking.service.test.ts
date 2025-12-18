@@ -2,6 +2,18 @@ import { IplBookingService } from '../../services/iplBooking.service';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+// Mock the global db instance to prevent setup.ts from connecting
+jest.mock('../../db', () => ({
+  __esModule: true,
+  default: {
+    migrate: {
+      latest: jest.fn().mockResolvedValue(true),
+      rollback: jest.fn().mockResolvedValue(true),
+    },
+    destroy: jest.fn().mockResolvedValue(true),
+  },
+}));
+
 // Mock Prisma Client and bcrypt
 jest.mock('bcryptjs', () => ({
   hash: jest.fn().mockResolvedValue('hashed_password'),

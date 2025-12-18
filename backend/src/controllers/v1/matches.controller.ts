@@ -12,6 +12,13 @@ const matchIdParamSchema = z.object({
   })
 });
 
+const matchZoneParamSchema = z.object({
+  params: z.object({
+    matchId: z.string().uuid(),
+    zoneId: z.string().uuid()
+  })
+});
+
 const lockSeatsBodySchema = z.object({
   body: z.object({
     seatIds: z.array(z.string().uuid()).min(1),
@@ -27,6 +34,9 @@ const unlockSeatsBodySchema = z.object({
   })
 });
 
+const DEFAULT_LOCK_SECONDS = 300; // 5 minutes (BookMyShow-like hold)
+const MAX_SEATS_PER_LOCKER = 4;
+
 const resolveLockerId = (req: Request, lockerIdFromBody?: string): string => {
   const authUserId = req.user?.id;
   if (authUserId) return authUserId;
@@ -40,10 +50,24 @@ const computeEffectiveSeatStatus = (seat: { status: SeatStatus; lockExpiresAt: D
   return seat.lockExpiresAt.getTime() < Date.now() ? SeatStatus.AVAILABLE : SeatStatus.LOCKED;
 };
 
+const getRequesterLockerId = (req: Request): string | null => {
+  if (req.user?.id) return req.user.id;
+  if (typeof req.query.lockerId === 'string' && req.query.lockerId.trim().length > 0) {
+    return req.query.lockerId.trim();
+  }
+  return null;
+};
+
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'bigint') return Number(value);
+  return Number(value);
+};
+
 export class MatchesControllerV1 {
   /**
    * GET /api/v1/matches/:matchId/layout
-   * Returns stadium SVG geometry + status for every seat.
+   * Returns stadium SVG geometry + stand (zone) summaries only.
+   * Seats are fetched lazily via GET /api/v1/matches/:matchId/zones/:zoneId/seats
    *
    * Note: "matchId" maps to Event.id in this codebase (IPL matches are modeled as Events).
    */
@@ -51,28 +75,38 @@ export class MatchesControllerV1 {
     matchIdParamSchema.parse({ params: req.params });
 
     const { matchId } = req.params;
-    const requesterId =
-      req.user?.id || (typeof req.query.lockerId === 'string' ? req.query.lockerId : null);
 
     const event = await prisma.event.findUnique({
       where: { id: matchId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        startDate: true,
+        location: true,
         stadium: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            svgViewBox: true,
             stands: {
               orderBy: { sortOrder: 'asc' },
-              include: {
-                rows: {
-                  orderBy: { sortOrder: 'asc' },
-                  include: {
-                    seats: { orderBy: { sortOrder: 'asc' } }
-                  }
-                }
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                svgPath: true,
+                sortOrder: true
               }
             }
           }
         },
-        ticketCategories: true
+        ticketCategories: {
+          select: {
+            id: true,
+            price: true,
+            stadiumStandId: true
+          }
+        }
       }
     });
 
@@ -97,113 +131,85 @@ export class MatchesControllerV1 {
       }
     });
 
-    const matchSeats = await prisma.seat.findMany({
-      where: {
-        eventId: matchId,
-        stadiumSeatId: { not: null }
-      },
-      select: {
-        id: true,
-        stadiumSeatId: true,
-        status: true,
-        price: true,
-        lockedBy: true,
-        lockExpiresAt: true,
-        ticketCategoryId: true
-      }
-    });
+    type StandCountsRow = {
+      stand_id: string;
+      total_seats: bigint;
+      available_seats: bigint;
+    };
 
-    const matchSeatByStadiumSeatId = new Map<string, typeof matchSeats[number]>();
-    for (const seat of matchSeats) {
-      if (seat.stadiumSeatId) {
-        matchSeatByStadiumSeatId.set(seat.stadiumSeatId, seat);
+    const standCounts = await prisma.$queryRaw<StandCountsRow[]>`
+      SELECT
+        ss.id AS stand_id,
+        COALESCE(COUNT(s.id), 0) AS total_seats,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN s.status = 'AVAILABLE' THEN 1
+              WHEN s.status = 'LOCKED' AND s.lock_expires_at < NOW() THEN 1
+              ELSE 0
+            END
+          ),
+          0
+        ) AS available_seats
+      FROM stadium_stands ss
+      JOIN events e
+        ON e.id = ${matchId}
+       AND ss.stadium_id = e.stadium_id
+      LEFT JOIN stadium_rows sr
+        ON sr.stand_id = ss.id
+      LEFT JOIN stadium_seats stseat
+        ON stseat.row_id = sr.id
+      LEFT JOIN seats s
+        ON s.event_id = e.id
+       AND s.stadium_seat_id = stseat.id
+      GROUP BY ss.id
+    `;
+
+    const countsByStandId = new Map<string, { totalSeats: number; availableSeats: number }>();
+    for (const row of standCounts) {
+      countsByStandId.set(row.stand_id, {
+        totalSeats: toNumber(row.total_seats),
+        availableSeats: toNumber(row.available_seats)
+      });
+    }
+
+    const pricesByStandId = new Map<string, { minPrice: number; maxPrice: number }>();
+    for (const tc of event.ticketCategories) {
+      if (!tc.stadiumStandId) continue;
+      const price = Number(tc.price);
+      const existing = pricesByStandId.get(tc.stadiumStandId);
+      if (!existing) {
+        pricesByStandId.set(tc.stadiumStandId, { minPrice: price, maxPrice: price });
+      } else {
+        pricesByStandId.set(tc.stadiumStandId, {
+          minPrice: Math.min(existing.minPrice, price),
+          maxPrice: Math.max(existing.maxPrice, price)
+        });
       }
     }
 
-    const currency = 'INR';
-
     const stands = event.stadium.stands.map((stand) => {
-      const standTicketCategories = event.ticketCategories.filter((tc) => tc.stadiumStandId === stand.id);
-      const standPrice = standTicketCategories.length
-        ? Math.min(...standTicketCategories.map((tc) => Number(tc.price)))
-        : null;
+      const counts = countsByStandId.get(stand.id) || { totalSeats: 0, availableSeats: 0 };
+      const pricing = pricesByStandId.get(stand.id) || null;
 
-      let totalSeats = 0;
-      let availableSeats = 0;
-      let bookedSeats = 0;
-      let lockedSeats = 0;
-      let blockedSeats = 0;
-
-      const rows = stand.rows.map((row) => {
-        const seats = row.seats.map((stadiumSeat) => {
-          totalSeats += 1;
-
-          const matchSeat = matchSeatByStadiumSeatId.get(stadiumSeat.id);
-
-          if (!matchSeat) {
-            blockedSeats += 1;
-            return {
-              id: null,
-              stadiumSeatId: stadiumSeat.id,
-              label: stadiumSeat.label || `${row.label}-${stadiumSeat.seatNumber}`,
-              seatNumber: stadiumSeat.seatNumber,
-              status: SeatStatus.BLOCKED,
-              price: standPrice ?? 0,
-              currency,
-              lockExpiresAt: null,
-              lockedByMe: false
-            };
-          }
-
-          const effectiveStatus = computeEffectiveSeatStatus({
-            status: matchSeat.status,
-            lockExpiresAt: matchSeat.lockExpiresAt
-          });
-
-          if (effectiveStatus === SeatStatus.AVAILABLE) availableSeats += 1;
-          else if (effectiveStatus === SeatStatus.BOOKED || effectiveStatus === SeatStatus.SOLD) bookedSeats += 1;
-          else if (effectiveStatus === SeatStatus.LOCKED) lockedSeats += 1;
-          else if (effectiveStatus === SeatStatus.BLOCKED || effectiveStatus === SeatStatus.MAINTENANCE) blockedSeats += 1;
-
-          const lockedByMe = requesterId ? matchSeat.lockedBy === requesterId : false;
-
-          return {
-            id: matchSeat.id,
-            stadiumSeatId: stadiumSeat.id,
-            label: stadiumSeat.label || `${row.label}-${stadiumSeat.seatNumber}`,
-            seatNumber: stadiumSeat.seatNumber,
-            status: effectiveStatus,
-            price: matchSeat.price !== null ? Number(matchSeat.price) : (standPrice ?? 0),
-            currency,
-            lockExpiresAt: matchSeat.lockExpiresAt ? matchSeat.lockExpiresAt.toISOString() : null,
-            lockedByMe
-          };
-        });
-
-        return {
-          id: row.id,
-          label: row.label,
-          seats
-        };
-      });
+      const ratio = counts.totalSeats > 0 ? counts.availableSeats / counts.totalSeats : 0;
+      const status =
+        counts.totalSeats === 0 || counts.availableSeats === 0
+          ? 'SOLD_OUT'
+          : ratio <= 0.15
+            ? 'FAST_FILLING'
+            : 'AVAILABLE';
 
       return {
         id: stand.id,
-        code: stand.code,
         name: stand.name,
-        shortName: stand.shortName,
+        code: stand.code,
         svgPath: stand.svgPath,
-        price: standPrice,
-        currency,
-        availability: {
-          totalSeats,
-          availableSeats,
-          bookedSeats,
-          lockedSeats,
-          blockedSeats,
-          isSoldOut: availableSeats === 0
-        },
-        rows
+        minPrice: pricing ? pricing.minPrice : null,
+        maxPrice: pricing ? pricing.maxPrice : null,
+        availableSeats: counts.availableSeats,
+        totalSeats: counts.totalSeats,
+        status
       };
     });
 
@@ -218,15 +224,140 @@ export class MatchesControllerV1 {
       stadium: {
         id: event.stadium.id,
         name: event.stadium.name,
-        city: event.stadium.city,
-        state: event.stadium.state,
-        capacity: event.stadium.capacity,
-        svgViewBox: event.stadium.svgViewBox || '0 0 500 400'
+        viewBox: event.stadium.svgViewBox || '0 0 500 400'
       },
       stands,
-      lockDurationSeconds: 240,
+      lockDurationSeconds: DEFAULT_LOCK_SECONDS,
       serverTime: new Date().toISOString()
     });
+  });
+
+  /**
+   * GET /api/v1/matches/:matchId/zones/:zoneId/seats
+   * Returns seats only for the selected zone/stand (lazy loaded).
+   */
+  static getZoneSeats = asyncHandler(async (req: Request, res: Response) => {
+    matchZoneParamSchema.parse({ params: req.params });
+
+    const { matchId, zoneId } = req.params;
+    const lockerId = getRequesterLockerId(req);
+
+    // Release expired locks so UI doesn't show stale "LOCKED" seats.
+    await prisma.seat.updateMany({
+      where: {
+        eventId: matchId,
+        status: SeatStatus.LOCKED,
+        lockExpiresAt: { lt: new Date() }
+      },
+      data: {
+        status: SeatStatus.AVAILABLE,
+        lockedBy: null,
+        lockExpiresAt: null
+      }
+    });
+
+    const event = await prisma.event.findUnique({
+      where: { id: matchId },
+      select: { id: true, stadiumId: true }
+    });
+
+    if (!event) {
+      throw ApiError.notFound('Match not found', 'MATCH_NOT_FOUND');
+    }
+    if (!event.stadiumId) {
+      throw ApiError.badRequest('Match has no stadium layout configured', 'MATCH_STADIUM_NOT_CONFIGURED');
+    }
+
+    const zone = await prisma.stadiumStand.findFirst({
+      where: { id: zoneId, stadiumId: event.stadiumId },
+      select: { id: true }
+    });
+
+    if (!zone) {
+      throw ApiError.notFound('Zone not found for this match', 'ZONE_NOT_FOUND');
+    }
+
+    type ZoneSeatRow = {
+      seat_id: string;
+      stadium_seat_id: string;
+      row_label: string;
+      row_order: number;
+      seat_number: number;
+      seat_order: number;
+      status: SeatStatus;
+      locked_by: string | null;
+      lock_expires_at: Date | null;
+      price: any;
+      x: number | null;
+      y: number | null;
+    };
+
+    const rows = await prisma.$queryRaw<ZoneSeatRow[]>`
+      SELECT
+        s.id AS seat_id,
+        ss.id AS stadium_seat_id,
+        sr.label AS row_label,
+        sr.sort_order AS row_order,
+        ss.seat_number AS seat_number,
+        ss.sort_order AS seat_order,
+        s.status AS status,
+        s.locked_by AS locked_by,
+        s.lock_expires_at AS lock_expires_at,
+        s.price AS price,
+        ss.x AS x,
+        ss.y AS y
+      FROM stadium_rows sr
+      JOIN stadium_seats ss
+        ON ss.row_id = sr.id
+      JOIN seats s
+        ON s.stadium_seat_id = ss.id
+       AND s.event_id = ${matchId}
+      WHERE sr.stand_id = ${zoneId}
+      ORDER BY sr.sort_order ASC, ss.sort_order ASC
+    `;
+
+    const now = Date.now();
+    const seats = rows.map((row) => {
+      let status: 'AVAILABLE' | 'BOOKED' | 'LOCKED' | 'SELECTED';
+      let lockExpiresAt: string | null = row.lock_expires_at ? row.lock_expires_at.toISOString() : null;
+
+      if (row.status === SeatStatus.LOCKED) {
+        const expiresAtMs = row.lock_expires_at ? row.lock_expires_at.getTime() : 0;
+        if (!row.lock_expires_at || expiresAtMs < now) {
+          status = 'AVAILABLE';
+          lockExpiresAt = null;
+        } else if (lockerId && row.locked_by === lockerId) {
+          status = 'SELECTED';
+        } else {
+          status = 'LOCKED';
+        }
+      } else if (row.status === SeatStatus.BOOKED || row.status === SeatStatus.SOLD) {
+        status = 'BOOKED';
+      } else if (row.status === SeatStatus.BLOCKED || row.status === SeatStatus.MAINTENANCE) {
+        status = 'BOOKED';
+      } else {
+        status = 'AVAILABLE';
+      }
+
+      return {
+        id: row.seat_id,
+        stadiumSeatId: row.stadium_seat_id,
+        seatNumber: String(row.seat_number),
+        rowLabel: row.row_label,
+        status,
+        price: row.price !== null && row.price !== undefined ? Number(row.price) : 0,
+        type: 'STANDARD',
+        grid: {
+          row: row.row_order,
+          col: row.seat_order,
+          ...(row.x !== null ? { x: row.x } : {}),
+          ...(row.y !== null ? { y: row.y } : {})
+        },
+        ...(lockExpiresAt ? { lockExpiresAt } : {})
+      };
+    });
+
+    return ApiResponse.success(res, 200, 'Zone seats fetched successfully', seats);
   });
 
   /**
@@ -238,7 +369,7 @@ export class MatchesControllerV1 {
     lockSeatsBodySchema.parse({ body: req.body });
 
     const { matchId } = req.params;
-    const { seatIds, lockDurationSeconds = 240, lockerId } = req.body as z.infer<typeof lockSeatsBodySchema>['body'];
+    const { seatIds, lockDurationSeconds = DEFAULT_LOCK_SECONDS, lockerId } = req.body as z.infer<typeof lockSeatsBodySchema>['body'];
 
     const locker = resolveLockerId(req, lockerId);
     const uniqueSeatIds = Array.from(new Set(seatIds));
@@ -247,6 +378,34 @@ export class MatchesControllerV1 {
     const expiresAt = new Date(now.getTime() + lockDurationSeconds * 1000);
 
     const result = await prisma.$transaction(async (tx) => {
+      const existingActiveLocks = await tx.seat.count({
+        where: {
+          eventId: matchId,
+          status: SeatStatus.LOCKED,
+          lockedBy: locker,
+          lockExpiresAt: { gt: now }
+        }
+      });
+
+      const requested = await tx.seat.findMany({
+        where: { eventId: matchId, id: { in: uniqueSeatIds } },
+        select: { id: true, status: true, lockedBy: true, lockExpiresAt: true }
+      });
+
+      const alreadyLockedByMe = new Set(
+        requested
+          .filter((s) => s.status === SeatStatus.LOCKED && s.lockedBy === locker && s.lockExpiresAt && s.lockExpiresAt > now)
+          .map((s) => s.id)
+      );
+
+      const seatsToNewlyLock = uniqueSeatIds.filter((id) => !alreadyLockedByMe.has(id));
+
+      if (existingActiveLocks + seatsToNewlyLock.length > MAX_SEATS_PER_LOCKER) {
+        throw ApiError.conflict('Seat limit exceeded', 'SEAT_LOCK_LIMIT_EXCEEDED', {
+          maxSeatsPerUser: MAX_SEATS_PER_LOCKER
+        });
+      }
+
       const updateResult = await tx.seat.updateMany({
         where: {
           eventId: matchId,
