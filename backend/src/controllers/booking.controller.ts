@@ -42,9 +42,9 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           id: newUserId,
           name: guest_name,
           email: guest_email,
-          phone: guest_phone,
           password: hashedPassword,
-          role: 'GUEST', // Ensure this role exists or use USER
+          // Keep schema-compatible role; the database enum is UserRole(USER|ORGANIZER|ADMIN)
+          role: 'USER',
           createdAt: db.fn.now(),
           updatedAt: db.fn.now()
         });

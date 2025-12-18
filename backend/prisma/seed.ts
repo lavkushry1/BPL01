@@ -46,6 +46,11 @@ async function main() {
         name: 'Cricket'
       }
     }),
+    prisma.category.create({
+      data: {
+        name: 'IPL'
+      }
+    }),
   ]);
 
   console.log(`Created ${categories.length} categories`);
@@ -127,7 +132,42 @@ async function main() {
       status: EventStatus.PUBLISHED,
       imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2305&auto=format&fit=crop',
       categories: {
-        connect: [{ id: categories[1].id }] // Sports
+        connect: [
+          { id: categories[4].id }, // Cricket
+          { id: categories[5].id }  // IPL
+        ]
+      }
+    },
+    {
+      title: 'IPL 2025: Chennai vs Kolkata',
+      description: 'A classic rivalry under the lights',
+      startDate: new Date('2025-05-21T19:30:00'),
+      endDate: new Date('2025-05-21T23:00:00'),
+      location: 'M.A. Chidambaram Stadium, Chennai',
+      organizerId: admin.id,
+      status: EventStatus.PUBLISHED,
+      imageUrl: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=2067&auto=format&fit=crop',
+      categories: {
+        connect: [
+          { id: categories[4].id }, // Cricket
+          { id: categories[5].id }  // IPL
+        ]
+      }
+    },
+    {
+      title: 'IPL 2025: Bengaluru vs Hyderabad',
+      description: 'High-scoring thriller expected at Chinnaswamy',
+      startDate: new Date('2025-05-22T19:30:00'),
+      endDate: new Date('2025-05-22T23:00:00'),
+      location: 'M. Chinnaswamy Stadium, Bengaluru',
+      organizerId: admin.id,
+      status: EventStatus.PUBLISHED,
+      imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2305&auto=format&fit=crop',
+      categories: {
+        connect: [
+          { id: categories[4].id }, // Cricket
+          { id: categories[5].id }  // IPL
+        ]
       }
     },
     {
@@ -166,7 +206,10 @@ async function main() {
       status: EventStatus.PUBLISHED,
       imageUrl: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=2067&auto=format&fit=crop',
       categories: {
-        connect: [{ id: categories[4].id }] // Cricket
+        connect: [
+          { id: categories[4].id }, // Cricket
+          { id: categories[5].id }  // IPL
+        ]
       }
     }
   ];
@@ -219,7 +262,8 @@ async function main() {
               row: rows[r],
               seatNumber: i.toString(),
               price: generalCategory.price,
-              eventId: event.id
+              eventId: event.id,
+              ticketCategoryId: generalCategory.id
             }
           })
         );
@@ -237,7 +281,8 @@ async function main() {
               row: rows[r],
               seatNumber: i.toString(),
               price: vipCategory.price,
-              eventId: event.id
+              eventId: event.id,
+              ticketCategoryId: vipCategory.id
             }
           })
         );

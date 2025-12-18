@@ -145,10 +145,10 @@ export class IplService {
   }
 
   /**
-   * Get a single match by ID
+   * Get a single match by ID - Returns formatted data for frontend
    */
   static async getMatchById(id: string) {
-    return prisma.iplMatch.findUnique({
+    const match = await prisma.iplMatch.findUnique({
       where: { id },
       include: {
         homeTeam: true,
@@ -156,7 +156,11 @@ export class IplService {
         venue: true,
         event: {
           include: {
-            ticketCategories: true,
+            ticketCategories: {
+              where: { isDeleted: false },
+              orderBy: { price: 'asc' }
+            },
+            eventSummary: true,
             seats: {
               where: { status: 'AVAILABLE' },
               take: 100
@@ -165,6 +169,71 @@ export class IplService {
         }
       }
     });
+
+    if (!match) return null;
+
+    // Transform to frontend-expected format
+    const ticketCategories = match.event?.ticketCategories?.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.description,
+      price: Number(cat.price),
+      available: cat.available ?? (cat.totalSeats - cat.bookedSeats),
+      totalSeats: cat.totalSeats,
+      bookedSeats: cat.bookedSeats
+    })) || [];
+
+    return {
+      id: match.id,
+      eventId: match.eventId,
+      matchNumber: match.matchNumber,
+      title: `${match.homeTeam.name} vs ${match.awayTeam.name}`,
+      description: match.event?.description || `IPL 2026 Match ${match.matchNumber}`,
+      date: match.matchDate.toISOString(),
+      time: match.matchTime,
+      venue: match.venue.name,
+      bannerImage: match.venue.imageUrl || `/assets/stadiums/${match.venue.city.toLowerCase()}.jpg`,
+      status: match.status,
+      priceMultiplier: Number(match.priceMultiplier),
+      isPlayoff: match.isPlayoff,
+      teams: {
+        team1: {
+          id: match.homeTeam.id,
+          name: match.homeTeam.name,
+          shortName: match.homeTeam.shortName,
+          logo: match.homeTeam.logoUrl,
+          primaryColor: match.homeTeam.primaryColor,
+          secondaryColor: match.homeTeam.secondaryColor
+        },
+        team2: {
+          id: match.awayTeam.id,
+          name: match.awayTeam.name,
+          shortName: match.awayTeam.shortName,
+          logo: match.awayTeam.logoUrl,
+          primaryColor: match.awayTeam.primaryColor,
+          secondaryColor: match.awayTeam.secondaryColor
+        }
+      },
+      venueDetails: {
+        id: match.venue.id,
+        name: match.venue.name,
+        shortName: match.venue.shortName,
+        city: match.venue.city,
+        state: match.venue.state,
+        capacity: match.venue.capacity,
+        imageUrl: match.venue.imageUrl
+      },
+      ticketCategories,
+      pricing: {
+        minPrice: match.event?.eventSummary?.minPrice ? Number(match.event.eventSummary.minPrice) : Math.min(...ticketCategories.map(tc => tc.price)),
+        maxPrice: match.event?.eventSummary?.maxPrice ? Number(match.event.eventSummary.maxPrice) : Math.max(...ticketCategories.map(tc => tc.price))
+      },
+      availability: {
+        totalSeats: match.event?.eventSummary?.totalSeats || match.venue.capacity,
+        bookedSeats: match.event?.eventSummary?.bookedSeats || 0,
+        availableSeats: match.event?.eventSummary?.availableSeats || match.venue.capacity
+      }
+    };
   }
 
   /**

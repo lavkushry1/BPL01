@@ -400,4 +400,133 @@ router.get('/waitlist/status', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/ipl/matches/{id}/book:
+ *   post:
+ *     summary: Create a booking for an IPL match
+ *     tags: [IPL]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Match ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [categoryId, quantity]
+ *             properties:
+ *               categoryId:
+ *                 type: string
+ *               quantity:
+ *                 type: number
+ *               guestDetails:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   email:
+ *                     type: string
+ *                   phone:
+ *                     type: string
+ *     responses:
+ *       201:
+ *         description: Booking created successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Match not found
+ */
+router.post('/matches/:id/book', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { categoryId, quantity, guestDetails } = req.body;
+
+    if (!categoryId || !quantity || quantity < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'categoryId and quantity are required'
+      });
+    }
+
+    // Lazy import to avoid circular dependencies
+    const { IplBookingService } = await import('../services/iplBooking.service');
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+
+    // Get match with event info
+    const match = await prisma.iplMatch.findUnique({
+      where: { id },
+      include: {
+        event: {
+          include: {
+            ticketCategories: true
+          }
+        },
+        homeTeam: true,
+        awayTeam: true,
+        venue: true
+      }
+    });
+
+    if (!match || !match.eventId) {
+      return res.status(404).json({
+        success: false,
+        error: 'Match not found or not available for booking'
+      });
+    }
+
+    // Check category exists and has availability
+    const category = match.event?.ticketCategories.find(c => c.id === categoryId);
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid ticket category'
+      });
+    }
+
+    const available = category.available ?? (category.totalSeats - category.bookedSeats);
+    if (available < quantity) {
+      return res.status(400).json({
+        success: false,
+        error: `Only ${available} tickets available in this category`
+      });
+    }
+
+    // Get user ID from request (optional authentication)
+    const userId = (req as any).user?.id;
+
+    // Create booking via service
+    const result = await IplBookingService.createBooking({
+      matchId: id,
+      eventId: match.eventId,
+      categoryId,
+      quantity,
+      userId,
+      guestDetails
+    });
+
+    await prisma.$disconnect();
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      message: 'Booking created successfully'
+    });
+  } catch (error: any) {
+    console.error('Error creating IPL booking:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create booking'
+    });
+  }
+});
+
 export default router;

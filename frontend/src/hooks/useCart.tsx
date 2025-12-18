@@ -6,12 +6,14 @@ export interface CartItem {
   eventTitle: string;
   eventDate: string;
   eventTime: string;
+  eventVenue?: string;
   eventImage?: string;
   tickets: {
     id: string;
     name: string;
     price: number;
     quantity: number;
+    kind?: 'ticketCategory' | 'seat';
   }[];
   totalAmount: number;
 }
@@ -79,8 +81,17 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const existingTicketIndex = mergedTickets.findIndex(t => t.id === newTicket.id);
           
           if (existingTicketIndex >= 0) {
-            // Update existing ticket quantity
-            mergedTickets[existingTicketIndex].quantity += newTicket.quantity;
+            // Seats are unique per id; don't allow quantity > 1 for seat items
+            if (mergedTickets[existingTicketIndex].kind === 'seat' || newTicket.kind === 'seat') {
+              mergedTickets[existingTicketIndex] = {
+                ...mergedTickets[existingTicketIndex],
+                kind: 'seat',
+                quantity: 1
+              };
+            } else {
+              // Update existing ticket quantity
+              mergedTickets[existingTicketIndex].quantity += newTicket.quantity;
+            }
           } else {
             // Add new ticket
             mergedTickets.push(newTicket);

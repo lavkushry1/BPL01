@@ -920,21 +920,27 @@ export class SeatService {
     bookingId: string
   ): Promise<string[]> {
     try {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(section);
+
       // 1. Find available seats IDs (Row locking for concurrency safety)
       // This is Postgres specific syntax for "SELECT ... FOR UPDATE SKIP LOCKED"
       // which is best for concurrent ticket booking
-      const availableSeats = await trx('seats')
+      const baseQuery = trx('seats')
         .select('id')
         .where({
           event_id: eventId,
           status: 'AVAILABLE' as any,
           is_deleted: false
-          // Note: In a real app we might match section name loosely or strictly
         })
-        .whereRaw('LOWER(section) = ?', [section.toLowerCase()])
         .limit(quantity)
         .forUpdate()
         .skipLocked();
+
+      // `section` historically mapped to the `section` column, but newer clients send
+      // a TicketCategory id (UUID) that maps to `ticket_category_id`.
+      const availableSeats = isUuid
+        ? await baseQuery.where('ticket_category_id', section)
+        : await baseQuery.whereRaw('LOWER(section) = ?', [section.toLowerCase()]);
 
       if (availableSeats.length < quantity) {
         throw new ApiError(409, `Not enough available seats in ${section}. Requested: ${quantity}, Available: ${availableSeats.length}`);

@@ -184,7 +184,8 @@ export const logout = asyncHandler(async (
 ): Promise<void> => {
   // Clear auth cookies
   res.clearCookie('access_token');
-  res.clearCookie('refresh_token');
+  // refresh_token is set with a restricted path, so we must match it to clear properly
+  res.clearCookie('refresh_token', { path: '/api/v1/auth/refresh-token' });
 
   // Send success response
   ApiResponse.success(res, 200, 'Logged out successfully', {});

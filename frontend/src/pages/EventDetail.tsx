@@ -108,6 +108,7 @@ interface CartTicket {
   name: string;
   price: number;
   quantity: number;
+  kind?: 'ticketCategory' | 'seat';
 }
 
 // Define a type compatible with the CartItem interface from useCart.tsx
@@ -116,6 +117,7 @@ interface CartItem {
   eventTitle: string;
   eventDate: string;
   eventTime: string;
+  eventVenue?: string;
   eventImage?: string;
   tickets: CartTicket[];
   totalAmount: number;
@@ -202,22 +204,36 @@ const EventDetail = () => {
           venue: eventData.venue || eventData.location,
           image: eventData.images && eventData.images.length > 0
             ? eventData.images[0].url
-            : eventData.poster_image,
+            : (eventData.imageUrl || eventData.poster_image),
           posterImage: eventData.poster_image || (eventData.images && eventData.images.length > 0
             ? eventData.images[0].url
-            : undefined),
+            : (eventData.imageUrl || undefined)),
           images: eventData.images
             ? eventData.images.map((img: any) => img.url)
             : undefined,
-          category: eventData.category,
-          ticketTypes: (eventData.ticket_types || eventData.ticketTypes || []).map((tt: any) => ({
-            id: tt.id || `ticket-${Math.random().toString(36).substr(2, 9)}`,
-            name: tt.name || tt.category,
-            price: tt.price,
-            description: tt.description || '',
-            availableQuantity: tt.available || tt.quantity,
-            maxPerOrder: 10
-          })),
+          category: eventData.category || (eventData.categories?.[0]?.name ?? undefined),
+          ticketTypes: (
+            eventData.ticketCategories ||
+            eventData.ticket_categories ||
+            eventData.ticket_types ||
+            eventData.ticketTypes ||
+            []
+          ).map((tt: any) => {
+            const totalSeats = typeof tt.totalSeats === 'number' ? tt.totalSeats : undefined;
+            const bookedSeats = typeof tt.bookedSeats === 'number' ? tt.bookedSeats : 0;
+            const availableQuantity = totalSeats !== undefined
+              ? Math.max(0, totalSeats - bookedSeats)
+              : (tt.available ?? tt.quantity ?? 0);
+
+            return {
+              id: tt.id || `ticket-${Math.random().toString(36).slice(2, 11)}`,
+              name: tt.name || tt.category || 'General',
+              price: typeof tt.price === 'string' ? Number.parseFloat(tt.price) : tt.price,
+              description: tt.description || '',
+              availableQuantity,
+              maxPerOrder: 10
+            };
+          }),
           venueInfo: {
             name: eventData.venue || eventData.location,
             address: eventData.venue || eventData.location,
@@ -434,7 +450,8 @@ const EventDetail = () => {
             id: ticketType.id,
             name: ticketType.name,
             price: ticketType.price,
-            quantity: selectedTicket.quantity
+            quantity: selectedTicket.quantity,
+            kind: 'ticketCategory'
           });
         }
       });
@@ -445,7 +462,8 @@ const EventDetail = () => {
           id: seat.id,
           name: `${seat.category} - ${seat.row} ${seat.number}`,
           price: seat.price,
-          quantity: 1
+          quantity: 1,
+          kind: 'seat'
         });
       });
 
@@ -455,6 +473,7 @@ const EventDetail = () => {
         eventTitle: event.title,
         eventDate: event.date,
         eventTime: event.time,
+        eventVenue: event.venue,
         eventImage: event.image,
         tickets: cartTickets,
         totalAmount: calculateTotal()
@@ -470,8 +489,8 @@ const EventDetail = () => {
         variant: "default"
       });
 
-      // Navigate to cart or stay on page
-      // navigate('/cart'); // Uncomment to navigate directly to cart
+      // Navigate to cart to continue the booking flow
+      navigate('/cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast({

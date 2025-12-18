@@ -297,12 +297,28 @@ export class EventRepository {
 
     // Category filter
     if (filters.category) {
+      const categoryNames = filters.category
+        .split(',')
+        .map(name => name.trim())
+        .filter(Boolean);
+
       where.categories = {
         some: {
-          name: {
-            equals: filters.category,
-            mode: 'insensitive'
-          }
+          ...(categoryNames.length <= 1
+            ? {
+                name: {
+                  equals: categoryNames[0],
+                  mode: 'insensitive'
+                }
+              }
+            : {
+                OR: categoryNames.map(name => ({
+                  name: {
+                    equals: name,
+                    mode: 'insensitive'
+                  }
+                }))
+              })
         }
       };
     }

@@ -43,14 +43,22 @@ const Cart = () => {
     }
 
     // Store cart data in sessionStorage for checkout
+    const seatIds = cartItems[0].tickets
+      .filter(ticket => ticket.kind === 'seat')
+      .map(ticket => ticket.id);
+
     sessionStorage.setItem('bookingData', JSON.stringify({
       eventId: cartItems[0].eventId,
       eventTitle: cartItems[0].eventTitle,
       eventDate: cartItems[0].eventDate,
       eventTime: cartItems[0].eventTime,
-      venue: "Event Venue", // This should ideally come from the event data
-      tickets: cartItems[0].tickets.map(ticket => ({
+      venue: cartItems[0].eventVenue || "Event Venue",
+      seatIds,
+      tickets: cartItems[0].tickets
+        .filter(ticket => ticket.kind !== 'seat')
+        .map(ticket => ({
         category: ticket.name,
+        categoryId: ticket.id,
         quantity: ticket.quantity,
         price: ticket.price,
         subtotal: ticket.price * ticket.quantity
@@ -134,42 +142,47 @@ const Cart = () => {
                             <div>
                               <div className="font-medium">{ticket.name}</div>
                               <div className="text-sm text-gray-600">
-                                {formatCurrency(ticket.price)} x {ticket.quantity}
+                                {ticket.kind === 'seat'
+                                  ? formatCurrency(ticket.price)
+                                  : `${formatCurrency(ticket.price)} x ${ticket.quantity}`
+                                }
                               </div>
                             </div>
                             
                             <div className="flex items-center space-x-4">
-                              <div className="flex items-center">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 w-7 rounded-full"
-                                  onClick={() => handleUpdateQuantity(
-                                    item.eventId, 
-                                    ticket.id, 
-                                    Math.max(0, ticket.quantity - 1)
-                                  )}
-                                >
-                                  -
-                                </Button>
-                                
-                                <span className="w-8 text-center">
-                                  {ticket.quantity}
-                                </span>
-                                
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 w-7 rounded-full"
-                                  onClick={() => handleUpdateQuantity(
-                                    item.eventId, 
-                                    ticket.id, 
-                                    ticket.quantity + 1
-                                  )}
-                                >
-                                  +
-                                </Button>
-                              </div>
+                              {ticket.kind !== 'seat' && (
+                                <div className="flex items-center">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 w-7 rounded-full"
+                                    onClick={() => handleUpdateQuantity(
+                                      item.eventId, 
+                                      ticket.id, 
+                                      Math.max(0, ticket.quantity - 1)
+                                    )}
+                                  >
+                                    -
+                                  </Button>
+                                  
+                                  <span className="w-8 text-center">
+                                    {ticket.quantity}
+                                  </span>
+                                  
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 w-7 rounded-full"
+                                    onClick={() => handleUpdateQuantity(
+                                      item.eventId, 
+                                      ticket.id, 
+                                      ticket.quantity + 1
+                                    )}
+                                  >
+                                    +
+                                  </Button>
+                                </div>
+                              )}
                               
                               <Button
                                 variant="ghost"

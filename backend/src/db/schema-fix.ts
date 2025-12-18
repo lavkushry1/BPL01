@@ -28,6 +28,16 @@ export const fixDatabaseSchema = async (): Promise<void> => {
         });
         logger.info('Successfully added "lock_expires_at" column.');
       }
+
+      // Check for booking_id column (used by legacy booking/seat services)
+      const hasBookingId = await db.schema.hasColumn('seats', 'booking_id');
+      if (!hasBookingId) {
+        logger.warn('Missing column "booking_id" in "seats" table. Attempting auto-repair...');
+        await db.schema.alterTable('seats', (table) => {
+          table.string('booking_id').nullable();
+        });
+        logger.info('Successfully added "booking_id" column.');
+      }
     }
 
     logger.info('Database schema integrity check completed.');
