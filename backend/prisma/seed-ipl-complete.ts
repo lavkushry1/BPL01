@@ -457,6 +457,25 @@ async function seedIplComplete() {
                          ['CSK', 'MI', 'RCB'].includes(match.awayTeam);
     const priceMultiplier = isHighDemand ? 1.5 : 1.0;
 
+    // Create the base Event record
+    await prisma.event.create({
+      data: {
+        id: eventId,
+        title: `${match.homeTeam} vs ${match.awayTeam}`,
+        description: `IPL 2026 Match ${matchNumber} at ${match.venue}`,
+        date: matchDate,
+        endDate: endDate,
+        location: match.venue,
+        venueId: venueId,
+        imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+        category: 'SPORTS',
+        status: 'PUBLISHED',
+        organizerId: adminUser.id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+
 
     // Create ticket categories for this event
     const basePrice = venuePricing[match.venue] || 700;

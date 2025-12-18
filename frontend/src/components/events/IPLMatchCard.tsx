@@ -145,7 +145,7 @@ const IPLMatchCard = ({
             <p className="text-xl font-bold text-white">₹{startingPrice.toLocaleString('en-IN')}</p>
           </div>
 
-          <Link to={`/ipl/book/${id}`} onClick={handleErrorIfNoId}>
+          <Link to={`/matches/${id}`} onClick={handleErrorIfNoId}>
             <Button
               size="sm"
               className="rounded-full bg-white text-slate-950 hover:bg-blue-500 hover:text-white font-bold transition-all px-6"
