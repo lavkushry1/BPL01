@@ -1,49 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* STRICT DISTRICT LIGHT (Technical/Clean) */
-      --background: 0 0% 100%;
-      --foreground: 240 10% 3.9%;
+    /* Light Mode - Clean, High Contrast */
+    --background: 210 40% 98%; /* Slate 50 */
+    --foreground: 222.2 84% 4.9%; /* Slate 950 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 240 5.9% 10%;
-      /* Zinc 900 */
-      --primary-foreground: 0 0% 98%;
+    --primary: 221.2 83.2% 53.3%; /* Blue 600 */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 240 4.8% 95.9%;
-      /* Zinc 100 */
-      --secondary-foreground: 240 5.9% 10%;
+    --secondary: 210 40% 96.1%; /* Slate 100 */
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 240 4.8% 95.9%;
-      --muted-foreground: 240 3.8% 46.1%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 240 4.8% 95.9%;
-      --accent-foreground: 240 5.9% 10%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
-      --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 240 5.9% 90%;
-      --input: 240 5.9% 90%;
-      --ring: 240 5.9% 10%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
 
-    --radius: 0.25rem;
-      /* Strict, small radius (4px) */
+    --radius: 0.75rem;
 
-    /* M3 Mappings (Monochrome for Strict feel) */
-      --surface: 0 0% 100%;
-      --surface-container: 240 4.8% 95.9%;
-    /* IPL Colors (Unchanged) */
+    /* IPL Team Colors */
     --color-csk: #F9CD05;
     --color-mi: #004BA0;
     --color-rcb: #EC1C24;
@@ -57,73 +49,68 @@
   }
 
   .dark {
-    /* STRICT DISTRICT DARK (Void/Industrial) */
-      --background: 0 0% 0%;
-      /* Pure Black */
-      --foreground: 0 0% 98%;
+    /* Dark Mode - Rich, Deep Blue/Gray */
+    --background: 222.2 84% 4.9%; /* Slate 950 */
+    --foreground: 210 40% 98%;
 
-    --card: 240 10% 3.9%;
-      /* Zinc 950 */
-      --card-foreground: 0 0% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 5%;
-      --popover-foreground: 0 0% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 0 0% 98%;
-      /* White Primary */
-      --primary-foreground: 240 10% 3.9%;
-      --primary-container: 240 3.7% 15.9%;
-      --on-primary-container: 0 0% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
-    --secondary: 240 3.7% 15.9%;
-      /* Zinc 800 */
-      --secondary-foreground: 0 0% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 240 3.7% 15.9%;
-      --muted-foreground: 240 5% 64.9%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 240 3.7% 15.9%;
-      --accent-foreground: 0 0% 98%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-      --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 240 3.7% 15.9%;
-      /* Subtle Dark Border */
-      --input: 240 3.7% 15.9%;
-      --ring: 240 4.9% 83.9%;
-    /* M3 Mappings */
-      --surface: 0 0% 0%;
-      --surface-container: 240 10% 3.9%;
-    }
-    }
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
 
-@layer base {
   body {
-    @apply bg-background text-foreground tracking-tight antialiased font-sans;
+    @apply bg-background text-foreground tracking-tight antialiased transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-      @apply font-semibold tracking-tight;
-    }
-    /* Utility Overrides for Strict Feel */
   .glass-card {
-    @apply bg-zinc-900/50 backdrop-blur-md border border-zinc-800 shadow-sm rounded-sm;
+    @apply bg-white/70 dark:bg-slate-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xl;
   }
 
   .glass-button {
-    @apply bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-foreground border border-zinc-200 dark:border-zinc-700 rounded-sm transition-all duration-150;
+    @apply bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 backdrop-blur-sm border border-gray-200 dark:border-white/10 text-foreground transition-all duration-300;
+  }
+
+  .neon-text-glow {
+    text-shadow: 0 0 10px currentColor;
   }
 }
 
 @layer utilities {
-  .font-mono-strict {
-      font-family: 'JetBrains Mono', monospace;
-    }
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .hover-slide-right {
+    @apply relative overflow-hidden;
+  }
+
+  .hover-slide-right::after {
+    @apply content-[''] absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 ease-in-out;
+  }
+
+  .hover-slide-right:hover::after {
+    @apply w-full;
+  }
 }
