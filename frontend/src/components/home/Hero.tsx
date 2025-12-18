@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { useTheme } from '@/styles/ThemeProvider';
-import { Search, Calendar, MapPin, AlertCircle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, Calendar, MapPin, Search } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { Link, useNavigate } from 'react-router-dom';
 import * as z from 'zod';
-import { format } from 'date-fns';
 
 // Define types for the carousel events
 interface CarouselEvent {
@@ -34,8 +32,8 @@ const searchFormSchema = z.object({
 
 type SearchFormValues = z.infer<typeof searchFormSchema>;
 
-export const Hero: React.FC<HeroProps> = ({ 
-  events = [], 
+export const Hero: React.FC<HeroProps> = ({
+  events = [],
   isLoading = false
 }) => {
   const navigate = useNavigate();
@@ -43,11 +41,11 @@ export const Hero: React.FC<HeroProps> = ({
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const { t } = useTranslation();
-  
+
   // Initialize form with React Hook Form
-  const { 
-    register, 
-    handleSubmit, 
+  const {
+    register,
+    handleSubmit,
     formState: { errors },
     setError,
   } = useForm<SearchFormValues>({
@@ -58,7 +56,7 @@ export const Hero: React.FC<HeroProps> = ({
       location: '',
     }
   });
-  
+
   // Default placeholder events for demo purposes
   const defaultEvents: CarouselEvent[] = [
     {
@@ -86,22 +84,22 @@ export const Hero: React.FC<HeroProps> = ({
 
   // Use provided events or defaults
   const displayEvents = events.length > 0 ? events : defaultEvents;
-  
+
   useEffect(() => {
     // Auto rotate carousel every 5 seconds
     const interval = setInterval(() => {
       handleNextSlide();
     }, 5000);
-    
+
     return () => clearInterval(interval);
   }, [activeIndex, displayEvents.length]);
 
   const handleNextSlide = () => {
     if (isTransitioning) return;
-    
+
     setIsTransitioning(true);
     const nextIndex = (activeIndex + 1) % displayEvents.length;
-    
+
     setTimeout(() => {
       setActiveIndex(nextIndex);
       setIsTransitioning(false);
@@ -110,10 +108,10 @@ export const Hero: React.FC<HeroProps> = ({
 
   const handlePrevSlide = () => {
     if (isTransitioning) return;
-    
+
     setIsTransitioning(true);
     const prevIndex = (activeIndex - 1 + displayEvents.length) % displayEvents.length;
-    
+
     setTimeout(() => {
       setActiveIndex(prevIndex);
       setIsTransitioning(false);
@@ -148,27 +146,27 @@ export const Hero: React.FC<HeroProps> = ({
   const navigateToEvents = () => {
     navigate('/events');
   };
-  
+
   // Handle search form submission
   const onSubmit = async (data: SearchFormValues) => {
     setIsSearching(true);
-    
+
     try {
       // Construct query parameters
       const params = new URLSearchParams();
       if (data.query) params.append('q', data.query);
       if (data.date) params.append('date', data.date);
       if (data.location) params.append('location', data.location);
-      
+
       // Navigate to events page with search params
       navigate({
         pathname: '/events',
         search: params.toString()
       });
-      
+
     } catch (error) {
       console.error('Search error:', error);
-      
+
       if (error instanceof Error) {
         setError('root', {
           type: 'server',
@@ -192,7 +190,7 @@ export const Hero: React.FC<HeroProps> = ({
     <div className="relative bg-gradient-to-r from-primary-800 to-primary-900 text-white overflow-hidden">
       {/* Background dots pattern */}
       <div className="absolute inset-0 bg-[url('/dots-pattern.svg')] opacity-20"></div>
-      
+
       <div className="container mx-auto px-4 py-16 md:py-24 lg:py-32 relative z-10">
         <div className="max-w-4xl mx-auto text-center mb-8">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
@@ -207,10 +205,10 @@ export const Hero: React.FC<HeroProps> = ({
                 {t('hero.browse', 'Browse Events')}
               </Button>
             </Link>
-            
+
             <Link to="/ipl-tickets">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-white text-white hover:bg-white/10 px-6 py-2.5 text-lg font-semibold relative focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary"
               >
                 {t('hero.iplTickets', 'IPL 2025 Tickets')}
@@ -221,14 +219,14 @@ export const Hero: React.FC<HeroProps> = ({
             </Link>
           </div>
         </div>
-        
+
         {/* Search bar */}
         <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 md:p-6 max-w-4xl mx-auto">
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-5 w-5 text-white/60" />
-                <Input 
+                <Input
                   {...register('query')}
                   placeholder={t('hero.search', 'Search events')}
                   className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-primary-300 focus-visible:ring-offset-0 h-12"
@@ -242,7 +240,7 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
               <div className="relative flex-1">
                 <Calendar className="absolute left-3 top-3 h-5 w-5 text-white/60" />
-                <Input 
+                <Input
                   {...register('date')}
                   placeholder={t('hero.when', 'When')}
                   className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-primary-300 focus-visible:ring-offset-0 h-12"
@@ -257,7 +255,7 @@ export const Hero: React.FC<HeroProps> = ({
               </div>
               <div className="relative flex-1">
                 <MapPin className="absolute left-3 top-3 h-5 w-5 text-white/60" />
-                <Input 
+                <Input
                   {...register('location')}
                   placeholder={t('hero.where', 'Where')}
                   className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus-visible:ring-primary-300 focus-visible:ring-offset-0 h-12"
@@ -269,7 +267,7 @@ export const Hero: React.FC<HeroProps> = ({
                   </div>
                 )}
               </div>
-              <Button 
+              <Button
                 type="submit"
                 className="h-12 px-6 focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 disabled={isSearching}
@@ -277,7 +275,7 @@ export const Hero: React.FC<HeroProps> = ({
                 {isSearching ? t('hero.searching', 'Searching...') : t('hero.find', 'Find Events')}
               </Button>
             </div>
-            
+
             {/* Form-level error */}
             {errors.root && (
               <div className="mt-2 text-red-300 text-sm flex items-center">

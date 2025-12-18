@@ -5,7 +5,52 @@
 
 @layer base {
   :root {
-    /* District Layout Colors - Defaulting to Dark/Premium feel even in light mode for consistency */
+    /* Light Mode - Clean, High Contrast */
+    --background: 210 40% 98%; /* Slate 50 */
+    --foreground: 222.2 84% 4.9%; /* Slate 950 */
+
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%; /* Blue 600 */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%; /* Slate 100 */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.75rem;
+
+    /* IPL Team Colors */
+    --color-csk: #F9CD05;
+    --color-mi: #004BA0;
+    --color-rcb: #EC1C24;
+    --color-kkr: #3A225D;
+    --color-gt: #1B2133;
+    --color-lsg: #3CF5FD;
+    --color-rr: #EA1A85;
+    --color-srh: #F7A721;
+    --color-pbks: #ED1B24;
+    --color-dc: #0076BF;
+  }
+
+  .dark {
+    /* Dark Mode - Rich, Deep Blue/Gray */
     --background: 222.2 84% 4.9%; /* Slate 950 */
     --foreground: 210 40% 98%;
 
@@ -33,39 +78,19 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
-
-    --radius: 0.75rem;
-
-    /* IPL Team Colors (Neon) */
-    --color-csk: #F9CD05;
-    --color-mi: #004BA0;
-    --color-rcb: #EC1C24;
-    --color-kkr: #3A225D;
-    --color-gt: #1B2133;
-    --color-lsg: #3CF5FD;
-    --color-rr: #EA1A85;
-    --color-srh: #F7A721;
-    --color-pbks: #ED1B24;
-    --color-dc: #0076BF;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    /* ... reuse root values since we are enforcing dark mode aesthetic */
   }
 
   body {
-    @apply bg-background text-foreground tracking-tight antialiased;
+    @apply bg-background text-foreground tracking-tight antialiased transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   .glass-card {
-    @apply bg-slate-900/40 backdrop-blur-md border border-white/10 shadow-xl;
+    @apply bg-white/70 dark:bg-slate-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xl;
   }
 
   .glass-button {
-    @apply bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/10 text-white transition-all duration-300;
+    @apply bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 backdrop-blur-sm border border-gray-200 dark:border-white/10 text-foreground transition-all duration-300;
   }
 
   .neon-text-glow {
@@ -78,7 +103,6 @@
     text-wrap: balance;
   }
 
-  /* Interactive hover effects for buttons and links */
   .hover-slide-right {
     @apply relative overflow-hidden;
   }

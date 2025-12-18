@@ -1,16 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useTheme } from '@/styles/ThemeProvider';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Datepicker } from '@/components/ui/datepicker';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Search, MapPin, X, Filter, Tag } from 'lucide-react';
-import { format, isValid, parseISO } from 'date-fns';
+import { useTheme } from '@/hooks/use-theme';
+import { Calendar as CalendarIcon, MapPin, Search, Tag, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface FilterBarProps {
   onFilterChange: (filters: FilterState) => void;
@@ -243,4 +240,4 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   );
 };
 
-export default FilterBar; 
+export default FilterBar;

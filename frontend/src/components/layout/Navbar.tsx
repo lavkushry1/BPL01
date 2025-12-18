@@ -21,9 +21,7 @@ const Navbar = () => {
 
   // Force dark mode for District theme consistency
   useEffect(() => {
-    if (theme !== 'dark') {
-      setTheme('dark');
-    }
+
   }, [theme, setTheme]);
 
   const toggleMenu = () => {
