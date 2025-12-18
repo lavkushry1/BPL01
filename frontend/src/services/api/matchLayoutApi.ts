@@ -1,56 +1,21 @@
 import { defaultApiClient } from './apiUtils';
 import { unwrapApiResponse } from './responseUtils';
 
-export type MatchSeatStatus =
-  | 'AVAILABLE'
-  | 'BOOKED'
-  | 'LOCKED'
-  | 'PENDING'
-  | 'RESERVED'
-  | 'SOLD'
-  | 'BLOCKED'
-  | 'MAINTENANCE';
-
-export interface MatchLayoutSeat {
-  id: string | null; // Match seat id (Seat.id) – null means not mapped for this match
-  stadiumSeatId: string;
-  label: string;
-  seatNumber: number;
-  status: MatchSeatStatus;
-  price: number;
-  currency: string;
-  lockExpiresAt: string | null;
-  lockedByMe: boolean;
-}
-
-export interface MatchLayoutRow {
-  id: string;
-  label: string;
-  seats: MatchLayoutSeat[];
-}
-
-export interface MatchLayoutStand {
+export interface LayoutStandSummary {
   id: string;
   code: string;
   name: string;
-  shortName: string | null;
   svgPath: string;
-  price: number | null;
-  currency: string;
-  availability: {
-    totalSeats: number;
-    availableSeats: number;
-    bookedSeats: number;
-    lockedSeats: number;
-    blockedSeats: number;
-    isSoldOut: boolean;
-  };
-  rows: MatchLayoutRow[];
+  minPrice: number | null;
+  maxPrice: number | null;
+  availableSeats: number;
+  totalSeats: number;
+  status: 'AVAILABLE' | 'SOLD_OUT' | 'FAST_FILLING';
 }
 
 export interface MatchLayoutResponse {
   matchId: string;
-  event: {
+  event?: {
     id: string;
     title: string;
     startDate: string;
@@ -59,22 +24,43 @@ export interface MatchLayoutResponse {
   stadium: {
     id: string;
     name: string;
-    city: string | null;
-    state: string | null;
-    capacity: number | null;
-    svgViewBox: string;
+    viewBox: string | null;
   };
-  stands: MatchLayoutStand[];
+  stands: LayoutStandSummary[];
   lockDurationSeconds: number;
   serverTime: string;
+}
+
+export interface ZoneSeatDetail {
+  id: string;
+  stadiumSeatId: string;
+  seatNumber: string;
+  rowLabel: string;
+  status: 'AVAILABLE' | 'BOOKED' | 'LOCKED' | 'SELECTED';
+  price: number;
+  type: string;
+  grid: {
+    row: number;
+    col: number;
+    x?: number;
+    y?: number;
+  };
+  lockExpiresAt?: string;
 }
 
 export const matchLayoutApi = {
   getMatchLayout: async (matchId: string, lockerId?: string): Promise<MatchLayoutResponse> => {
     const response = await defaultApiClient.get(`/matches/${matchId}/layout`, {
-      params: lockerId ? { lockerId } : undefined
+      params: lockerId ? { lockerId } : undefined,
     });
     return unwrapApiResponse<MatchLayoutResponse>(response);
+  },
+
+  getZoneSeats: async (matchId: string, zoneId: string, lockerId?: string): Promise<ZoneSeatDetail[]> => {
+    const response = await defaultApiClient.get(`/matches/${matchId}/zones/${zoneId}/seats`, {
+      params: lockerId ? { lockerId } : undefined,
+    });
+    return unwrapApiResponse<ZoneSeatDetail[]>(response) || [];
   },
 
   lockSeats: async (
@@ -105,4 +91,3 @@ export const matchLayoutApi = {
 };
 
 export default matchLayoutApi;
-

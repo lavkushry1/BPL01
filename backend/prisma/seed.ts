@@ -1,4 +1,4 @@
-import { BookingStatus, EventStatus, PaymentStatus, SeatStatus, UserRole } from '@prisma/client';
+import { BookingStatus, EventStatus, PaymentStatus, Prisma, SeatStatus, UserRole } from '@prisma/client';
 import { prisma } from '../src/db/prisma';
 
 async function main() {
@@ -70,6 +70,10 @@ async function main() {
     }
   });
 
+  type StadiumStandWithRows = Prisma.StadiumStandGetPayload<{
+    include: { rows: { include: { seats: true } } };
+  }>;
+
   const wankhedeStandTemplates = [
     {
       code: 'PAVILION',
@@ -140,44 +144,76 @@ async function main() {
   const rowLabels = ['A', 'B', 'C', 'D', 'E'];
   const seatsPerRow = 20;
 
-  const wankhedeStands = await Promise.all(
-    wankhedeStandTemplates.map(async (stand) => {
-      return prisma.stadiumStand.create({
-        data: {
-          stadiumId: wankhede.id,
-          code: stand.code,
-          name: stand.name,
-          shortName: stand.shortName,
-          svgPath: stand.svgPath,
-          sortOrder: stand.sortOrder,
-          capacity: rowLabels.length * seatsPerRow,
-          rows: {
-            create: rowLabels.map((label, rowIndex) => ({
-              label,
-              sortOrder: rowIndex + 1,
-              seats: {
-                create: Array.from({ length: seatsPerRow }, (_, seatIndex) => ({
-                  seatNumber: seatIndex + 1,
-                  label: `${label}${seatIndex + 1}`,
-                  sortOrder: seatIndex + 1,
-                  x: seatIndex + 1,
-                  y: rowIndex + 1
-                }))
-              }
-            }))
+  const createStadiumLayout = async (stadiumId: string): Promise<StadiumStandWithRows[]> => {
+    return Promise.all(
+      wankhedeStandTemplates.map(async (stand) => {
+        return prisma.stadiumStand.create({
+          data: {
+            stadiumId,
+            code: stand.code,
+            name: stand.name,
+            shortName: stand.shortName,
+            svgPath: stand.svgPath,
+            sortOrder: stand.sortOrder,
+            capacity: rowLabels.length * seatsPerRow,
+            rows: {
+              create: rowLabels.map((label, rowIndex) => ({
+                label,
+                sortOrder: rowIndex + 1,
+                seats: {
+                  create: Array.from({ length: seatsPerRow }, (_, seatIndex) => ({
+                    seatNumber: seatIndex + 1,
+                    label: `${label}${seatIndex + 1}`,
+                    sortOrder: seatIndex + 1,
+                    x: seatIndex + 1,
+                    y: rowIndex + 1
+                  }))
+                }
+              }))
+            }
+          },
+          include: {
+            rows: {
+              include: { seats: true },
+              orderBy: { sortOrder: 'asc' }
+            }
           }
-        },
-        include: {
-          rows: {
-            include: { seats: true },
-            orderBy: { sortOrder: 'asc' }
-          }
-        }
-      });
-    })
-  );
+        });
+      })
+    );
+  };
+
+  const stadiumStandsByStadiumId = new Map<string, StadiumStandWithRows[]>();
+
+  const wankhedeStands = await createStadiumLayout(wankhede.id);
+  stadiumStandsByStadiumId.set(wankhede.id, wankhedeStands);
 
   console.log(`Created stadium layout: ${wankhede.name} (${wankhedeStands.length} stands)`);
+
+  // Create a couple more stadium layouts so multiple IPL matches are bookable out-of-the-box.
+  const chepauk = await prisma.stadium.create({
+    data: {
+      name: 'M. A. Chidambaram Stadium',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      capacity: 50000,
+      svgViewBox: '0 0 500 400'
+    }
+  });
+  const chepaukStands = await createStadiumLayout(chepauk.id);
+  stadiumStandsByStadiumId.set(chepauk.id, chepaukStands);
+
+  const chinnaswamy = await prisma.stadium.create({
+    data: {
+      name: 'M. Chinnaswamy Stadium',
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      capacity: 40000,
+      svgViewBox: '0 0 500 400'
+    }
+  });
+  const chinnaswamyStands = await createStadiumLayout(chinnaswamy.id);
+  stadiumStandsByStadiumId.set(chinnaswamy.id, chinnaswamyStands);
 
   // Create UPI settings
   const upiSetting = await prisma.upiSettings.create({
@@ -269,6 +305,7 @@ async function main() {
       startDate: new Date('2025-05-21T19:30:00'),
       endDate: new Date('2025-05-21T23:00:00'),
       location: 'M.A. Chidambaram Stadium, Chennai',
+      stadiumId: chepauk.id,
       organizerId: admin.id,
       status: EventStatus.PUBLISHED,
       imageUrl: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=2067&auto=format&fit=crop',
@@ -285,6 +322,7 @@ async function main() {
       startDate: new Date('2025-05-22T19:30:00'),
       endDate: new Date('2025-05-22T23:00:00'),
       location: 'M. Chinnaswamy Stadium, Bengaluru',
+      stadiumId: chinnaswamy.id,
       organizerId: admin.id,
       status: EventStatus.PUBLISHED,
       imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2305&auto=format&fit=crop',
@@ -327,6 +365,7 @@ async function main() {
       startDate: new Date('2025-05-25T19:00:00'),
       endDate: new Date('2025-05-25T23:00:00'),
       location: 'M.A. Chidambaram Stadium, Chennai',
+      stadiumId: chepauk.id,
       organizerId: admin.id,
       status: EventStatus.PUBLISHED,
       imageUrl: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&w=2067&auto=format&fit=crop',
@@ -348,13 +387,13 @@ async function main() {
     });
     createdEvents.push(event);
 
-    const isWankhedeMatch = event.stadiumId === wankhede.id;
+    const stadiumStands = event.stadiumId ? stadiumStandsByStadiumId.get(event.stadiumId) : undefined;
 
-    if (isWankhedeMatch) {
+    if (stadiumStands && stadiumStands.length > 0) {
       // Create tier pricing per stand for this match via TicketCategory.stadiumStandId
       const standCategoryMap = new Map<string, { id: string; price: number }>();
 
-      for (const stand of wankhedeStands) {
+      for (const stand of stadiumStands) {
         const template = wankhedeStandTemplates.find(s => s.code === stand.code);
         const basePrice = template?.basePrice ?? 1999;
 
@@ -375,7 +414,7 @@ async function main() {
       // Create match seats by copying the stadium seat inventory into the seats table
       const matchSeatCreates: Parameters<typeof prisma.seat.createMany>[0]['data'] = [];
 
-      for (const stand of wankhedeStands) {
+      for (const stand of stadiumStands) {
         const category = standCategoryMap.get(stand.id);
         if (!category) continue;
 
@@ -399,7 +438,7 @@ async function main() {
       await prisma.seat.createMany({ data: matchSeatCreates });
 
       // Mark a few seats as booked/blocked to make the UI realistic
-      const pavilion = wankhedeStands.find(s => s.code === 'PAVILION');
+      const pavilion = stadiumStands.find(s => s.code === 'PAVILION');
       const pavilionRowA = pavilion?.rows.find(r => r.label === 'A');
       const demoSeatIds = pavilionRowA?.seats.slice(0, 5).map(s => s.id) ?? [];
 

@@ -53,6 +53,12 @@ beforeAll(async () => {
 
     request = supertest(app);
 
+    // Skip DB migration if requested (for unit tests)
+    if (process.env.SKIP_DB_SETUP === 'true') {
+      console.log('Skipping DB migration for unit tests');
+      return;
+    }
+
     // Run migrations to setup test database
     await db.migrate.latest();
   } catch (error) {
@@ -66,6 +72,10 @@ afterAll(async () => {
   // Close server
   if (server) {
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+
+  if (process.env.SKIP_DB_SETUP === 'true') {
+    return;
   }
 
   // Rollback migrations

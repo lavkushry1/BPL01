@@ -34,7 +34,7 @@ const SeatCart: React.FC<SeatCartProps> = ({ cart, onProceed }) => {
           onClick={onProceed}
           className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg shadow-blue-200 flex items-center gap-2 transition-all hover:scale-105"
         >
-          Proceed to Checkout
+          Proceed to Pay
           <ArrowRight className="w-5 h-5" />
         </button>
       </div>

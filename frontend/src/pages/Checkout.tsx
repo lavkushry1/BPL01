@@ -59,6 +59,7 @@ interface BookingData {
   venue: string;
   bannerImage?: string;
   seatIds?: string[];
+  lockerId?: string;
   teams?: {
     team1: { name: string; logo: string; primaryColor?: string };
     team2: { name: string; logo: string; primaryColor?: string };
@@ -97,7 +98,7 @@ const Checkout = () => {
   const [, setCurrentBookingId] = useState<string | null>(null);
 
   // Timer state
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
+  const [timeLeft, setTimeLeft] = useState(600); // default: 10 minutes
 
   // Timer logic
   useEffect(() => {
@@ -143,6 +144,9 @@ const Checkout = () => {
     if (savedBookingData) {
       const parsedBookingData = JSON.parse(savedBookingData);
       setBookingData(parsedBookingData);
+      if (Array.isArray(parsedBookingData?.seatIds) && parsedBookingData.seatIds.length > 0) {
+        setTimeLeft(300); // Seat lock TTL: 5 minutes
+      }
       // Set initial bookingId if available (might need adjustment based on actual flow)
       // setCurrentBookingId(parsedBookingData.bookingId || null);
     } else {
@@ -255,6 +259,7 @@ const Checkout = () => {
       const booking = await createBooking({
         eventId: bookingData.eventId,
         seatIds: bookingData.seatIds,
+        lockerId: bookingData.lockerId,
         tickets: bookingData.tickets.map(t => ({
           category: t.category,
           categoryId: t.categoryId,

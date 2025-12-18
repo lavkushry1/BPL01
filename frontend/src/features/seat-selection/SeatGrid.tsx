@@ -97,7 +97,7 @@ const SeatGrid: React.FC<SeatGridProps> = ({
                 {rows[rowKey].sort((a, b) => a.grid.col - b.grid.col).map(seat => (
                   <button
                     key={seat.id}
-                    disabled={seat.status !== 'AVAILABLE'}
+                    disabled={seat.status === 'BOOKED' || seat.status === 'LOCKED'}
                     onClick={() => onSeatClick(seat)}
                     className={`
                       w-8 h-8 rounded-t-md border-b-4 text-[10px] font-bold transition-all

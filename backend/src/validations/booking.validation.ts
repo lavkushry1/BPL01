@@ -4,6 +4,9 @@ export const createBookingSchema = z.object({
   body: z.object({
     event_id: z.string().min(1, 'Event ID is required'),
     seat_ids: z.array(z.string()).optional(),
+    // Optional locker id for guest seat locks (BookMyShow-like hold before login/checkout)
+    locker_id: z.string().min(3).optional(),
+    lockerId: z.string().min(3).optional(), // backward/forward compatibility
     tickets: z.array(z.object({
       categoryId: z.string(), // This maps to Section Name/ID
       quantity: z.number().positive(),

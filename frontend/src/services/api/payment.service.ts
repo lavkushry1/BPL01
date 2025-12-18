@@ -31,6 +31,7 @@ export interface BookingData {
   }[];
   seatIds?: string[];
   totalAmount: number;
+  lockerId?: string;
   customerInfo: {
     name: string;
     email: string;
@@ -79,6 +80,7 @@ export const createBooking = async (bookingData: BookingData): Promise<BookingRe
     const payload = {
       event_id: bookingData.eventId,
       seat_ids: bookingData.seatIds && bookingData.seatIds.length > 0 ? bookingData.seatIds : undefined,
+      locker_id: bookingData.lockerId,
       tickets: bookingData.tickets.map(t => ({
         categoryId: (t as any).categoryId || t.category,
         quantity: t.quantity,

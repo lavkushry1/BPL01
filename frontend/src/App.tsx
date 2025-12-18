@@ -153,7 +153,7 @@ const AnimatedRoutes = () => {
           </SafeTransition>
         } />
 
-        <Route path="/matches/:id" element={
+        <Route path="/matches/:matchId" element={
           <SafeTransition>
             <MatchSeatSelection />
           </SafeTransition>

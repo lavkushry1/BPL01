@@ -15,9 +15,10 @@ import { cancelBookingSchema, createBookingSchema, saveDeliveryDetailsSchema, up
 export const createBooking = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { body: validatedData } = createBookingSchema.parse({ body: req.body });
-    const { event_id, seat_ids, amount } = validatedData;
+    const { event_id, seat_ids, amount, locker_id, lockerId } = validatedData;
     let user_id = req.user?.id;
     const { guest_name, guest_email, guest_phone } = validatedData;
+    const seatLockerId = locker_id || lockerId;
 
     // Handle Guest User Creation or Lookup
     if (!user_id) {
@@ -110,6 +111,17 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
           if (
             seat.status === SeatStatus.LOCKED &&
             seat.locked_by === user_id &&
+            seat.lock_expires_at &&
+            new Date(seat.lock_expires_at).getTime() > now.getTime()
+          ) {
+            return false;
+          }
+
+          // Allow booking seats locked by the same guest locker (pre-login selection flow).
+          if (
+            seatLockerId &&
+            seat.status === SeatStatus.LOCKED &&
+            seat.locked_by === seatLockerId &&
             seat.lock_expires_at &&
             new Date(seat.lock_expires_at).getTime() > now.getTime()
           ) {

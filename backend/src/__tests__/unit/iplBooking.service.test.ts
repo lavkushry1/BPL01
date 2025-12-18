@@ -20,8 +20,7 @@ jest.mock('bcryptjs', () => ({
 }));
 
 jest.mock('@prisma/client', () => {
-  const mPrismaClient = {
-    $transaction: jest.fn((callback) => callback(mPrismaClient)),
+  const mPrismaClient: any = {
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -50,10 +49,14 @@ jest.mock('@prisma/client', () => {
       updateMany: jest.fn(),
     }
   };
+  
+  // Add transaction separately to avoid circular reference in initializer
+  mPrismaClient.$transaction = jest.fn((callback) => callback(mPrismaClient));
+
   return {
     PrismaClient: jest.fn(() => mPrismaClient),
     BookingStatus: { PENDING: 'PENDING', CONFIRMED: 'CONFIRMED', CANCELLED: 'CANCELLED' },
-    SeatStatus: { AVAILABLE: 'AVAILABLE', BOOKED: 'BOOKED', CANCELLED: 'CANCELLED' }, // Added CANCELLED here
+    SeatStatus: { AVAILABLE: 'AVAILABLE', BOOKED: 'BOOKED', CANCELLED: 'CANCELLED' },
     TicketStatus: { PENDING: 'PENDING', ACTIVE: 'ACTIVE', CANCELLED: 'CANCELLED' }
   };
 });
