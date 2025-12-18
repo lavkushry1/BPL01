@@ -128,7 +128,7 @@ const DeliveryDetails = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="mb-6 p-4 bg-gray-50 rounded-md">
+                <div className="mb-6 p-4 bg-white/5 border border-[var(--district-border)] rounded-md">
                   <h3 className="font-semibold mb-2">{t('checkout.orderSummary')}</h3>
                   <div className="flex justify-between mb-2">
                     <span className="text-gray-600">{t('checkout.event')}:</span>

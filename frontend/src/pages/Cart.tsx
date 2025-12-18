@@ -105,10 +105,10 @@ const Cart = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               {cartItems.map((item) => (
-                <Card key={item.eventId} className="overflow-hidden">
+                <Card key={item.eventId} className="overflow-hidden district-panel border border-[var(--district-border)]">
                   <div className="flex flex-col md:flex-row">
                     {item.eventImage && (
-                      <div className="w-full md:w-1/3 bg-gray-100">
+                      <div className="w-full md:w-1/3 bg-white/10">
                         <img 
                           src={item.eventImage} 
                           alt={item.eventTitle} 
@@ -121,7 +121,7 @@ const Cart = () => {
                     <div className="flex-1 p-6">
                       <h2 className="text-xl font-bold mb-2">{item.eventTitle}</h2>
                       
-                      <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-4">
+                      <div className="flex flex-wrap gap-3 text-sm text-[var(--district-muted)] mb-4">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1 opacity-70" />
                           <span>{item.eventDate}</span>
@@ -141,7 +141,7 @@ const Cart = () => {
                           <div key={ticket.id} className="flex justify-between items-center">
                             <div>
                               <div className="font-medium">{ticket.name}</div>
-                              <div className="text-sm text-gray-600">
+                              <div className="text-sm text-[var(--district-muted)]">
                                 {ticket.kind === 'seat'
                                   ? formatCurrency(ticket.price)
                                   : `${formatCurrency(ticket.price)} x ${ticket.quantity}`
@@ -274,13 +274,13 @@ const Cart = () => {
           </div>
         ) : (
           <div className="text-center py-16 max-w-md mx-auto">
-            <div className="bg-gray-100 inline-flex items-center justify-center rounded-full p-6 mb-6">
-              <ShoppingCart className="h-12 w-12 text-gray-400" />
+            <div className="bg-white/10 inline-flex items-center justify-center rounded-full p-6 mb-6 border border-[var(--district-border)]">
+              <ShoppingCart className="h-12 w-12 text-[var(--district-muted)]" />
             </div>
             <h2 className="text-2xl font-bold mb-4">
               {t('cart.emptyCart', 'Your cart is empty')}
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-[var(--district-muted)] mb-6">
               {t('cart.emptyCartMessage', 'Looks like you haven\'t added any events to your cart yet.')}
             </p>
             <Button 

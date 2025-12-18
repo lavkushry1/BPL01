@@ -671,9 +671,9 @@ const Checkout = () => {
             </div>
 
             <div className="md:col-span-1">
-              <Card className="sticky top-28 border-0 shadow-lg">
-                <CardHeader className="bg-gray-900 text-white rounded-t-xl py-4">
-                  <CardTitle className="text-lg">{t('checkout.orderSummary')}</CardTitle>
+              <Card className="sticky top-28 border border-[var(--district-border)] shadow-xl district-panel">
+                <CardHeader className="rounded-t-xl py-4 border-b border-[var(--district-border)] bg-white/5">
+                  <CardTitle className="text-lg text-[var(--district-text)]">{t('checkout.orderSummary')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">
                   {bookingData.bannerImage ? (
@@ -704,15 +704,15 @@ const Checkout = () => {
                     <h3 className="font-bold text-lg mb-1">{bookingData.eventTitle}</h3>
                     <div className="space-y-2 mt-3">
                       <div className="text-sm text-[var(--district-text)] flex items-center p-2 bg-white/5 rounded border border-[var(--district-border)]">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-500" />
+                        <Calendar className="w-4 h-4 mr-2 text-[var(--district-accent)]" />
                         {bookingData.eventDate}
                       </div>
                       <div className="text-sm text-[var(--district-text)] flex items-center p-2 bg-white/5 rounded border border-[var(--district-border)]">
-                        <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                        <Clock className="w-4 h-4 mr-2 text-[var(--district-accent)]" />
                         {bookingData.eventTime}
                       </div>
                       <div className="text-sm text-[var(--district-text)] flex items-center p-2 bg-white/5 rounded border border-[var(--district-border)]">
-                        <MapPin className="w-4 h-4 mr-2 text-blue-500" />
+                        <MapPin className="w-4 h-4 mr-2 text-[var(--district-accent)]" />
                         <span className="truncate">{bookingData.venue}</span>
                       </div>
                     </div>
