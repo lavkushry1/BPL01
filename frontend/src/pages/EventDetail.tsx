@@ -38,11 +38,10 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { ArrowLeft, Calendar, Loader2Icon, MapPin, MinusIcon, PlusIcon, ShoppingCart, Tag, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Loader2Icon, MapPin, MinusIcon, PlusIcon, ShoppingCart, Tag, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { EventInfo } from '../components/events/EventInfo';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { useCart } from '../hooks/useCart';
 
@@ -122,11 +121,26 @@ interface CartItem {
   totalAmount: number;
 }
 
+// Local component for sidebar summary rows
+const EventSummaryRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string | number }) => (
+  <div className="flex items-start gap-3">
+    <div className="mt-1">{icon}</div>
+    <div>
+      <div className="text-sm font-medium text-muted-foreground">{label}</div>
+      <div className="font-medium">{value}</div>
+    </div>
+  </div>
+);
+
 const EventDetail = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+
+  useEffect(() => {
+    console.log('EventDetail Component Mounted - Version 1.0.5 - Fix applied');
+  }, []);
 
   // State
   const [event, setEvent] = useState<DisplayEvent | null>(null);
@@ -367,9 +381,6 @@ const EventDetail = () => {
     }
   };
 
-  const handleSeatSelect = (seats: DisplaySeat[]) => {
-    setSelectedSeats(seats);
-  };
 
   const handleTicketChange = (ticketId: string, quantity: number) => {
     setSelectedTickets(prevSelectedTickets => {
@@ -884,7 +895,7 @@ const EventDetail = () => {
                     <CardTitle className="text-xl">{t('eventDetail.summary')}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <EventInfo
+                        <EventSummaryRow
                       icon={<Calendar className="h-5 w-5 text-muted-foreground" />}
                       label={t('eventDetail.dateAndTime')}
                       value={`${event.date} at ${event.time}`}
@@ -892,7 +903,7 @@ const EventDetail = () => {
 
                     <Separator />
 
-                    <EventInfo
+                        <EventSummaryRow
                       icon={<MapPin className="h-5 w-5 text-muted-foreground" />}
                       label={t('eventDetail.venue')}
                       value={event.venue}
@@ -901,7 +912,7 @@ const EventDetail = () => {
                     {event.category && (
                       <>
                         <Separator />
-                        <EventInfo
+                            <EventSummaryRow
                           icon={<Tag className="h-5 w-5 text-muted-foreground" />}
                           label={t('eventDetail.category')}
                           value={event.category}
@@ -911,7 +922,7 @@ const EventDetail = () => {
 
                     <Separator />
 
-                    <EventInfo
+                        <EventSummaryRow
                       icon={<Users className="h-5 w-5 text-muted-foreground" />}
                       label={t('eventDetail.tickets')}
                       value={hasAnySelection
