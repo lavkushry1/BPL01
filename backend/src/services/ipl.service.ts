@@ -325,8 +325,7 @@ export class IplService {
     let tierFilter = {};
     if (standId) {
       const stand = await prisma.iplStand.findUnique({ where: { id: standId } });
-      if (stand) {
-        tierFilter = { tier: stand.code };
+      tierFilter = { section: { equals: stand.type || stand.name, mode: 'insensitive' } };
       }
     }
 
