@@ -76,23 +76,23 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen district-shell">
       <Navbar />
 
-      <main className="flex-grow pt-16 bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+      <main className="flex-grow pt-16 flex items-center justify-center">
+        <div className="w-full max-w-md p-8 district-panel rounded-xl shadow-xl border border-[var(--district-border)]">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-primary/10 dark:bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-8 w-8 text-primary dark:text-primary" />
+            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-[var(--district-border)]">
+              <Shield className="h-8 w-8 text-[var(--district-accent)]" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Login</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to access the admin dashboard</p>
+            <h1 className="text-2xl font-bold text-[var(--district-text)]">Admin Login</h1>
+            <p className="text-[var(--district-muted)] mt-2">Sign in to access the admin dashboard</p>
           </div>
 
           <form onSubmit={handleLogin}>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--district-text)] mb-2">
                   Email Address
                 </label>
                 <Input
@@ -100,12 +100,12 @@ const AdminLogin = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@example.com"
-                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="w-full bg-white/5 text-[var(--district-text)] border-[var(--district-border)]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-[var(--district-text)] mb-2">
                   Password
                 </label>
                 <Input
@@ -113,7 +113,7 @@ const AdminLogin = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  className="w-full bg-white/5 text-[var(--district-text)] border-[var(--district-border)]"
                 />
               </div>
 
@@ -126,7 +126,7 @@ const AdminLogin = () => {
                   />
                   <label
                     htmlFor="remember"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-[var(--district-text)]"
                   >
                     Remember this device
                   </label>
@@ -134,7 +134,7 @@ const AdminLogin = () => {
 
                 <a
                   href="#"
-                  className="text-sm text-primary hover:underline dark:text-primary"
+                  className="text-sm text-[var(--district-accent)] hover:underline"
                 >
                   Forgot password?
                 </a>
@@ -142,7 +142,7 @@ const AdminLogin = () => {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full district-button-primary"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -160,8 +160,8 @@ const AdminLogin = () => {
             </div>
           </form>
 
-          <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="mt-8 border-t border-[var(--district-border)] pt-6 text-center">
+            <p className="text-sm text-[var(--district-muted)]">
               Need help? Contact system administrator
             </p>
           </div>

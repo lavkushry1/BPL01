@@ -245,12 +245,12 @@ const AdminEventManagement = () => {
     <div className="flex min-h-screen flex-col">
       <Navbar />
 
-      <main className="flex-grow bg-gray-50 pt-16 pb-12">
+      <main className="flex-grow pt-16 pb-12 district-shell">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">IPL Event Management</h1>
-              <p className="text-gray-600 mt-1">Add, edit, or delete IPL matches and events</p>
+              <h1 className="text-3xl font-bold text-[var(--district-text)]">IPL Event Management</h1>
+              <p className="text-[var(--district-muted)] mt-1">Add, edit, or delete IPL matches and events</p>
             </div>
             <Button onClick={handleAddMatch} className="mt-4 md:mt-0 flex items-center">
               <Plus className="h-4 w-4 mr-2" />
@@ -265,9 +265,9 @@ const AdminEventManagement = () => {
           ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {matches.map((match) => (
-                  <Card key={match.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                    <CardHeader className="bg-primary/5 pb-2">
-                      <CardTitle className="text-xl">{match.title}</CardTitle>
+                  <Card key={match.id} className="overflow-hidden hover:shadow-xl transition-shadow district-panel border border-[var(--district-border)]">
+                    <CardHeader className="bg-white/5 pb-2 border-b border-[var(--district-border)]">
+                      <CardTitle className="text-xl text-[var(--district-text)]">{match.title}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-4">
                       <div className="space-y-3">
@@ -281,26 +281,26 @@ const AdminEventManagement = () => {
                             {match.teams?.team2?.shortName || 'T2'}
                           </span>
                         </div>
-                        <div className="text-gray-500 font-medium">
+                        <div className="text-[var(--district-muted)] font-medium">
                           {new Date(match.start_date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                         </div>
                       </div>
-                      <div className="flex items-center text-gray-700">
-                        <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                      <div className="flex items-center text-[var(--district-text)]">
+                        <MapPin className="h-4 w-4 mr-2 text-[var(--district-accent)]" />
                         {match.venue}
                       </div>
-                      <div className="flex items-center text-gray-700">
-                        <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                      <div className="flex items-center text-[var(--district-text)]">
+                        <Clock className="h-4 w-4 mr-2 text-[var(--district-accent)]" />
                         {match.time}
                       </div>
-                      <div className="flex items-center text-gray-700">
-                        <Tag className="h-4 w-4 mr-2 text-gray-400" />
+                      <div className="flex items-center text-[var(--district-text)]">
+                        <Tag className="h-4 w-4 mr-2 text-[var(--district-accent)]" />
                         Tickets from ₹{match.ticketTypes && match.ticketTypes.length > 0 ? Math.min(...match.ticketTypes.map(type => type.price)) : 'N/A'}
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="flex justify-between border-t bg-muted/20 px-6 py-3">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditMatch(match)}>
+                  <CardFooter className="flex justify-between border-t border-[var(--district-border)] bg-white/5 px-6 py-3">
+                    <Button variant="ghost" size="sm" className="text-[var(--district-text)]" onClick={() => handleEditMatch(match)}>
                       <Edit className="h-4 w-4 mr-1" />
                       Edit
                     </Button>
