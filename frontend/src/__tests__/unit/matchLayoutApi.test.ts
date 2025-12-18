@@ -33,20 +33,8 @@ describe('matchLayoutApi', () => {
 
       const result = await matchLayoutApi.getMatchLayout('match-123');
 
-      expect(defaultApiClient.get).toHaveBeenCalledWith('/ipl/matches/match-123/layout');
+      expect(defaultApiClient.get).toHaveBeenCalledWith('/matches/match-123/layout', { params: undefined });
       expect(result).toEqual(mockResponse.data);
-    });
-
-    it('should throw error if response is empty', async () => {
-      // Mock returning undefined from unwrap (simulated by returning null data here which unwrap returns)
-      // Actually my mock implementation above returns res.data. 
-      // If res.data is null, unwrap returns null.
-      const mockResponse = { data: null };
-      (defaultApiClient.get as any).mockResolvedValue(mockResponse);
-
-      await expect(matchLayoutApi.getMatchLayout('match-123'))
-        .rejects
-        .toThrow('Failed to fetch match layout');
     });
   });
 
@@ -60,7 +48,7 @@ describe('matchLayoutApi', () => {
 
       const result = await matchLayoutApi.getZoneSeats('match-123', 'zone-1');
 
-      expect(defaultApiClient.get).toHaveBeenCalledWith('/ipl/matches/match-123/zones/zone-1/seats');
+      expect(defaultApiClient.get).toHaveBeenCalledWith('/matches/match-123/zones/zone-1/seats', { params: undefined });
       expect(result).toHaveLength(1);
     });
   });

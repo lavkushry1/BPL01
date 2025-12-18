@@ -26,13 +26,14 @@ describe('Seat Selection Components', () => {
       expect(stands).toHaveLength(3);
 
       // Check Available (Standard Green)
-      expect(stands[0]).toHaveAttribute('fill', '#10B981'); 
+      expect(stands[0]).toHaveAttribute('fill', '#22C55E'); 
       
       // Check Sold Out (Gray)
       expect(stands[1]).toHaveAttribute('fill', '#D1D5DB');
 
-      // Check Fast Filling (Amber)
-      expect(stands[2]).toHaveAttribute('fill', '#FCD34D');
+      // Check Fast Filling (price bucket fill + orange border)
+      expect(stands[2]).toHaveAttribute('fill', '#8B5CF6');
+      expect(stands[2]).toHaveAttribute('stroke', '#F97316');
     });
 
     it('should handle click events on stands', () => {
@@ -51,7 +52,7 @@ describe('Seat Selection Components', () => {
 
     it('should display correct tooltips/titles', () => {
       render(<StadiumMap layout={mockLayout} onStandClick={onStandClick} />);
-      expect(screen.getByText('North | Starts at ₹500')).toBeInTheDocument();
+      expect(screen.getByText('North | Starts at ₹500 | Available')).toBeInTheDocument();
       expect(screen.getByText('South | Sold Out')).toBeInTheDocument();
     });
   });
@@ -130,7 +131,7 @@ describe('Seat Selection Components', () => {
 
     it('should trigger proceed action', () => {
       render(<SeatCart cart={mockCart} onProceed={onProceed} />);
-      fireEvent.click(screen.getByText(/Proceed to Checkout/i));
+      fireEvent.click(screen.getByText(/Proceed to Pay/i));
       expect(onProceed).toHaveBeenCalled();
     });
   });
