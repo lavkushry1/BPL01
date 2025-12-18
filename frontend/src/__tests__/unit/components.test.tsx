@@ -87,20 +87,21 @@ describe('Seat Selection Components', () => {
       const buttons = screen.getAllByRole('button');
       // Total 4 seats
       
-      // A1 (Available) -> White/Blue hover
-      expect(buttons[0]).toHaveClass('bg-white'); 
+      // A1 (Available)
+      expect(buttons[0]).toHaveAttribute('data-status', 'AVAILABLE');
+      expect(buttons[0]).toHaveClass('district-seat'); 
       
       // A2 (Booked) -> Gray, Disabled
       expect(buttons[1]).toBeDisabled();
-      expect(buttons[1]).toHaveClass('bg-gray-200');
+      expect(buttons[1]).toHaveAttribute('data-status', 'BOOKED');
 
       // A3 (Locked) -> Red, Disabled (via class logic check, button disabled prop might differ if logic says so)
-      // Logic in component: disabled={seat.status !== 'AVAILABLE'} -> Locked is not available.
       expect(buttons[2]).toBeDisabled();
-      expect(buttons[2]).toHaveClass('bg-red-100');
+      expect(buttons[2]).toHaveAttribute('data-status', 'LOCKED');
 
-      // B1 (Selected) -> Green
-      expect(buttons[3]).toHaveClass('bg-green-500');
+      // B1 (Selected) -> Selected class applied
+      expect(buttons[3]).toHaveAttribute('data-status', 'AVAILABLE');
+      expect(buttons[3]).toHaveClass('selected');
     });
 
     it('should trigger click for available seats', () => {

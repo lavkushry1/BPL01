@@ -219,6 +219,168 @@ button {
   border-width: 0;
 }
 
+/* District-inspired dual theme (light/dark) for stadium + seat selection */
+.district-theme {
+  --district-bg: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.08), transparent 28%), linear-gradient(135deg, #0f172a, #111827);
+  --district-panel: rgba(17, 24, 39, 0.78);
+  --district-panel-strong: rgba(10, 14, 26, 0.88);
+  --district-border: rgba(148, 163, 184, 0.18);
+  --district-text: #e2e8f0;
+  --district-muted: #94a3b8;
+  --district-accent: #22d3ee;
+  --district-accent-strong: #a855f7;
+  --district-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  --district-seat-available: linear-gradient(135deg, #0ea5e9, #22d3ee);
+  --district-seat-selected: linear-gradient(135deg, #10b981, #22c55e);
+  --district-seat-booked: #1f2937;
+  --district-seat-locked: linear-gradient(135deg, #ef4444, #f97316);
+  --district-glow: 0 0 0 1px rgba(34, 211, 238, 0.25), 0 12px 40px rgba(34, 211, 238, 0.12);
+  color: var(--district-text);
+}
+
+.district-theme.district-light {
+  --district-bg: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.06), transparent 28%), radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.12), transparent 30%), linear-gradient(135deg, #f8fafc, #e0f2fe);
+  --district-panel: rgba(255, 255, 255, 0.82);
+  --district-panel-strong: rgba(255, 255, 255, 0.92);
+  --district-border: rgba(15, 23, 42, 0.08);
+  --district-text: #0f172a;
+  --district-muted: #475569;
+  --district-accent: #6366f1;
+  --district-accent-strong: #0ea5e9;
+  --district-seat-available: linear-gradient(135deg, #3b82f6, #22d3ee);
+  --district-seat-booked: #e2e8f0;
+  --district-seat-locked: linear-gradient(135deg, #f97316, #f59e0b);
+  --district-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+}
+
+.district-shell {
+  min-height: 100vh;
+  background: var(--district-bg);
+  color: var(--district-text);
+  transition: background 0.5s ease, color 0.3s ease;
+}
+
+.district-panel {
+  background: var(--district-panel);
+  border: 1px solid var(--district-border);
+  box-shadow: var(--district-shadow);
+  backdrop-filter: blur(16px);
+  border-radius: 18px;
+}
+
+.district-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  background: var(--district-panel-strong);
+  border: 1px solid var(--district-border);
+  color: var(--district-text);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.district-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--district-glow);
+}
+
+.district-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.35rem 0.75rem;
+}
+
+.district-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 12px;
+  background: var(--district-panel-strong);
+  border: 1px solid var(--district-border);
+  font-weight: 600;
+  color: var(--district-muted);
+}
+
+.district-seat {
+  border-radius: 10px;
+  border: 1px solid var(--district-border);
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.district-seat.available {
+  background: var(--district-seat-available);
+  color: #0b132a;
+}
+
+.district-seat.booked {
+  background: var(--district-seat-booked);
+  color: var(--district-muted);
+}
+
+.district-seat.locked {
+  background: var(--district-seat-locked);
+  color: #0b0b0b;
+}
+
+.district-seat.selected {
+  background: var(--district-seat-selected);
+  color: #022c1f;
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
+}
+
+.district-seat:not(:disabled):hover {
+  transform: translateY(-1px) scale(1.02);
+  filter: brightness(1.05);
+}
+
+.district-seat:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+.district-cart {
+  background: var(--district-panel-strong);
+  border-top: 1px solid var(--district-border);
+  box-shadow: 0 -18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.district-button-primary {
+  background: linear-gradient(135deg, var(--district-accent), var(--district-accent-strong));
+  color: #0b1224;
+  font-weight: 800;
+  border: none;
+  border-radius: 12px;
+  padding: 0.9rem 1.6rem;
+  box-shadow: 0 15px 40px rgba(99, 102, 241, 0.28);
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.district-button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 45px rgba(99, 102, 241, 0.34);
+}
+
+.district-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--district-border);
+  background: var(--district-panel-strong);
+  color: var(--district-muted);
+}
+
 /* Responsive breakpoints */
 @media (max-width: 640px) {
   .container {

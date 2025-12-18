@@ -1,6 +1,7 @@
 import { useToast } from '@/hooks/use-toast';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { MoonStar, SunMedium, Sparkles } from 'lucide-react';
 import matchLayoutApi, {
   LayoutStandSummary,
   MatchLayoutResponse,
@@ -39,6 +40,14 @@ const SeatSelectionContainer: React.FC = () => {
   const [cart, setCart] = useState<ZoneSeatDetail[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('district_theme') : null;
+    if (stored === 'light' || stored === 'dark') return stored;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  });
 
   const refreshZoneSeats = async (zoneId: string) => {
     if (!matchId) return;
@@ -131,6 +140,12 @@ const SeatSelectionContainer: React.FC = () => {
     setSelectedStand(null);
     setSeatData([]);
   };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('district_theme', theme);
+    }
+  }, [theme]);
 
   const updateSeatStatus = (seatId: string, status: ZoneSeatDetail['status']) => {
     setSeatData((prev) => prev.map((s) => (s.id === seatId ? { ...s, status } : s)));
@@ -226,38 +241,75 @@ const SeatSelectionContainer: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-screen bg-gray-50">
-      <header className="bg-white shadow p-4 z-10">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-800">
-            {layoutData?.stadium.name || 'Stadium'} - {step === 1 ? 'Select Stand' : 'Select Seats'}
-          </h1>
-          {step === 2 && (
-            <button
-              onClick={handleBackToMap}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              &larr; Back to Stadium
-            </button>
+    <div className={`district-theme ${theme === 'dark' ? 'district-dark' : 'district-light'}`}>
+      <div className="district-shell flex flex-col min-h-screen">
+        <header className="district-panel p-4 sm:p-5 shadow z-10 mx-auto mt-4 mb-2 w-[min(1100px,95vw)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-black/10 border border-white/10">
+                <Sparkles className="w-5 h-5 text-cyan-300" />
+              </div>
+              <div>
+                <p className="uppercase tracking-[0.18em] text-xs text-[var(--district-muted)] font-semibold">
+                  District Mode
+                </p>
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+                  {layoutData?.stadium.name || 'Stadium'} · {step === 1 ? 'Pick Your Stand' : 'Pick Your Seats'}
+                </h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {step === 2 && (
+                <button
+                  onClick={handleBackToMap}
+                  className="district-chip whitespace-nowrap"
+                >
+                  ← Back to Stadium
+                </button>
+              )}
+              <button
+                onClick={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                className="district-chip"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? <SunMedium className="w-4 h-4" /> : <MoonStar className="w-4 h-4" />}
+                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              </button>
+            </div>
+          </div>
+          {layoutData && (
+            <div className="mt-3 flex flex-wrap gap-2 text-sm text-[var(--district-muted)]">
+              <span className="district-badge">{layoutData.event?.title || 'IPL Match'}</span>
+              <span className="district-badge">{layoutData.event?.location || layoutData.stadium.name}</span>
+              <span className="district-badge">
+                {layoutData.stands.length} stands · Lazy-loaded seats · 5m locks
+              </span>
+            </div>
           )}
-        </div>
-      </header>
+        </header>
 
-      <main className="flex-1 overflow-hidden relative">
-        {step === 1 && layoutData ? (
-          <StadiumMap layout={layoutData} onStandClick={handleStandClick} />
-        ) : step === 2 ? (
-          <SeatGrid
-            seats={seatData}
-            selectedStand={selectedStand}
-            cart={cart}
-            onSeatClick={handleSeatClick}
-            loading={loading}
-          />
-        ) : null}
-      </main>
+        <main className="flex-1 overflow-hidden relative pb-24">
+          <div className="mx-auto w-[min(1100px,95vw)]">
+            {step === 1 && layoutData ? (
+              <div className="district-panel p-4 sm:p-6">
+                <StadiumMap layout={layoutData} onStandClick={handleStandClick} />
+              </div>
+            ) : step === 2 ? (
+              <div className="district-panel p-0 overflow-hidden">
+                <SeatGrid
+                  seats={seatData}
+                  selectedStand={selectedStand}
+                  cart={cart}
+                  onSeatClick={handleSeatClick}
+                  loading={loading}
+                />
+              </div>
+            ) : null}
+          </div>
+        </main>
 
-      {cart.length > 0 && <SeatCart cart={cart} onProceed={handleProceed} />}
+        {cart.length > 0 && <SeatCart cart={cart} onProceed={handleProceed} />}
+      </div>
     </div>
   );
 };

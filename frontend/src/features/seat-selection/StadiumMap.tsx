@@ -29,19 +29,21 @@ const StadiumMap: React.FC<StadiumMapProps> = ({ layout, onStandClick }) => {
   const formatPrice = (value: number | null) => (value === null ? '—' : `₹${value.toLocaleString('en-IN')}`);
 
   return (
-    <div className="relative flex flex-col items-center justify-center p-4 w-full h-full bg-white rounded-lg shadow-inner overflow-auto">
-      <div className="mb-6 text-center">
-        <h2 className="text-2xl font-semibold text-gray-700">Select a Stand</h2>
-        <p className="text-sm text-gray-500">Hover to see prices, click to zoom in</p>
-      </div>
-
+    <div className="relative flex flex-col items-center justify-center p-2 sm:p-4 w-full h-full overflow-auto">
       <div className="relative w-full max-w-4xl aspect-square lg:aspect-video">
         <svg 
           viewBox={stadium.viewBox || "0 0 1000 1000"} 
-          className="w-full h-full drop-shadow-md"
+          className="w-full h-full drop-shadow-xl"
           preserveAspectRatio="xMidYMid meet"
         >
-          {/* Background / Field Placeholder if needed */}
+          <defs>
+            <radialGradient id="fieldGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="rgba(34,211,238,0.35)" />
+              <stop offset="100%" stopColor="rgba(34,211,238,0)" />
+            </radialGradient>
+          </defs>
+
+          <circle cx="500" cy="500" r="180" fill="url(#fieldGlow)" opacity="0.6" />
           <circle cx="500" cy="500" r="150" fill="#4ADE80" opacity="0.2" />
           
           {stands.map((stand) => (
@@ -69,7 +71,7 @@ const StadiumMap: React.FC<StadiumMapProps> = ({ layout, onStandClick }) => {
         </svg>
 
         {/* Legend */}
-        <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur p-3 rounded-md shadow text-xs space-y-2 border border-gray-200">
+        <div className="absolute bottom-4 right-4 district-panel px-4 py-3 text-xs space-y-2 border border-[var(--district-border)] shadow-lg">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full border-2 border-orange-500 bg-white"></div>
             <span>Fast filling</span>
@@ -99,14 +101,14 @@ const StadiumMap: React.FC<StadiumMapProps> = ({ layout, onStandClick }) => {
 
       {tooltip && (
         <div
-          className="pointer-events-none fixed z-50 rounded-lg border border-gray-200 bg-white/95 px-3 py-2 text-xs shadow-lg backdrop-blur"
+          className="pointer-events-none fixed z-50 rounded-lg border border-[var(--district-border)] bg-[var(--district-panel)] px-3 py-2 text-xs shadow-lg backdrop-blur"
           style={{ left: tooltip.x + 12, top: tooltip.y + 12 }}
           role="tooltip"
         >
-          <div className="font-semibold text-gray-900">{tooltip.stand.name}</div>
-          <div className="text-gray-600">
+          <div className="font-semibold">{tooltip.stand.name}</div>
+          <div className="text-[var(--district-muted)]">
             Price: {formatPrice(tooltip.stand.minPrice)}{' '}
-            <span className="text-gray-300">|</span>{' '}
+            <span className="text-[var(--district-muted)]">|</span>{' '}
             {tooltip.stand.status === 'SOLD_OUT' ? 'Sold Out' : 'Available'}
           </div>
         </div>

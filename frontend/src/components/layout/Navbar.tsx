@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useTheme } from '@/hooks/use-theme';
 import useAuth from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -18,11 +19,6 @@ const Navbar = () => {
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
-
-  // Force dark mode for District theme consistency
-  useEffect(() => {
-
-  }, [theme, setTheme]);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
